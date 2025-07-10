@@ -1,0 +1,4 @@
+name: YLib
+version: '${version}'
+main: cn.yvmou.ylib.YLib
+api-version: '1.21'
