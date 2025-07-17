@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.utils;
 
-import cn.yvmou.ylib.YLib;
+import cn.yvmou.ylib.JavaPluginR.YLibHolder;
 import com.tcoded.folialib.enums.EntityTaskResult;
 import com.tcoded.folialib.wrapper.task.WrappedTask;
 import org.bukkit.Bukkit;
@@ -28,7 +28,8 @@ public class SchedulerUtils {
      * @return 如果服务器运行在 Folia 环境下返回 true，否则返回 false。
      */
     public static boolean isFolia() {
-        return YLib.getFoliaLib().isFolia();
+        // 这里假设YLib实例已通过插件生命周期管理好
+        return YLibHolder.getYLib().getFoliaLib().isFolia();
     }
 
     /**
@@ -41,20 +42,20 @@ public class SchedulerUtils {
      * @return 任务的封装结果
      */
     public static UniversalTask runTask(Plugin plugin, Runnable runnable, Entity entity, Location location) {
-        if (YLib.getFoliaLib().isFolia()) {
-            if (!entity.isEmpty()) {
-                CompletableFuture<EntityTaskResult> task = YLib.getFoliaLib().getScheduler().runAtEntity(entity, wrappedTask -> runnable.run());
+        if (isFolia()) {
+            if (entity != null) {
+                CompletableFuture<EntityTaskResult> task = YLibHolder.getYLib().getFoliaLib().getScheduler().runAtEntity(entity, wrappedTask -> runnable.run());
                 return new UniversalTask(null, null, task, -1);
             } else if (location != null) {
-                CompletableFuture<Void> task = YLib.getFoliaLib().getScheduler().runAtLocation(location, wrappedTask -> runnable.run());
+                CompletableFuture<Void> task = YLibHolder.getYLib().getFoliaLib().getScheduler().runAtLocation(location, wrappedTask -> runnable.run());
                 return new UniversalTask(null, null, task, -1);
             } else {
-                CompletableFuture<Void> task = YLib.getFoliaLib().getScheduler().runNextTick(wrappedTask -> runnable.run());
+                CompletableFuture<Void> task = YLibHolder.getYLib().getFoliaLib().getScheduler().runNextTick(wrappedTask -> runnable.run());
                 return new UniversalTask(null, null, task, -1);
             }
         } else {
-            BukkitTask task = Bukkit.getScheduler().runTask(plugin, runnable);
-            return new UniversalTask(task, null, null, -1);
+            Bukkit.getScheduler().runTask(plugin, runnable);
+            return new UniversalTask(null, null, null, -1);
         }
     }
 
@@ -66,8 +67,8 @@ public class SchedulerUtils {
      * @return 任务的封装结果
      */
     public static UniversalTask runTaskAsynchronously(Plugin plugin, Runnable runnable) {
-        if (YLib.getFoliaLib().isFolia()) {
-            CompletableFuture<Void> task = YLib.getFoliaLib().getScheduler().runAsync(wrappedTask -> runnable.run());
+        if (isFolia()) {
+            CompletableFuture<Void> task = YLibHolder.getYLib().getFoliaLib().getScheduler().runAsync(wrappedTask -> runnable.run());
             return new UniversalTask(null, null, task, -1);
         } else {
             BukkitTask task = Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable);
@@ -86,14 +87,14 @@ public class SchedulerUtils {
      * @return 任务的封装结果
      */
     public static UniversalTask runTaskLater(final Plugin plugin, final Runnable runnable, long delay, Entity entity, Location location) {
-        if (YLib.getFoliaLib().isFolia()) {
+        if (isFolia()) {
             WrappedTask task;
-            if (!entity.isEmpty()) {
-                task = YLib.getFoliaLib().getScheduler().runAtEntityLater(entity, runnable, delay);
+            if (entity != null) {
+                task = YLibHolder.getYLib().getFoliaLib().getScheduler().runAtEntityLater(entity, runnable, delay);
             } else if (location != null) {
-                task = YLib.getFoliaLib().getScheduler().runAtLocationLater(location, runnable, delay);
+                task = YLibHolder.getYLib().getFoliaLib().getScheduler().runAtLocationLater(location, runnable, delay);
             } else {
-                task = YLib.getFoliaLib().getScheduler().runLater(runnable, delay);
+                task = YLibHolder.getYLib().getFoliaLib().getScheduler().runLater(runnable, delay);
             }
             return new UniversalTask(null, task, null, -1);
         } else {
@@ -112,8 +113,8 @@ public class SchedulerUtils {
      * @return 任务的封装结果
      */
     public static UniversalTask runTaskTimerAsynchronously(final Plugin plugin, final Runnable runnable, long delay, long period) {
-        if (YLib.getFoliaLib().isFolia()) {
-            WrappedTask task = YLib.getFoliaLib().getScheduler().runTimerAsync(runnable, delay, period);
+        if (isFolia()) {
+            WrappedTask task = YLibHolder.getYLib().getFoliaLib().getScheduler().runTimerAsync(runnable, delay, period);
             return new UniversalTask(null, task, null, -1);
         } else {
             BukkitTask task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, runnable, delay, period);
@@ -130,8 +131,8 @@ public class SchedulerUtils {
      * @return 任务的封装结果
      */
     public static UniversalTask runTaskLaterAsynchronously(final Plugin plugin, final Runnable runnable, long delay) {
-        if (YLib.getFoliaLib().isFolia()) {
-            WrappedTask task = YLib.getFoliaLib().getScheduler().runLaterAsync(runnable, delay);
+        if (isFolia()) {
+            WrappedTask task = YLibHolder.getYLib().getFoliaLib().getScheduler().runLaterAsync(runnable, delay);
             return new UniversalTask(null, task, null, -1);
         } else {
             BukkitTask task = Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable);
@@ -150,14 +151,14 @@ public class SchedulerUtils {
      * @return 任务的封装结果
      */
     public static UniversalTask scheduleSyncDelayedTask(Plugin plugin, Runnable runnable, long delay, Entity entity, Location location) {
-        if (YLib.getFoliaLib().isFolia()) {
+        if (isFolia()) {
             WrappedTask task;
-            if (!entity.isEmpty()) {
-                task = YLib.getFoliaLib().getScheduler().runAtEntityLater(entity, runnable, delay);
+            if (entity != null) {
+                task = YLibHolder.getYLib().getFoliaLib().getScheduler().runAtEntityLater(entity, runnable, delay);
             } else if (location != null) {
-                task = YLib.getFoliaLib().getScheduler().runAtLocationLater(location, runnable, delay);
+                task = YLibHolder.getYLib().getFoliaLib().getScheduler().runAtLocationLater(location, runnable, delay);
             } else {
-                task = YLib.getFoliaLib().getScheduler().runLater(runnable, delay);
+                task = YLibHolder.getYLib().getFoliaLib().getScheduler().runLater(runnable, delay);
             }
             return new UniversalTask(null, task, null, -1);
         } else {
@@ -178,14 +179,14 @@ public class SchedulerUtils {
      * @return 任务的封装结果
      */
     public static UniversalTask scheduleSyncRepeatingTask(Plugin plugin, Runnable runnable, long delay, long period, Entity entity, Location location) {
-        if (YLib.getFoliaLib().isFolia()) {
+        if (isFolia()) {
             WrappedTask task;
-            if (!entity.isEmpty()) {
-                task = YLib.getFoliaLib().getScheduler().runAtEntityTimer(entity, runnable, delay, period);
+            if (entity != null) {
+                task = YLibHolder.getYLib().getFoliaLib().getScheduler().runAtEntityTimer(entity, runnable, delay, period);
             } else if (location != null) {
-                task = YLib.getFoliaLib().getScheduler().runAtLocationTimer(location, runnable, delay, period);
+                task = YLibHolder.getYLib().getFoliaLib().getScheduler().runAtLocationTimer(location, runnable, delay, period);
             } else {
-                task = YLib.getFoliaLib().getScheduler().runTimer(runnable, delay, period);
+                task = YLibHolder.getYLib().getFoliaLib().getScheduler().runTimer(runnable, delay, period);
             }
             return new UniversalTask(null, task, null, -1);
         } else {
