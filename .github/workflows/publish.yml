@@ -29,7 +29,7 @@ jobs:
         id: extract_version
         run: |
           # 从 build.gradle 中提取版本号，并写入环境变量 VERSION
-          VERSION=$(grep "^version *= *['\"]" build.gradle | head -n1 | sed "s/.*version *= *['\"]\\(.*\\)['\"].*/\\1/")
+          VERSION=$(grep "^version *= *['\"]" build.gradle.kts | head -n1 | sed "s/.*version *= *['\"]\\(.*\\)['\"].*/\\1/")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: 检查版本是否已发布
@@ -125,16 +125,14 @@ jobs:
         uses: Kir-Antipov/mc-publish@v3.3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          github-tag: "v${{ env.VERSION }}"
-          version: "v${{ env.VERSION }}"
+          github-tag: "${{ env.VERSION }}"
+          version: "${{ env.VERSION }}"
           version-type: release
-          github-prerelease: true
+          github-prerelease: false
           files: build/libs/*.jar
           changelog: |
             # 🚀 Release v${{ env.VERSION }}
             **Release Date**: ${{ steps.get-date.outputs.current-date }}
-            **Support Version**: 1.13+
-            **Java Version**: 17+
 
             ## Commit Message
             ${{ steps.generate_changelog.outputs.changelog }}
