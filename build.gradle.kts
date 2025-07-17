@@ -34,6 +34,10 @@ java {
     withJavadocJar()
 }
 
+tasks.jar {
+    enabled = false
+}
+
 tasks.shadowJar {
     archiveClassifier.set("")
     relocate("com.tcoded.folialib", "cn.yvmou.ylib.lib.folialib")
