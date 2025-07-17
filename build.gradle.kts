@@ -35,7 +35,7 @@ java {
 }
 
 tasks.shadowJar {
-    archiveFileName.set("YLib-${version}-all.jar")
+    archiveClassifier.set("")
     relocate("com.tcoded.folialib", "cn.yvmou.ylib.lib.folialib")
     exclude("org/jetbrains/annotations/**")
     exclude("org/intellij/lang/annotations/**")
@@ -48,11 +48,7 @@ publishing {
             artifactId = "YLib"
             version = project.version as String
 
-            from(components["java"] as SoftwareComponent)
-
-            artifact(tasks.shadowJar) {
-                classifier = "all"
-            }
+            artifact(tasks.shadowJar)
 
             pom {
                 name.set("YLib")
