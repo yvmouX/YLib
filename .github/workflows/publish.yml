@@ -65,11 +65,22 @@ jobs:
         if: steps.check_version.outputs.skip == 'false'
         id: get_tags
         run: |
-          git fetch --tags
+          # 强制获取所有远程标签
+          git fetch --tags --force
+          
           current_tag="v${{ env.VERSION }}"
-          previous_tag=$(git describe --tags --abbrev=0 "$current_tag^" 2>/dev/null || echo "")
+          
+          # 获取上一个发布的标签（按时间排序，排除当前正在创建的标签）
+          previous_tag=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -v "^$current_tag$" | head -n1)
+          
+          # 如果没有找到之前的标签，则为首次发布
+          if [ -z "$previous_tag" ]; then
+            previous_tag=""
+          fi
+          
           echo "current_tag=${current_tag}" >> $GITHUB_OUTPUT
           echo "previous_tag=${previous_tag}" >> $GITHUB_OUTPUT
+          echo "previous_commit=$(git rev-list -n 1 $previous_tag 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
 
       - name: 自动生成 GitHub 风格的 Release Notes
         if: steps.check_version.outputs.skip == 'false'
@@ -85,27 +96,33 @@ jobs:
             });
             core.setOutput('body', response.data.body);
 
-      - name: 生成自定义提交日志
+      - name: 生成自定义提交日志（增强版）
         if: steps.check_version.outputs.skip == 'false'
         id: generate_changelog
         run: |
           repo_url="https://github.com/${{ github.repository }}"
           previous_tag="${{ steps.get_tags.outputs.previous_tag }}"
-
-          # 确保获取的是上一个发布版本之后的新提交
-          if [ -n "$previous_tag" ]; then
-            log_range="$previous_tag..HEAD"
+          previous_commit="${{ steps.get_tags.outputs.previous_commit }}"
+          
+          # 确保我们获取的是真正新的提交
+          if [ -n "$previous_commit" ]; then
+            log_range="$previous_commit..HEAD"
           else
             log_range="HEAD" # 首次发布
           fi
-
-          # 获取新的提交记录
+          
+          # 获取新的提交记录（排除合并提交）
           new_commits=$(git log --pretty=format:"- [%h]($repo_url/commit/%H) %s" --no-merges "$log_range")
-
+          
+          # 如果没有新提交，使用特殊消息
+          if [ -z "$new_commits" ]; then
+            new_commits="- 无新提交，版本标记更新"
+          fi
+          
           # 保持原有效果：超过5条折叠
           first_five=$(echo "$new_commits" | head -n 5)
           remaining=$(echo "$new_commits" | tail -n +6)
-
+          
           if [ -z "$remaining" ]; then
             changelog="$new_commits"
           else
@@ -117,7 +134,7 @@ jobs:
           $remaining
           </details>"
           fi
-
+          
           # 输出结果
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$changelog" >> $GITHUB_OUTPUT
