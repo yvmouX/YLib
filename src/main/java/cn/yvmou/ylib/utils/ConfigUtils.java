@@ -1,11 +1,10 @@
 package cn.yvmou.ylib.utils;
 
-import cn.yvmou.ylib.YLib;
+import cn.yvmou.ylib.YlibR;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import cn.yvmou.ylib.JavaPluginR;
 
 /**
  * 配置相关工具
@@ -22,19 +21,19 @@ public class ConfigUtils {
      * 根据版本号更新配置文件
      */
     public static void checkConfigVersion() {
-        String pluginVersion = JavaPluginR.getInstance().getDescription().getVersion();
-        String configVersion = JavaPluginR.getInstance().getConfig().getString("version", "none");
+        String pluginVersion = YlibR.getInstance().getDescription().getVersion();
+        String configVersion = YlibR.getInstance().getConfig().getString("version", "none");
 
         if (!configVersion.equals(pluginVersion)) {
             // 备份旧配置
-            File configFile = new File(JavaPluginR.getInstance().getDataFolder(), "config.yml");
-            File backupFile = new File(JavaPluginR.getInstance().getDataFolder(), "config_old_v" + configVersion + ".yml");
+            File configFile = new File(YlibR.getInstance().getDataFolder(), "config.yml");
+            File backupFile = new File(YlibR.getInstance().getDataFolder(), "config_old_v" + configVersion + ".yml");
             if (configFile.exists()) {
                 configFile.renameTo(backupFile);
             }
 
             // 重新加载默认配置
-            JavaPluginR.getInstance().saveDefaultConfig();
+            YlibR.getInstance().saveDefaultConfig();
 
             // 合并用户自定义的配置
             YamlConfiguration newConfig = YamlConfiguration.loadConfiguration(configFile);
@@ -54,7 +53,7 @@ public class ConfigUtils {
             }
 
             // 5. 重新加载配置到内存
-            JavaPluginR.getInstance().reloadConfig();
+            YlibR.getInstance().reloadConfig();
 
             LoggerUtils.info(ChatColor.GREEN + "配置文件已更新至 v" + pluginVersion + "，旧配置已备份。");
         }

@@ -1,25 +1,23 @@
 package cn.yvmou.ylib.utils;
 
+import cn.yvmou.ylib.YlibR;
 import org.bukkit.ChatColor;
 
 /**
  * 消息工具类
  */
 public class LoggerUtils {
+    private LoggerUtils() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated.");
+    }
+
     // 延迟获取插件前缀，避免静态初始化时访问实例方法
     private static String getConsolePrefix() {
         try {
-            return "§8[§b§l§n" + cn.yvmou.ylib.JavaPluginR.getInstance().getDescription().getPrefix() + "]§r ";
+            return "§8[§b§l§n" + YlibR.getInstance().getDescription().getPrefix() + "§8]§r ";
         } catch (Exception e) {
             return "§8[§b§l§nYLib§r] ";
         }
-    }
-
-    /**
-     * 私有构造函数，防止实例化。
-     */
-    private LoggerUtils() {
-        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated.");
     }
 
     /**

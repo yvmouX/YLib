@@ -1,39 +1,53 @@
 package cn.yvmou.ylib;
 
-import com.tcoded.folialib.FoliaLib;
+import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
+import cn.yvmou.ylib.impl.scheduler.BukkitSchedulerImpl;
+import cn.yvmou.ylib.impl.scheduler.FoliaSchedulerImpl;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 /**
- * YLib 是一个 Minecraft 插件的主类，提供插件的核心功能和工具。
- * 它扩展了 Bukkit 的 JavaPlugin 类，并集成了 FoliaLib 以支持 Folia 服务器。
+ * ylib主类
+ *
+ * @author yvmoux
+ * &#064;date  2025/07/19
  */
-public final class YLib {
+public class YLib {
     private final Plugin plugin;
-    private final FoliaLib foliaLib;
 
-    /**
-     * 实例化。
-     *
-     * @param plugin 插件
-     */
     public YLib(Plugin plugin) {
-        foliaLib = new FoliaLib(plugin);
         this.plugin = plugin;
-        // 注册全局YLib实例
-        JavaPluginR.YLibHolder.setYLib(this);
     }
 
     /**
-     * 获取 FoliaLib 实例。
+     * 获取实例
      *
-     * @return FoliaLib 的实例。
+     * @return {@link YLib }
      */
-    public FoliaLib getFoliaLib() { return foliaLib; }
+    public Plugin getInstance() {
+        if (plugin == null) {
+            throw new IllegalStateException("This plugin hasn't been loaded yet!");
+        }
+        return plugin;
+    }
 
     /**
-     * 获取 Plugin 实例
+     * 是叶
      *
-     * @return Plugin
+     * @return boolean
      */
-    public Plugin getPlugin() { return plugin; }
+    public boolean isFolia() {
+        return YlibR.isFolia();
+    }
+
+    /**
+     * 获取调度程序
+     *
+     * @return {@link UniversalScheduler }
+     */
+    public UniversalScheduler getScheduler() {
+        if (isFolia()) {
+            return new FoliaSchedulerImpl(plugin, Bukkit.getGlobalRegionScheduler(), Bukkit.getRegionScheduler(), Bukkit.getAsyncScheduler());
+        } else return new BukkitSchedulerImpl(plugin);
+    }
 }

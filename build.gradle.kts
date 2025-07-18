@@ -13,14 +13,9 @@ repositories {
         name = "papermc"
         url = uri("https://repo.papermc.io/repository/maven-public/")
     }
-    maven {
-        name = "tcoded-releases"
-        url = uri("https://repo.tcoded.com/releases")
-    }
 }
 
 dependencies {
-    implementation("com.tcoded:FoliaLib:0.5.1")
     compileOnly("dev.folia:folia-api:1.21.6-R0.1-SNAPSHOT")
     compileOnly("org.jetbrains:annotations:23.0.0")
 }
