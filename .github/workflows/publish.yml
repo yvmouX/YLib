@@ -91,7 +91,7 @@ jobs:
             const response = await github.request('POST /repos/{owner}/{repo}/releases/generate-notes', {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `v${process.env.VERSION}`,
+              tag_name: `${process.env.VERSION}`,
               previous_tag_name: `${{ steps.get_tags.outputs.previous_tag }}`
             });
             core.setOutput('body', response.data.body);
