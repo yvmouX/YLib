@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.yvmouX"
-version = "1.0.0-beta1"
+version = "1.0.0-beta2"
 
 repositories {
     mavenCentral()
@@ -16,13 +16,13 @@ repositories {
 }
 
 dependencies {
-    compileOnly("dev.folia:folia-api:1.21.6-R0.1-SNAPSHOT")
+    compileOnly("dev.folia:folia-api:1.19.4-R0.1-SNAPSHOT")
     compileOnly("org.jetbrains:annotations:23.0.0")
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 
     // 生成源码和文档 JAR
     withSourcesJar()
