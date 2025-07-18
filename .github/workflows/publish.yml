@@ -85,16 +85,25 @@ jobs:
             });
             core.setOutput('body', response.data.body);
 
+      - name: 打上当前版本 tag
+        if: steps.check_version.outputs.skip == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag v${{ env.VERSION }}
+          git push origin v${{ env.VERSION }}   
+
       - name: 生成自定义提交日志
         if: steps.check_version.outputs.skip == 'false'
         id: generate_changelog
         run: |
           repo_url="https://github.com/${{ github.repository }}"
           previous_tag="${{ steps.get_tags.outputs.previous_tag }}"
+          current_tag="v${{ env.VERSION }}"
           
-          log_range="$previous_tag..HEAD"
+          log_range="$previous_tag..$current_tag"
           if [ -z "$previous_tag" ]; then
-            log_range="HEAD" # 首次发布
+            log_range="$current_tag" # 首次发布
           fi
           
           full_changelog=$(git log --pretty=format:"- [%h]($repo_url/commit/%H) %s" --no-merges "$log_range")
@@ -106,7 +115,7 @@ jobs:
           if [ -z "$remaining" ]; then
             changelog="$full_changelog"
           else
-            remaining_count=$(echo "$remaining" | grep -c '^-' || echo 0)
+            remaining_count=$(echo "$remaining" | grep -c '^- ' || echo 0)
             changelog="$first_five
           <details>
           <summary>View remaining $remaining_count changes</summary>
