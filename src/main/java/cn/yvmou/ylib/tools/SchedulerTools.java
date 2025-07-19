@@ -1,6 +1,5 @@
-package cn.yvmou.ylib.utils;
+package cn.yvmou.ylib.tools;
 
-import cn.yvmou.ylib.YlibR;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.api.scheduler.UniversalTask;
 import org.bukkit.Location;
@@ -8,14 +7,14 @@ import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 
 /**
- * 专门用来使bukkit插件适配folia的懒狗工具
- * 提供任务调度工具，支持 Bukkit 和 Folia 的任务调度。
+ * 更方便的使Bukkit插件适配Folia
+ * 懒狗专属
  */
-public class SchedulerUtils {
-    private final static UniversalScheduler s = YlibR.getScheduler();
+public class SchedulerTools {
+    private final UniversalScheduler s;
 
-    private SchedulerUtils() {
-        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated.");
+    public SchedulerTools(UniversalScheduler s) {
+        this.s = s;
     }
 
     /**
@@ -23,8 +22,9 @@ public class SchedulerUtils {
      *
      * @return 如果服务器运行在 Folia 环境下返回 true，否则返回 false。
      */
-    public static boolean isFolia() {
-        return YlibR.isFolia();
+    public boolean isFolia() {
+
+        return s.isFolia();
     }
 
     /**
@@ -36,7 +36,7 @@ public class SchedulerUtils {
      * @param location 目标位置（可选）
      * @return 任务的封装结果
      */
-    public static UniversalTask runTask(Plugin plugin, Runnable runnable, Entity entity, Location location) {
+    public UniversalTask runTask(Plugin plugin, Runnable runnable, Entity entity, Location location) {
         if (entity != null) {
             return s.run(entity, runnable);
         } else if (location != null) {
@@ -53,7 +53,7 @@ public class SchedulerUtils {
      * @param runnable 要运行的任务
      * @return 任务的封装结果
      */
-    public static UniversalTask runTaskAsynchronously(Plugin plugin, Runnable runnable) {
+    public UniversalTask runTaskAsynchronously(Plugin plugin, Runnable runnable) {
         return s.runAsync(runnable);
     }
 
@@ -67,7 +67,7 @@ public class SchedulerUtils {
      * @param location 目标位置（可选）
      * @return 任务的封装结果
      */
-    public static UniversalTask runTaskLater(final Plugin plugin, final Runnable runnable, long delay, Entity entity, Location location) {
+    public UniversalTask runTaskLater(final Plugin plugin, final Runnable runnable, long delay, Entity entity, Location location) {
         if (entity != null) {
             return s.runLater(entity, runnable, delay);
         } else if (location != null) {
@@ -77,7 +77,7 @@ public class SchedulerUtils {
         }
     }
 
-    public static UniversalTask runTaskTimer(final Plugin plugin, final Runnable runnable, long delay, long period, Entity entity, Location location) {
+    public UniversalTask runTaskTimer(final Plugin plugin, final Runnable runnable, long delay, long period, Entity entity, Location location) {
         if (entity != null) {
             return s.runTimer(entity, runnable, delay, null, period);
         } else if (location != null) {
@@ -97,7 +97,7 @@ public class SchedulerUtils {
      * @param period 周期时间（以服务器刻为单位）
      * @return 任务的封装结果
      */
-    public static UniversalTask runTaskTimerAsynchronously(final Plugin plugin, final Runnable runnable, long delay, long period) {
+    public UniversalTask runTaskTimerAsynchronously(final Plugin plugin, final Runnable runnable, long delay, long period) {
         return s.runTimerAsync(runnable, delay, period);
     }
 
@@ -109,7 +109,7 @@ public class SchedulerUtils {
      * @param delay 延迟时间（以服务器刻为单位）
      * @return 任务的封装结果
      */
-    public static UniversalTask runTaskLaterAsynchronously(final Plugin plugin, final Runnable runnable, long delay) {
+    public UniversalTask runTaskLaterAsynchronously(final Plugin plugin, final Runnable runnable, long delay) {
         return s.runLaterAsync(runnable, delay);
     }
 
@@ -123,7 +123,7 @@ public class SchedulerUtils {
      * @param location 目标位置（可选）
      * @return 任务的封装结果
      */
-    public static UniversalTask scheduleSyncDelayedTask(Plugin plugin, Runnable runnable, long delay, Entity entity, Location location) {
+    public UniversalTask scheduleSyncDelayedTask(Plugin plugin, Runnable runnable, long delay, Entity entity, Location location) {
         if (entity != null) {
             return s.runLater(entity, runnable, delay);
         } else if (location != null) {
@@ -133,4 +133,3 @@ public class SchedulerUtils {
         }
     }
 }
-

@@ -13,6 +13,12 @@ import javax.annotation.Nullable;
  */
 public interface UniversalScheduler {
     /**
+     * 是叶
+     *
+     * @return boolean
+     */
+    boolean isFolia();
+    /**
      * 跑
      *
      * @param runnable 可运行

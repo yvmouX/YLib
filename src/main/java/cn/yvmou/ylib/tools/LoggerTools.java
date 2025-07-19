@@ -1,20 +1,19 @@
-package cn.yvmou.ylib.utils;
+package cn.yvmou.ylib.tools;
 
-import cn.yvmou.ylib.YlibR;
 import org.bukkit.ChatColor;
+import org.bukkit.plugin.Plugin;
 
-/**
- * 消息工具类
- */
-public class LoggerUtils {
-    private LoggerUtils() {
-        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated.");
+public class LoggerTools {
+    private final Plugin plugin;
+
+    public LoggerTools(Plugin plugin) {
+        this.plugin = plugin;
     }
 
     // 延迟获取插件前缀，避免静态初始化时访问实例方法
-    private static String getConsolePrefix() {
+    private String getConsolePrefix() {
         try {
-            return "§8[§b§l§n" + YlibR.getInstance().getDescription().getPrefix() + "§8]§r ";
+            return "§8[§b§l§n" + plugin.getDescription().getPrefix() + "§8]§r ";
         } catch (Exception e) {
             return "§8[§b§l§nYLib§r] ";
         }
@@ -25,7 +24,7 @@ public class LoggerUtils {
      *
      * @param msg 消息
      */
-    public static void info(String msg) {
+    public void info(String msg) {
         info(ChatColor.GREEN, msg); // 默认使用绿色
     }
 
@@ -35,7 +34,7 @@ public class LoggerUtils {
      * @param color 颜色
      * @param msg 消息
      */
-    public static void info(ChatColor color, String msg) {
+    public void info(ChatColor color, String msg) {
         org.bukkit.Bukkit.getConsoleSender().sendMessage(getConsolePrefix() + (color == null ? ChatColor.GREEN : color) + msg);
     }
 
@@ -44,7 +43,7 @@ public class LoggerUtils {
      *
      * @param msg 颜色
      */
-    public static void warn(String msg) {
+    public void warn(String msg) {
         warn(ChatColor.GOLD, msg);
     }
 
@@ -54,7 +53,7 @@ public class LoggerUtils {
      * @param color 颜色
      * @param msg 消息
      */
-    public static void warn(ChatColor color, String msg) {
+    public void warn(ChatColor color, String msg) {
         org.bukkit.Bukkit.getConsoleSender().sendMessage(getConsolePrefix() + (color == null ? ChatColor.GOLD : color) + msg);
     }
 
@@ -63,7 +62,7 @@ public class LoggerUtils {
      *
      * @param msg 消息
      */
-    public static void error(String msg) {
+    public void error(String msg) {
         error(ChatColor.RED, msg);
     }
 
@@ -73,7 +72,7 @@ public class LoggerUtils {
      * @param color 颜色
      * @param msg 消息
      */
-    public static void error(ChatColor color, String msg) {
+    public void error(ChatColor color, String msg) {
         org.bukkit.Bukkit.getConsoleSender().sendMessage(getConsolePrefix() + (color == null ? ChatColor.RED : color) + msg);
     }
 
@@ -83,7 +82,7 @@ public class LoggerUtils {
      * @param msg 颜色
      * @param throwable 消息
      */
-    public static void error(String msg, Throwable throwable) {
+    public void error(String msg, Throwable throwable) {
         error(msg); // 打印错误信息
         if (throwable != null) {
             throwable.printStackTrace(); // 打印堆栈跟踪

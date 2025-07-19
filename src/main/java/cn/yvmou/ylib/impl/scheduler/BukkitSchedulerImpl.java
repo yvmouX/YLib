@@ -16,6 +16,17 @@ public class BukkitSchedulerImpl implements UniversalScheduler {
     }
 
     @Override
+    public boolean isFolia() {
+        boolean isFolia = false;
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            isFolia = true;
+        } catch (ClassNotFoundException ignored) {
+        }
+        return isFolia;
+    }
+
+    @Override
     public UniversalTask run(Runnable runnable) {
         return new BukkitTaskImpl(Bukkit.getScheduler().runTask(plugin, runnable));
     }

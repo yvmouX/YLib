@@ -26,6 +26,17 @@ public class FoliaSchedulerImpl implements UniversalScheduler {
     }
 
     @Override
+    public boolean isFolia() {
+        boolean isFolia = false;
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            isFolia = true;
+        } catch (ClassNotFoundException ignored) {
+        }
+        return isFolia;
+    }
+
+    @Override
     public UniversalTask run(Runnable runnable) {
         return new FoliaTaskImpl(globalRegionScheduler.run(plugin, task -> runnable.run()));
     }

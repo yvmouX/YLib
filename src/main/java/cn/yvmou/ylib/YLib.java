@@ -3,6 +3,10 @@ package cn.yvmou.ylib;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.impl.scheduler.BukkitSchedulerImpl;
 import cn.yvmou.ylib.impl.scheduler.FoliaSchedulerImpl;
+import cn.yvmou.ylib.tools.ConfigTools;
+import cn.yvmou.ylib.tools.LoggerTools;
+import cn.yvmou.ylib.tools.MessageTools;
+import cn.yvmou.ylib.tools.SchedulerTools;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -19,11 +23,6 @@ public class YLib {
         this.plugin = plugin;
     }
 
-    /**
-     * 获取实例
-     *
-     * @return {@link YLib }
-     */
     public Plugin getInstance() {
         if (plugin == null) {
             throw new IllegalStateException("This plugin hasn't been loaded yet!");
@@ -31,23 +30,31 @@ public class YLib {
         return plugin;
     }
 
-    /**
-     * 是叶
-     *
-     * @return boolean
-     */
-    public boolean isFolia() {
-        return YlibR.isFolia();
-    }
-
-    /**
-     * 获取调度程序
-     *
-     * @return {@link UniversalScheduler }
-     */
     public UniversalScheduler getScheduler() {
-        if (isFolia()) {
+        boolean isFolia = false;
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            isFolia = true;
+        } catch (ClassNotFoundException ignored) {
+        }
+        if (isFolia) {
             return new FoliaSchedulerImpl(plugin, Bukkit.getGlobalRegionScheduler(), Bukkit.getRegionScheduler(), Bukkit.getAsyncScheduler());
         } else return new BukkitSchedulerImpl(plugin);
+    }
+
+    public SchedulerTools getSchedulerDogTools() {
+        return new SchedulerTools(getScheduler());
+    }
+
+    public ConfigTools getConfigTools() {
+        return new ConfigTools(plugin, new LoggerTools(plugin));
+    }
+
+    public LoggerTools getLoggerTools() {
+        return new LoggerTools(plugin);
+    }
+
+    public MessageTools getMessageTools() {
+        return new MessageTools(plugin);
     }
 }

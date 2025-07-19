@@ -153,6 +153,7 @@ jobs:
           changelog: |
             # 🚀 Release v${{ env.VERSION }}
             **Release Date**: ${{ steps.get-date.outputs.current-date }}
+            **Java Version**: 17+
 
             ## Commit Message
             ${{ steps.generate_changelog.outputs.changelog }}
