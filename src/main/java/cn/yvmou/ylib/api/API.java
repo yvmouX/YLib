@@ -1,4 +1,4 @@
 package cn.yvmou.ylib.api;
 
-public interface Scheduler {
+public interface API {
 }

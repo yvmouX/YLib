@@ -13,7 +13,7 @@ public class LoggerTools {
     // 延迟获取插件前缀，避免静态初始化时访问实例方法
     private String getConsolePrefix() {
         try {
-            return "§8[§b§l§n" + plugin.getDescription().getPrefix() + "§8]§r ";
+            return "§8[§b§l§n" + plugin.getDescription().getName() + "§8]§r ";
         } catch (Exception e) {
             return "§8[§b§l§nYLib§r] ";
         }
