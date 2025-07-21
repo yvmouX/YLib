@@ -11,7 +11,7 @@ public @interface CommandOptions {
     String name();
     String permission();
     boolean onlyPlayer();
-    String[] alias() default {};
-    boolean register() default true;
-    String usage() default "";
+    String[] alias();
+    boolean register();
+    String usage();
 }
