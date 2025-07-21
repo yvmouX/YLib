@@ -1,5 +1,6 @@
 package cn.yvmou.ylib.impl.command;
 
+import cn.yvmou.ylib.YLib;
 import cn.yvmou.ylib.api.command.CommandOptions;
 import cn.yvmou.ylib.api.command.SubCommand;
 import org.bukkit.command.CommandSender;
@@ -102,5 +103,46 @@ public class CommandConfig {
         if (configSection == null) { return null; }
 
         return new ArrayList<>(configSection.getKeys(false));
+    }
+
+    /**
+     * 获取
+     * @return permission
+     */
+    public String getPermission(String mainCommand, String subCommand) {
+        return getConfig().getString(getBasePath(mainCommand, subCommand) + "permission");
+    }
+
+    /**
+     * 获取
+     * @return alias
+     */
+    public String[] getAlias(String mainCommand, String subCommand) {
+        return getConfig().getString(getBasePath(mainCommand, subCommand) + "alias").split(",");
+    }
+
+    /**
+     * 获取
+     * @return register
+     */
+    public boolean isRegister(String mainCommand, String subCommand) {
+        return getConfig().getBoolean(getBasePath(mainCommand, subCommand) + "register");
+    }
+
+    /**
+     * 获取
+     * @return usage
+     */
+    public String getUsage(String mainCommand, String subCommand) {
+        return getConfig().getString(getBasePath(mainCommand, subCommand) + "usage");
+    }
+
+
+    public String toString() {
+        return "CommandConfig{plugin = " + plugin + ", name = " + name + ", permission = " + permission + ", onlyPlayer = " + onlyPlayer + ", alias = " + alias + ", register = " + register + ", usage = " + usage + ", config = " + config + "}";
+    }
+
+    private String getBasePath(String mainCommand, String subCommand) {
+        return "commands." + mainCommand + "." + subCommand + ".";
     }
 }
