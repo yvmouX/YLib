@@ -35,7 +35,6 @@ tasks.jar {
 
 tasks.shadowJar {
     archiveClassifier.set("")
-    relocate("com.tcoded.folialib", "cn.yvmou.ylib.lib.folialib")
     exclude("org/jetbrains/annotations/**")
     exclude("org/intellij/lang/annotations/**")
 }
