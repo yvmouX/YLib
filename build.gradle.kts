@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.yvmouX"
-version = "1.0.0-beta3"
+version = "1.0.0-beta4"
 
 repositories {
     mavenCentral()
