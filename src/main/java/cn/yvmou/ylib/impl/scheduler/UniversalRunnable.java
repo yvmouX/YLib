@@ -1,6 +1,10 @@
-package cn.yvmou.ylib.api.scheduler;
+package cn.yvmou.ylib.impl.scheduler;
 
 import cn.yvmou.ylib.YLib;
+import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
+import cn.yvmou.ylib.api.scheduler.UniversalTask;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,12 +41,42 @@ public abstract class UniversalRunnable implements Runnable {
      * @return a BukkitTask that contains the id number
      * @throws IllegalArgumentException if plugin is null
      * @throws IllegalStateException    if this was already scheduled
-     * @see UniversalScheduler#run(Runnable)
+     * @see UniversalScheduler#runTask(Runnable)
      */
     @NotNull
     public synchronized UniversalTask runTask(@NotNull Plugin plugin) throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
-        return setupTask(YLib.getyLib().getScheduler().run(this));
+        return setupTask(YLib.getyLib().getScheduler().runTask(plugin, this));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTask(@NotNull Plugin plugin, @NotNull Location location) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTask(plugin, location, this));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTask(@NotNull Plugin plugin, @NotNull Entity entity) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTask(plugin, entity, this));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTask() throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTask(this));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTask(@NotNull Location location) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTask(location, this));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTask(@NotNull Entity entity) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTask(entity, this));
     }
 
     /**
@@ -60,6 +94,12 @@ public abstract class UniversalRunnable implements Runnable {
     @NotNull
     public synchronized UniversalTask runTaskAsynchronously(@NotNull Plugin plugin) throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runAsync(plugin, this));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTaskAsynchronously() throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
         return setupTask(YLib.getyLib().getScheduler().runAsync(this));
     }
 
@@ -76,7 +116,37 @@ public abstract class UniversalRunnable implements Runnable {
     @NotNull
     public synchronized UniversalTask runLater(@NotNull Plugin plugin, long delay) throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runLater(plugin, this, delay));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runLater(@NotNull Plugin plugin, Location location, long delay) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runLater(plugin, location, this, delay));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runLater(@NotNull Plugin plugin, Entity entity, long delay) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runLater(plugin, entity, this, delay));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runLater(long delay) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
         return setupTask(YLib.getyLib().getScheduler().runLater(this, delay));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runLater(Location location, long delay) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runLater(location, this, delay));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runLater(Entity entity, long delay) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runLater(entity, this, delay));
     }
 
     /**
@@ -96,6 +166,12 @@ public abstract class UniversalRunnable implements Runnable {
     @NotNull
     public synchronized UniversalTask runLaterAsync(@NotNull Plugin plugin, long delay) throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runLaterAsync(plugin, this, delay));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runLaterAsync(long delay) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
         return setupTask(YLib.getyLib().getScheduler().runLaterAsync(this, delay));
     }
 
@@ -114,7 +190,37 @@ public abstract class UniversalRunnable implements Runnable {
     @NotNull
     public synchronized UniversalTask runTimer(@NotNull Plugin plugin, long delay, long period) throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTimer(plugin, this, delay, period));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTimer(@NotNull Plugin plugin, Location location, long delay, long period) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTimer(plugin, location, this, delay, period));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTimer(@NotNull Plugin plugin, Entity entity, long delay, long period) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTimer(plugin, entity, this, delay, null, period));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTimer(long delay, long period) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
         return setupTask(YLib.getyLib().getScheduler().runTimer(this, delay, period));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTimer(Location location, long delay, long period) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTimer(location, this, delay, period));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTimer(Entity entity, long delay, long period) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTimer(entity, this, delay, null, period));
     }
 
     /**
@@ -135,6 +241,12 @@ public abstract class UniversalRunnable implements Runnable {
      */
     @NotNull
     public synchronized UniversalTask runTimerAsync(@NotNull Plugin plugin, long delay, long period) throws IllegalArgumentException, IllegalStateException {
+        checkNotYetScheduled();
+        return setupTask(YLib.getyLib().getScheduler().runTimerAsync(plugin, this, delay, period));
+    }
+
+    @NotNull
+    public synchronized UniversalTask runTimerAsync(long delay, long period) throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
         return setupTask(YLib.getyLib().getScheduler().runTimerAsync(this, delay, period));
     }

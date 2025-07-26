@@ -2,6 +2,7 @@ package cn.yvmou.ylib.api.scheduler;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.plugin.Plugin;
 
 import javax.annotation.Nullable;
 
@@ -24,7 +25,9 @@ public interface UniversalScheduler {
      * @param runnable 可运行
      * @return {@link UniversalTask }
      */
-    UniversalTask run(Runnable runnable);
+    UniversalTask runTask(Runnable runnable);
+
+    UniversalTask runTask(Plugin plugin, Runnable runnable);
 
     /**
      * 跑
@@ -33,7 +36,9 @@ public interface UniversalScheduler {
      * @param runnable 可运行
      * @return {@link UniversalTask }
      */
-    UniversalTask run(Location location, Runnable runnable);
+    UniversalTask runTask(Location location, Runnable runnable);
+
+    UniversalTask runTask(Plugin plugin, Location location, Runnable runnable);
 
     /**
      * 跑
@@ -42,7 +47,9 @@ public interface UniversalScheduler {
      * @param runnable 可运行
      * @return {@link UniversalTask }
      */
-    UniversalTask run(Entity entity, Runnable runnable);
+    UniversalTask runTask(Entity entity, Runnable runnable);
+
+    UniversalTask runTask(Plugin plugin, Entity entity, Runnable runnable);
 
     /**
      * 稍后运行
@@ -52,6 +59,8 @@ public interface UniversalScheduler {
      * @return {@link UniversalTask }
      */
     UniversalTask runLater(Runnable runnable, long delay);
+
+    UniversalTask runLater(Plugin plugin, Runnable runnable, long delay);
 
     /**
      * 稍后运行
@@ -63,6 +72,8 @@ public interface UniversalScheduler {
      */
     UniversalTask runLater(Location location, Runnable runnable, long delay);
 
+    UniversalTask runLater(Plugin plugin, Location location, Runnable runnable, long delay);
+
     /**
      * 稍后运行
      *
@@ -72,6 +83,8 @@ public interface UniversalScheduler {
      * @return {@link UniversalTask }
      */
     UniversalTask runLater(Entity entity, Runnable runnable, long delay);
+
+    UniversalTask runLater(Plugin plugin, Entity entity, Runnable runnable, long delay);
 
     /**
      * 运行计时器
@@ -83,6 +96,8 @@ public interface UniversalScheduler {
      */
     UniversalTask runTimer(Runnable runnable, long delay, long period);
 
+    UniversalTask runTimer(Plugin plugin, Runnable runnable, long delay, long period);
+
     /**
      * 运行计时器
      *
@@ -93,6 +108,8 @@ public interface UniversalScheduler {
      * @return {@link UniversalTask }
      */
     UniversalTask runTimer(Location location, Runnable runnable, long delay, long period);
+
+    UniversalTask runTimer(Plugin plugin, Location location, Runnable runnable, long delay, long period);
 
     /**
      * 运行计时器
@@ -106,6 +123,8 @@ public interface UniversalScheduler {
      */
     UniversalTask runTimer(Entity entity, Runnable runnable, long delay, @Nullable Runnable retired, long period);
 
+    UniversalTask runTimer(Plugin plugin, Entity entity, Runnable runnable, long delay, @Nullable Runnable retired, long period);
+
     /**
      * 异步运行
      *
@@ -113,6 +132,8 @@ public interface UniversalScheduler {
      * @return {@link UniversalTask }
      */
     UniversalTask runAsync(Runnable runnable);
+
+    UniversalTask runAsync(Plugin plugin, Runnable runnable);
 
     /**
      * 稍后异步运行
@@ -123,6 +144,8 @@ public interface UniversalScheduler {
      */
     UniversalTask runLaterAsync(Runnable runnable, long delay);
 
+    UniversalTask runLaterAsync(Plugin plugin, Runnable runnable, long delay);
+
     /**
      * 运行计时器异步
      *
@@ -132,6 +155,8 @@ public interface UniversalScheduler {
      * @return {@link UniversalTask }
      */
     UniversalTask runTimerAsync(Runnable runnable, long delay, long period);
+
+    UniversalTask runTimerAsync(Plugin plugin, Runnable runnable, long delay, long period);
 
     /**
      * 取消所有任务

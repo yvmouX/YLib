@@ -38,11 +38,11 @@ public class SchedulerTools {
      */
     public UniversalTask runTask(Plugin plugin, Runnable runnable, Entity entity, Location location) {
         if (entity != null) {
-            return s.run(entity, runnable);
+            return s.runTask(entity, runnable);
         } else if (location != null) {
-            return s.run(location, runnable);
+            return s.runTask(location, runnable);
         } else {
-            return s.run(runnable);
+            return s.runTask(runnable);
         }
     }
 

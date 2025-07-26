@@ -33,7 +33,7 @@ public class CommandManager {
         registerMainCommands(commandName, subCommandClass);
 
         // 注册别名命令
-        yLib.getScheduler().run(() -> {
+        yLib.getScheduler().runTask(() -> {
             registerAliasCommands(commandName);
         });
     }

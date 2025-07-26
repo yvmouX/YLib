@@ -27,22 +27,43 @@ public class BukkitSchedulerImpl implements UniversalScheduler {
     }
 
     @Override
-    public UniversalTask run(Runnable runnable) {
+    public UniversalTask runTask(Runnable runnable) {
         return new BukkitTaskImpl(Bukkit.getScheduler().runTask(plugin, runnable));
     }
 
     @Override
-    public UniversalTask run(Location location, Runnable runnable) {
+    public UniversalTask runTask(Plugin plugin, Runnable runnable) {
         return new BukkitTaskImpl(Bukkit.getScheduler().runTask(plugin, runnable));
     }
 
     @Override
-    public UniversalTask run(Entity entity, Runnable runnable) {
+    public UniversalTask runTask(Location location, Runnable runnable) {
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTask(plugin, runnable));
+    }
+
+    @Override
+    public UniversalTask runTask(Plugin plugin, Location location, Runnable runnable) {
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTask(plugin, runnable));
+    }
+
+    @Override
+    public UniversalTask runTask(Entity entity, Runnable runnable) {
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTask(plugin, runnable));
+    }
+
+    @Override
+    public UniversalTask runTask(Plugin plugin, Entity entity, Runnable runnable) {
         return new BukkitTaskImpl(Bukkit.getScheduler().runTask(plugin, runnable));
     }
 
     @Override
     public UniversalTask runLater(Runnable runnable, long delay) {
+        delay = checkDelay(delay);
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTaskLater(plugin, runnable, delay));
+    }
+
+    @Override
+    public UniversalTask runLater(Plugin plugin, Runnable runnable, long delay) {
         delay = checkDelay(delay);
         return new BukkitTaskImpl(Bukkit.getScheduler().runTaskLater(plugin, runnable, delay));
     }
@@ -54,7 +75,19 @@ public class BukkitSchedulerImpl implements UniversalScheduler {
     }
 
     @Override
+    public UniversalTask runLater(Plugin plugin, Location location, Runnable runnable, long delay) {
+        delay = checkDelay(delay);
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTaskLater(plugin, runnable, delay));
+    }
+
+    @Override
     public UniversalTask runLater(Entity entity, Runnable runnable, long delay) {
+        delay = checkDelay(delay);
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTaskLater(plugin, runnable, delay));
+    }
+
+    @Override
+    public UniversalTask runLater(Plugin plugin, Entity entity, Runnable runnable, long delay) {
         delay = checkDelay(delay);
         return new BukkitTaskImpl(Bukkit.getScheduler().runTaskLater(plugin, runnable, delay));
     }
@@ -66,7 +99,19 @@ public class BukkitSchedulerImpl implements UniversalScheduler {
     }
 
     @Override
+    public UniversalTask runTimer(Plugin plugin, Runnable runnable, long delay, long period) {
+        delay = checkDelay(delay);
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTaskTimer(plugin, runnable, delay, period));
+    }
+
+    @Override
     public UniversalTask runTimer(Location location, Runnable runnable, long delay, long period) {
+        delay = checkDelay(delay);
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTaskTimer(plugin, runnable, delay, period));
+    }
+
+    @Override
+    public UniversalTask runTimer(Plugin plugin, Location location, Runnable runnable, long delay, long period) {
         delay = checkDelay(delay);
         return new BukkitTaskImpl(Bukkit.getScheduler().runTaskTimer(plugin, runnable, delay, period));
     }
@@ -78,7 +123,18 @@ public class BukkitSchedulerImpl implements UniversalScheduler {
     }
 
     @Override
+    public UniversalTask runTimer(Plugin plugin, Entity entity, Runnable runnable, long delay, @Nullable Runnable retired, long period) {
+        delay = checkDelay(delay);
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTaskTimer(plugin, runnable, delay, period));
+    }
+
+    @Override
     public UniversalTask runAsync(Runnable runnable) {
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable));
+    }
+
+    @Override
+    public UniversalTask runAsync(Plugin plugin, Runnable runnable) {
         return new BukkitTaskImpl(Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable));
     }
 
@@ -89,7 +145,19 @@ public class BukkitSchedulerImpl implements UniversalScheduler {
     }
 
     @Override
+    public UniversalTask runLaterAsync(Plugin plugin, Runnable runnable, long delay) {
+        delay = checkDelay(delay);
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, runnable, delay));
+    }
+
+    @Override
     public UniversalTask runTimerAsync(Runnable runnable, long delay, long period) {
+        delay = checkDelay(delay);
+        return new BukkitTaskImpl(Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, runnable, delay, period));
+    }
+
+    @Override
+    public UniversalTask runTimerAsync(Plugin plugin, Runnable runnable, long delay, long period) {
         delay = checkDelay(delay);
         return new BukkitTaskImpl(Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, runnable, delay, period));
     }
