@@ -1,60 +1,4 @@
-# YLib 使用指南
-
-<div align="center">
-
-![YLib Logo](https://img.shields.io/badge/YLib-v1.0.0--beta5-blue?style=for-the-badge)
-![Minecraft](https://img.shields.io/badge/Minecraft-1.8.8--1.21+-green?style=for-the-badge)
-![Platform](https://img.shields.io/badge/Platform-Spigot%20|%20Paper%20|%20Folia-orange?style=for-the-badge)
-
-**YLib** - 现代化的 Minecraft 插件开发库  
-让插件开发变得更简单、更高效、更可靠
-
-</div>
-
----
-
-## 📋 目录
-
-1. [简介](#简介)
-2. [快速开始](#快速开始)
-3. [核心功能](#核心功能)
-   - [依赖注入](#依赖注入)
-   - [自动配置](#自动配置)
-   - [错误处理](#错误处理)
-   - [命令系统](#命令系统)
-   - [调度器](#调度器)
-   - [消息系统](#消息系统)
-4. [高级特性](#高级特性)
-5. [最佳实践](#最佳实践)
-6. [示例项目](#示例项目)
-7. [常见问题](#常见问题)
-8. [API参考](#api参考)
-
----
-
-## 🎯 简介
-
-YLib 是一个专为 Minecraft 插件开发设计的现代化开发库，支持 Spigot、Paper 和 Folia 平台。它提供了一套完整的工具和服务，让插件开发变得更加简单和高效。
-
-### ✨ 主要特性
-
-- 🔄 **自动平台检测** - 无需手动配置，自动适配不同服务器平台
-- 🏗️ **依赖注入** - 现代化的服务管理和依赖注入容器
-- ⚙️ **自动配置** - 基于注解的配置管理，约定优于配置
-- 🛡️ **错误处理** - 用户友好的错误消息和智能恢复机制
-- 📦 **统一调度器** - 跨平台的任务调度API
-- 🎨 **消息系统** - 强大的消息格式化和发送功能
-- 🔧 **工具集合** - 丰富的实用工具和辅助函数
-
-### 🎮 支持的平台
-
-| 平台 | 版本支持 | 状态 |
-|------|----------|------|
-| **Spigot** | 1.8.8 - 1.21+ | ✅ 完全支持 |
-| **Paper** | 1.8.8 - 1.21+ | ✅ 完全支持 |
-| **Folia** | 1.19.4+ | ✅ 完全支持 |
-
----
+# YLib 用户指南
 
 ## 🚀 快速开始
 
@@ -64,15 +8,15 @@ YLib 是一个专为 Minecraft 插件开发设计的现代化开发库，支持 
 ```xml
 <dependency>
     <groupId>cn.yvmou</groupId>
-    <artifactId>ylib-spigot</artifactId> <!-- 或 ylib-paper, ylib-folia -->
-    <version>1.0.0-beta5</version>
+    <artifactId>ylib</artifactId>
+    <version>1.0.0-beta4</version>
 </dependency>
 ```
 
 #### Gradle
 ```gradle
 dependencies {
-    implementation 'cn.yvmou:ylib-spigot:1.0.0-beta5' // 或 ylib-paper, ylib-folia
+    implementation 'cn.yvmou:ylib:1.0.0-beta4'
 }
 ```
 
@@ -80,603 +24,299 @@ dependencies {
 
 ```java
 public class MyPlugin extends JavaPlugin {
-    
+
     private YLibAPI ylib;
-    
+
     @Override
     public void onEnable() {
         // 初始化YLib - 自动检测平台
         ylib = YLibFactory.create(this);
-        
+
         // 开始使用YLib的功能
-        ylib.getLoggerService().info("插件已启用，使用 " + ylib.getServerType().name() + " 平台");
-        
+        ylib.getLoggerService().info("插件已启用，使用 " + ylib.getServerType().getDisplayName() + " 平台");
+
         // 注册命令、监听器等
         setupCommands();
         setupListeners();
     }
-    
+
     @Override
     public void onDisable() {
         // YLib会自动清理资源
         ylib.getLoggerService().info("插件已禁用");
     }
-    
+
     public YLibAPI getYLib() {
         return ylib;
     }
 }
 ```
 
----
+## 🎯 核心功能
 
-## 🔧 核心功能
+### 自动平台检测
 
-### 🏗️ 依赖注入
-
-YLib提供了一个轻量级但功能强大的依赖注入容器，让服务管理变得简单。
-
-#### 基本使用
+YLib会自动检测你的服务器类型，无需手动配置：
 
 ```java
-// 1. 定义服务接口
-public interface EconomyService {
-    double getBalance(Player player);
-    boolean withdraw(Player player, double amount);
-    boolean deposit(Player player, double amount);
+// 检查服务器类型
+if (ylib.isFolia()) {
+    // Folia特定功能
+    ylib.getLoggerService().info("检测到Folia服务器，启用区域化调度器");
+} else if (ylib.isPaper()) {
+    // Paper特定功能
+    ylib.getLoggerService().info("检测到Paper服务器，启用Paper优化功能");
+} else {
+    // Spigot功能
+    ylib.getLoggerService().info("检测到Spigot服务器");
 }
 
-// 2. 实现服务
-public class SimpleEconomyService implements EconomyService {
-    private final DataStorage storage;
-    private final LoggerService logger;
-    
-    public SimpleEconomyService(DataStorage storage, LoggerService logger) {
-        this.storage = storage;
-        this.logger = logger;
-    }
-    
-    // 实现方法...
-}
-
-// 3. 注册服务
-@Override
-public void onEnable() {
-    ylib = YLibFactory.create(this);
-    
-    // 注册服务
-    ServiceContainer container = ylib.getServiceContainer();
-    
-    // 单例注册
-    container.registerSingleton(DataStorage.class, new FileDataStorage(this));
-    
-    // 工厂注册（自动解析依赖）
-    container.registerFactory(EconomyService.class, () -> {
-        DataStorage storage = container.getRequiredService(DataStorage.class);
-        LoggerService logger = container.getRequiredService(LoggerService.class);
-        return new SimpleEconomyService(storage, logger);
-    });
-}
-
-// 4. 使用服务
-public class MoneyCommand implements CommandExecutor {
-    private final ServiceContainer container;
-    
-    public MoneyCommand(ServiceContainer container) {
-        this.container = container;
-    }
-    
-    @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        // 获取所需服务
-        EconomyService economy = container.getRequiredService(EconomyService.class);
-        MessageService message = container.getRequiredService(MessageService.class);
-        
-        // 使用服务...
-    }
-}
+// 获取服务器信息
+ServerType serverType = ylib.getServerType();
+String serverVersion = ylib.getServerVersion();
+String bukkitVersion = ylib.getBukkitVersion();
 ```
 
-#### 服务生命周期
+### 调度器系统
 
-YLib支持三种服务生命周期：
-
-1. **Singleton（单例）**
-   ```java
-   container.registerSingleton(EconomyService.class, new SimpleEconomyService());
-   ```
-
-2. **Factory（工厂）**
-   ```java
-   container.registerFactory(EconomyService.class, () -> new SimpleEconomyService());
-   ```
-
-3. **Transient（瞬态）**
-   ```java
-   container.registerTransient(EconomyService.class, () -> new SimpleEconomyService());
-   ```
-
-#### 自动资源清理
-
-实现`AutoCloseable`的服务会在插件禁用时自动清理：
+统一的调度器API，自动使用最适合的调度器：
 
 ```java
-public class DatabaseService implements AutoCloseable {
-    private final Connection connection;
-    
-    @Override
-    public void close() throws Exception {
-        if (connection != null) {
-            connection.close();
-        }
-    }
-}
+// 同步任务
+Task syncTask = ylib.getSchedulerManager().runTask(() -> {
+    getLogger().info("同步任务执行");
+});
+
+// 异步任务
+Task asyncTask = ylib.getSchedulerManager().runTaskAsync(() -> {
+    getLogger().info("异步任务执行");
+});
+
+// 延迟任务
+Task delayedTask = ylib.getSchedulerManager().runTaskLater(20L, () -> {
+    getLogger().info("延迟任务执行");
+});
+
+// 重复任务
+Task repeatingTask = ylib.getSchedulerManager().runTaskTimer(20L, 40L, () -> {
+    getLogger().info("重复任务执行");
+});
+
+// 取消任务
+syncTask.cancel();
 ```
 
-### ⚙️ 自动配置
-
-YLib提供了基于注解的配置管理系统，让配置变得简单而强大。
-
-#### 基本使用
+### 命令管理系统
 
 ```java
-// 1. 定义配置类
-@AutoConfiguration("database")
-public class DatabaseConfig {
-    
-    @ConfigValue(value = "host", defaultValue = "localhost")
-    private String host;
-    
-    @ConfigValue(value = "port", defaultValue = "3306", min = 1, max = 65535)
-    private int port;
-    
-    @ConfigValue(value = "username", defaultValue = "root")
-    private String username;
-    
-    @ConfigValue(value = "password")
-    private String password;
-    
-    // Getter方法...
-}
-
-// 2. 注册配置
-@Override
-public void onEnable() {
-    ylib = YLibFactory.create(this);
-    
-    // 注册配置类
-    DatabaseConfig config = ylib.getConfigurationManager().registerConfiguration(DatabaseConfig.class);
-    
-    // 使用配置
-    String connectionUrl = String.format("jdbc:mysql://%s:%d/mydb",
-        config.getHost(), config.getPort());
-}
-```
-
-#### 配置验证
-
-```java
-@AutoConfiguration("shop")
-public class ShopConfig {
-    
-    @ConfigValue(
-        value = "min-price",
-        defaultValue = "0.01",
-        min = 0.01,
-        description = "最低商品价格"
-    )
-    private double minPrice;
-    
-    @ConfigValue(
-        value = "currency-symbol",
-        defaultValue = "$",
-        regex = "^[\\$¥€£]$",
-        description = "货币符号"
-    )
-    private String currencySymbol;
-    
-    @ConfigValue(
-        value = "shop-type",
-        defaultValue = "NORMAL",
-        enumValues = {"NORMAL", "ADMIN", "BLACK_MARKET"},
-        description = "商店类型"
-    )
-    private String shopType;
-}
-```
-
-#### 配置重载和监听
-
-```java
-// 注册配置监听器
-ylib.getConfigurationManager().addConfigurationListener(DatabaseConfig.class, 
-    (oldConfig, newConfig) -> {
-        // 配置变更时的处理逻辑
-        reconnectDatabase(newConfig);
-    });
-
-// 重载配置
-ylib.getConfigurationManager().reloadConfiguration(DatabaseConfig.class);
-```
-
-### 🛡️ 错误处理
-
-YLib提供了强大的错误处理机制，让错误信息更加用户友好。
-
-#### 基本使用
-
-```java
-public void riskyOperation(Player player) {
-    ErrorContext context = new ErrorContext("PlayerService", "teleport", "MyPlugin")
-        .addContext("player", player.getName())
-        .addContext("world", player.getWorld().getName());
-    
-    try {
-        // 可能出错的操作
-        teleportPlayer(player);
-        
-    } catch (Exception e) {
-        // 使用错误处理器
-        YLibErrorHandler.ErrorHandlingResult result = 
-            ylib.getErrorHandler().handleError(e, context);
-        
-        // 显示用户友好消息
-        player.sendMessage("§c" + result.getUserMessage());
-        
-        // 显示恢复建议
-        for (String suggestion : result.getSuggestions()) {
-            player.sendMessage("§e建议: " + suggestion);
-        }
-    }
-}
-```
-
-#### 增强异常
-
-```java
-// 创建带有详细信息的异常
-throw new YLibException(
-    "传送失败",                // 技术错误消息
-    originalException,         // 原始异常
-    context,                  // 错误上下文
-    "无法传送到目标位置",       // 用户友好消息
-    ErrorSeverity.ERROR,      // 错误严重程度
-    "TELEPORT_FAILED"         // 错误代码
-)
-.addRecoverySuggestion("请确保目标位置是安全的")
-.addRecoverySuggestion("尝试传送到其他位置");
-```
-
-#### 错误监听
-
-```java
-public class ErrorMonitor implements YLibErrorHandler.ErrorListener {
-    
-    @Override
-    public void onError(Throwable error, ErrorContext context, 
-                       YLibErrorHandler.ErrorHandlingResult result) {
-        // 记录错误
-        logError(error, context);
-        
-        // 通知管理员
-        if (error instanceof YLibException) {
-            YLibException ylibError = (YLibException) error;
-            if (ylibError.getSeverity().isMoreSevereThan(ErrorSeverity.ERROR)) {
-                notifyAdmins(result.getUserMessage());
-            }
-        }
-    }
-}
-
-// 注册监听器
-ylib.getErrorHandler().addErrorListener(new ErrorMonitor());
-```
-
-### 📦 命令系统
-
-YLib提供了一个强大而简洁的命令注册和管理系统。
-
-#### 基本使用
-
-```java
-// 1. 定义子命令
 @CommandOptions(
-    name = "reload",
-    permission = "myplugin.admin.reload",
-    onlyPlayer = false,
-    alias = {"rl", "restart"},
-    usage = "/myplugin reload",
-    description = "重新加载插件配置"
+    name = "mylib",
+    description = "我的插件主命令",
+    usage = "/mylib [子命令]"
 )
-public class ReloadCommand implements SubCommand {
+public class MyMainCommand implements SubCommand {
     
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        // 重载逻辑
-        sender.sendMessage("§a插件配置已重新加载！");
-        return true;
+        if (args.length == 0) {
+            sender.sendMessage("§a欢迎使用我的插件！");
+            return true;
+        }
+        
+        String subCommand = args[0];
+        switch (subCommand) {
+            case "info":
+                sender.sendMessage("§e插件版本: 1.0.0");
+                return true;
+            case "reload":
+                // 重载逻辑
+                sender.sendMessage("§a重载完成！");
+                return true;
+            default:
+                sender.sendMessage("§c未知子命令: " + subCommand);
+                return false;
+        }
     }
-}
-
-// 2. 注册命令
-@Override
-public void onEnable() {
-    ylib = YLibFactory.create(this);
-    
-    // 注册命令
-    ylib.getCommandManager().registerCommands("myplugin",
-        new ReloadCommand(),
-        new InfoCommand(),
-        new HelpCommand()
-    );
-}
-```
-
-#### 命令配置
-
-YLib会自动生成`commands.yml`配置文件：
-
-```yaml
-_info:
-- YLib 命令配置文件
-- 该文件用于配置插件命令的各种选项
-
-commands:
-  myplugin:
-    reload:
-      permission: myplugin.admin.reload
-      onlyPlayer: false
-      register: true
-      usage: /myplugin reload
-      alias:
-      - rl
-      - restart
-```
-
-#### Tab补全支持
-
-```java
-@CommandOptions(name = "teleport", permission = "myplugin.teleport")
-public class TeleportCommand implements SubCommand {
     
     @Override
     public List<String> tabComplete(CommandSender sender, String[] args) {
         if (args.length == 1) {
-            // 返回在线玩家列表
-            return Bukkit.getOnlinePlayers().stream()
-                .map(Player::getName)
-                .collect(Collectors.toList());
+            return Arrays.asList("info", "reload");
         }
-        return List.of();
+        return Collections.emptyList();
     }
 }
+
+// 注册命令
+ylib.getCommandManager().registerCommands("mylib", new MyMainCommand());
 ```
 
-### 📅 调度器
-
-YLib提供了跨平台的统一调度器API，自动适配不同服务器平台。
-
-#### 基本使用
+### 配置管理
 
 ```java
-// 延迟任务
-ylib.getSchedulerManager().runTaskLater(() -> {
-    // 延迟执行的代码
-}, 20); // 1秒后
+// 基础配置操作
+ConfigurationService config = ylib.getConfigurationService();
 
-// 重复任务
-UniversalTask task = ylib.getSchedulerManager().runTaskTimer(() -> {
-    // 每20秒执行一次
-}, 0, 20 * 20);
+// 读取配置
+String welcomeMessage = config.getString("messages.welcome", "欢迎！");
+int maxPlayers = config.getInt("server.max-players", 20);
+boolean debugMode = config.getBoolean("debug.enabled", false);
 
-// 异步任务
-ylib.getSchedulerManager().runTaskAsync(() -> {
-    // 异步执行的代码
-    
-    // 回到主线程
-    ylib.getSchedulerManager().runTask(() -> {
-        // 主线程代码
-    });
-});
+// 保存配置
+config.set("messages.welcome", "新的欢迎消息");
+config.saveConfig();
 
-// 取消任务
-task.cancel();
+// 重载配置
+config.reloadConfig();
 ```
 
-#### Folia区域调度
+### 日志系统
 
 ```java
-// 获取区域调度器
-RegionScheduler scheduler = ylib.getSchedulerManager().getRegionScheduler();
+LoggerService logger = ylib.getLoggerService();
 
-// 在特定区块执行任务
-scheduler.execute(chunk, () -> {
-    // 在指定区块执行的代码
-});
+// 不同级别的日志
+logger.info("信息日志");
+logger.warning("警告日志");
+logger.severe("错误日志");
+logger.debug("调试日志");
+
+// 彩色日志
+logger.info("§a绿色信息");
+logger.warning("§e黄色警告");
+logger.severe("§c红色错误");
 ```
 
-### 💬 消息系统
-
-YLib提供了强大的消息格式化和发送功能。
-
-#### 基本使用
+### 消息系统
 
 ```java
-MessageService message = ylib.getMessageService();
+MessageService messageService = ylib.getMessageService();
 
-// 基础消息
-message.sendMessage(player, "&a欢迎来到服务器！");
-
-// 带参数的消息
-message.sendMessage(player, 
-    "&b玩家 &e{player} &b加入了服务器！在线人数: &c{count}",
-    "player", player.getName(),
-    "count", Bukkit.getOnlinePlayers().size());
-
-// 多行消息
-message.sendMessage(player, Arrays.asList(
-    "&6==================",
-    "&a  欢迎来到服务器！",
-    "&b  玩家: &e{player}",
-    "&b  等级: &c{level}",
-    "&6==================="
-), "player", player.getName(), "level", player.getLevel());
+// 发送消息给玩家
+Player player = // 获取玩家
+messageService.sendMessage(player, "欢迎来到服务器！");
 
 // 广播消息
-message.broadcast("&e玩家 &b{player} &e加入了游戏！", 
-    "player", player.getName());
+messageService.broadcast("§a服务器重启完成！");
 
-// 控制台消息
-message.sendConsole("&a玩家 {player} 已连接", 
-    "player", player.getName());
+// 带占位符的消息
+Map<String, String> placeholders = new HashMap<>();
+placeholders.put("player", player.getName());
+placeholders.put("time", new SimpleDateFormat("HH:mm:ss").format(new Date()));
+messageService.sendMessage(player, "§e玩家 {player} 在 {time} 加入了游戏", placeholders);
 ```
 
----
+## 🔧 高级功能
 
-## 🎨 高级特性
-
-### 🔄 自动平台检测
+### 依赖注入容器
 
 ```java
-public class PlatformSpecificFeature {
+ServiceContainer container = ylib.getServiceContainer();
+
+// 注册服务
+container.registerSingleton(MyService.class, new MyServiceImpl());
+
+// 获取服务
+MyService service = container.getRequiredService(MyService.class);
+
+// 注册工厂
+container.registerFactory(MyService.class, () -> new MyServiceImpl());
+
+// 注册临时服务
+container.registerTransient(MyService.class, () -> new MyServiceImpl());
+```
+
+### 自动配置系统
+
+```java
+@AutoConfiguration("myplugin")
+public class MyPluginConfig {
     
-    private final YLibAPI ylib;
+    @ConfigValue("database.host")
+    private String databaseHost = "localhost";
     
-    public void initializeFeatures() {
-        ServerType serverType = ylib.getServerType();
-        
-        switch (serverType) {
-            case FOLIA:
-                setupFoliaFeatures();
-                break;
-            case PAPER:
-                setupPaperFeatures();
-                break;
-            case SPIGOT:
-                setupSpigotFeatures();
-                break;
-        }
+    @ConfigValue(value = "server.port", required = true)
+    private int serverPort;
+    
+    @ConfigValue(value = "features.enabled", description = "启用的功能列表")
+    private List<String> enabledFeatures = Arrays.asList("feature1", "feature2");
+    
+    @ConfigValue(value = "security.password", sensitive = true)
+    private String password;
+    
+    // getters and setters...
+}
+
+// 注册配置
+ConfigurationManager configManager = ylib.getConfigurationManager();
+MyPluginConfig config = configManager.registerConfiguration(MyPluginConfig.class);
+```
+
+### 错误处理
+
+```java
+YLibErrorHandler errorHandler = ylib.getErrorHandler();
+
+// 处理异常
+try {
+    // 可能出错的代码
+    riskyOperation();
+} catch (Exception e) {
+    ErrorContext context = ErrorContext.builder()
+        .operation("riskyOperation")
+        .plugin(plugin)
+        .build();
+    
+    ErrorHandlingResult result = errorHandler.handleError(e, context);
+    if (result.isRecovered()) {
+        getLogger().info("错误已自动恢复");
+    } else {
+        getLogger().severe("错误处理失败: " + result.getUserMessage());
     }
 }
 ```
 
-### 📊 错误统计和监控
+## 📊 错误统计
 
 ```java
-public class HealthMonitor implements YLibErrorHandler.ErrorListener {
+// 获取错误统计
+ErrorStatistics stats = ylib.getErrorHandler().getErrorStatistics();
+
+// 查看统计信息
+getLogger().info("总错误数: " + stats.getTotalErrors());
+getLogger().info("可恢复错误: " + stats.getRecoverableErrors());
+getLogger().info("严重错误: " + stats.getSevereErrors());
+
+// 重置统计
+ylib.getErrorHandler().resetErrorStatistics();
+```
+
+## 🔄 配置热重载
+
+```java
+// 添加配置监听器
+ConfigurationManager configManager = ylib.getConfigurationManager();
+
+configManager.addConfigurationListener(MyPluginConfig.class, (oldConfig, newConfig) -> {
+    getLogger().info("配置已更新");
     
-    public void reportHealth() {
-        YLibErrorHandler.ErrorStatistics stats = 
-            ylib.getErrorHandler().getErrorStatistics();
-        
-        ylib.getLoggerService().info("=== 插件健康报告 ===");
-        ylib.getLoggerService().info("总错误数: " + stats.getTotalErrors());
-        ylib.getLoggerService().info("恢复率: " + 
-            String.format("%.1f%%", stats.getRecoveryRate() * 100));
+    // 处理配置变更
+    if (!oldConfig.getDatabaseHost().equals(newConfig.getDatabaseHost())) {
+        // 重新连接数据库
+        reconnectDatabase(newConfig.getDatabaseHost());
     }
-}
+});
 ```
 
----
+## 🎨 最佳实践
 
-## 💡 最佳实践
-
-### 1. 插件结构建议
-
-```
-src/main/java/com/yourname/yourplugin/
-├── YourPlugin.java                 # 主插件类
-├── config/
-│   ├── DatabaseConfig.java        # 数据库配置
-│   ├── MessagesConfig.java        # 消息配置
-│   └── FeatureConfig.java         # 功能配置
-├── services/
-│   ├── PlayerService.java         # 玩家服务
-│   ├── EconomyService.java        # 经济服务
-│   └── DatabaseService.java       # 数据库服务
-├── commands/
-│   ├── MainCommand.java           # 主命令
-│   └── AdminCommand.java          # 管理命令
-├── listeners/
-│   ├── PlayerListener.java        # 玩家事件监听
-│   └── WorldListener.java         # 世界事件监听
-└── utils/
-    ├── PlayerUtils.java           # 玩家工具
-    └── MessageUtils.java          # 消息工具
-```
-
-### 2. 配置管理最佳实践
+### 1. 插件主类设计
 
 ```java
-// 将相关配置分组
-@AutoConfiguration("database")
-public class DatabaseConfig {
-    // 数据库相关配置
-}
-
-@AutoConfiguration("messages")
-public class MessagesConfig {
-    // 消息相关配置
-}
-
-// 在主类中统一注册
-@Override
-public void onEnable() {
-    ylib = YLibFactory.create(this);
-    
-    // 注册所有配置
-    DatabaseConfig dbConfig = ylib.getConfigurationManager()
-        .registerConfiguration(DatabaseConfig.class);
-    MessagesConfig msgConfig = ylib.getConfigurationManager()
-        .registerConfiguration(MessagesConfig.class);
-    
-    // 注册到服务容器
-    ylib.getServiceContainer().registerSingleton(DatabaseConfig.class, dbConfig);
-    ylib.getServiceContainer().registerSingleton(MessagesConfig.class, msgConfig);
-}
-```
-
-### 3. 错误处理最佳实践
-
-```java
-public class BestPracticeExample {
-    
-    public void handlePlayerJoin(Player player) {
-        ErrorContext context = new ErrorContext("PlayerManager", "handlePlayerJoin", "MyPlugin")
-            .addContext("player", player.getName())
-            .addContext("uuid", player.getUniqueId().toString());
-        
-        try {
-            // 加载玩家数据
-            PlayerData data = loadPlayerData(player);
-            
-            // 发送欢迎消息
-            sendWelcomeMessage(player, data);
-            
-        } catch (Exception e) {
-            YLibErrorHandler.ErrorHandlingResult result = 
-                ylib.getErrorHandler().handleError(e, context);
-            
-            player.sendMessage("§c" + result.getUserMessage());
-            
-            if (!result.shouldContinue()) {
-                player.kickPlayer("服务器遇到问题，请稍后重试");
-            }
-        }
-    }
-}
-```
-
----
-
-## 🎮 示例项目
-
-### 完整的插件示例
-
-```java
-public class ExamplePlugin extends JavaPlugin {
+public class MyPlugin extends JavaPlugin {
     
     private YLibAPI ylib;
+    private MyPluginConfig config;
     
     @Override
     public void onEnable() {
@@ -685,133 +325,160 @@ public class ExamplePlugin extends JavaPlugin {
             ylib = YLibFactory.create(this);
             
             // 加载配置
-            loadConfigurations();
+            config = ylib.getConfigurationManager().registerConfiguration(MyPluginConfig.class);
             
-            // 注册服务
-            registerServices();
-            
-            // 设置命令
+            // 注册命令
             setupCommands();
             
             // 注册监听器
             setupListeners();
             
-            getLogger().info("插件启动成功！");
+            // 启动任务
+            startTasks();
+            
+            ylib.getLoggerService().info("插件启动成功！");
             
         } catch (Exception e) {
-            ErrorContext context = new ErrorContext("ExamplePlugin", "onEnable", getName());
-            ylib.getErrorHandler().handleError(e, context);
-            
-            getLogger().severe("插件启动失败，禁用插件");
+            getLogger().severe("插件启动失败: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
         }
-    }
-    
-    private void loadConfigurations() {
-        DatabaseConfig dbConfig = ylib.getConfigurationManager()
-            .registerConfiguration(DatabaseConfig.class);
-        MessagesConfig msgConfig = ylib.getConfigurationManager()
-            .registerConfiguration(MessagesConfig.class);
-        
-        ylib.getServiceContainer().registerSingleton(DatabaseConfig.class, dbConfig);
-        ylib.getServiceContainer().registerSingleton(MessagesConfig.class, msgConfig);
-    }
-    
-    private void registerServices() {
-        ServiceContainer container = ylib.getServiceContainer();
-        
-        // 注册数据服务
-        container.registerSingleton(DataStorage.class, new FileDataStorage(this));
-        
-        // 注册经济服务
-        container.registerFactory(EconomyService.class, () -> {
-            DataStorage storage = container.getRequiredService(DataStorage.class);
-            LoggerService logger = container.getRequiredService(LoggerService.class);
-            return new EconomyService(storage, logger);
-        });
-    }
-    
-    private void setupCommands() {
-        ylib.getCommandManager().registerCommands("example",
-            new ReloadCommand(ylib),
-            new EconomyCommand(ylib),
-            new AdminCommand(ylib)
-        );
-    }
-    
-    private void setupListeners() {
-        getServer().getPluginManager().registerEvents(
-            new PlayerListener(ylib), this);
     }
     
     @Override
     public void onDisable() {
         if (ylib != null) {
-            ylib.disable(); // 自动清理所有资源
+            ylib.getLoggerService().info("插件正在关闭...");
         }
     }
     
-    public YLibAPI getYLib() {
-        return ylib;
+    private void setupCommands() {
+        ylib.getCommandManager().registerCommands("myplugin", new MyMainCommand());
+    }
+    
+    private void setupListeners() {
+        getServer().getPluginManager().registerEvents(new MyEventListener(), this);
+    }
+    
+    private void startTasks() {
+        // 启动定时任务
+        ylib.getSchedulerManager().runTaskTimer(20L, 20L, () -> {
+            // 每分钟执行一次
+            performMaintenance();
+        });
     }
 }
 ```
 
----
+### 2. 错误处理
+
+```java
+public class SafePlugin {
+    
+    private final YLibAPI ylib;
+    
+    public SafePlugin(YLibAPI ylib) {
+        this.ylib = ylib;
+    }
+    
+    public void performOperation() {
+        try {
+            // 业务逻辑
+            doSomething();
+            
+        } catch (Exception e) {
+            // 使用YLib的错误处理
+            ErrorContext context = ErrorContext.builder()
+                .operation("performOperation")
+                .plugin(ylib.getPlugin())
+                .build();
+            
+            ErrorHandlingResult result = ylib.getErrorHandler().handleError(e, context);
+            
+            if (!result.isRecovered()) {
+                // 记录错误并通知管理员
+                ylib.getLoggerService().severe("操作失败: " + result.getUserMessage());
+                notifyAdmins("插件出现错误，请检查日志");
+            }
+        }
+    }
+}
+```
+
+### 3. 配置管理
+
+```java
+@AutoConfiguration("myplugin")
+public class MyPluginConfig {
+    
+    @ConfigValue("database.host")
+    private String databaseHost = "localhost";
+    
+    @ConfigValue(value = "database.port", validation = "range:1024-65535")
+    private int databasePort = 3306;
+    
+    @ConfigValue(value = "security.api-key", sensitive = true)
+    private String apiKey = "";
+    
+    @ConfigValue(value = "features.enabled", description = "启用的功能列表")
+    private List<String> enabledFeatures = Arrays.asList("feature1", "feature2");
+    
+    // 验证方法
+    public boolean isValid() {
+        return databasePort >= 1024 && databasePort <= 65535 
+            && !databaseHost.isEmpty();
+    }
+    
+    // getters and setters...
+}
+```
+
+## 🔧 构建
+
+### 环境要求
+
+- Java 8+
+- Gradle 8.7+
 
 ## ❓ 常见问题
 
-### Q: YLib 支持哪些 Minecraft 版本？
-A: YLib 支持 Minecraft 1.8.8 到 1.21+ 的所有版本，兼容 Spigot、Paper 和 Folia 平台。
+### Q: 如何检查服务器类型？
+A: 使用 `ylib.getServerType()` 或 `ylib.isFolia()`、`ylib.isPaper()`、`ylib.isSpigot()` 方法。
 
-### Q: 如何选择正确的依赖？
-A: 根据你的目标平台选择：
-- 如果只支持 Spigot: `ylib-spigot`
-- 如果只支持 Paper: `ylib-paper`  
-- 如果只支持 Folia: `ylib-folia`
-- 如果需要支持多平台: 选择最低要求的版本，YLib 会自动适配
+### Q: 如何处理配置变更？
+A: 使用 `ConfigurationManager.addConfigurationListener()` 监听配置变更。
 
-### Q: YLib 会影响插件性能吗？
-A: YLib 设计时充分考虑了性能，使用轻量级的实现和懒加载机制。对插件性能的影响微乎其微。
+### Q: 如何自定义错误处理？
+A: 实现 `ErrorListener` 接口并注册到 `YLibErrorHandler`。
 
-### Q: 可以在现有插件中集成 YLib 吗？
-A: 可以！YLib 设计为非侵入式，可以逐步集成到现有插件中，不需要重写整个插件。
+### Q: 如何添加自定义服务？
+A: 使用 `ServiceContainer.registerSingleton()` 或 `registerFactory()` 注册服务。
 
-### Q: 如何调试 YLib 相关问题？
-A: 启用调试日志：
-```java
-ylib.getLoggerService().setDebugEnabled(true);
-```
+### Q: 如何优化性能？
+A: 使用异步调度器处理耗时操作，合理使用缓存，避免在主线程执行I/O操作。
 
-### Q: YLib 的配置文件保存在哪里？
-A: 配置文件保存在插件的数据文件夹中，文件名格式为 `{配置类名}.yml`。
+## 📚 API参考
 
----
+### 核心接口
 
-## 🤝 贡献和支持
+- `YLibAPI` - 主API接口
+- `SchedulerManager` - 调度器管理
+- `CommandManager` - 命令管理
+- `ConfigurationService` - 配置服务
+- `LoggerService` - 日志服务
+- `MessageService` - 消息服务
 
-### 获取帮助
-- 📧 邮件: support@yvmou.cn
-- 💬 QQ群: [加入我们的QQ群]
-- 🐛 问题反馈: [GitHub Issues](https://github.com/yvmou/YLib/issues)
+### 高级功能
 
-### 贡献代码
-1. Fork 项目
-2. 创建功能分支
-3. 提交更改
-4. 发起 Pull Request
+- `ServiceContainer` - 依赖注入容器
+- `ConfigurationManager` - 配置管理器
+- `YLibErrorHandler` - 错误处理器
 
-### 许可证
-YLib 使用 MIT 许可证，详见 [LICENSE](LICENSE) 文件。
+### 枚举和异常
+
+- `ServerType` - 服务器类型枚举
+- `YLibException` - YLib异常类
+- `ErrorSeverity` - 错误严重程度
 
 ---
 
-<div align="center">
-
-**感谢使用 YLib！**
-
-如果这个项目对你有帮助，请给我们一个 ⭐ Star！
-
-[GitHub](https://github.com/yvmou/YLib) | [文档](https://docs.yvmou.cn/ylib) | [示例](https://github.com/yvmou/YLib-Examples)
-
-</div>
+**YLib** - 让Minecraft插件开发更简单、更高效！

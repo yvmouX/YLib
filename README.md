@@ -13,12 +13,14 @@ YLib 是一个专为 Minecraft 服务器插件开发设计的通用库，支持�
 - 🔧 **开箱即用**: 提供调度器、命令管理、配置管理等核心功能
 - 🛡️ **类型安全**: 使用Java泛型和注解确保类型安全
 - 📚 **完整文档**: 详细的使用文档和示例代码
+- 🚀 **快速构建**: 简化的构建流程，专注于功能开发
+- 🤖 **自动检测**: 运行时自动检测服务器类型，无需手动选择
 
 ## 🚀 快速开始
 
 ### 1. 添加依赖
 
-YLib提供统一的JAR文件，但使用不同的构建脚本来管理依赖：
+YLib提供统一的JAR文件，自动适配不同服务器类型：
 
 ```xml
 <dependency>
@@ -30,46 +32,27 @@ YLib提供统一的JAR文件，但使用不同的构建脚本来管理依赖：
 
 ### 2. 初始化YLib
 
-根据你的服务器类型选择正确的入口类：
+使用统一的API，YLib会自动检测服务器类型：
 
 ```java
 public class MyPlugin extends JavaPlugin {
-    private YLib ylib; // 统一的入口类
+    private YLibAPI ylib;
     
     @Override
     public void onEnable() {
-        // 根据服务器类型自动选择实现
-        if (isFolia()) {
-            ylib = new YLibFolia(this);
-        } else if (isPaper()) {
-            ylib = new YLibPaper(this);
-        } else {
-            ylib = new YLibSpigot(this);
-        }
+        // 自动检测服务器类型并初始化
+        ylib = YLibFactory.create(this);
         
         // 记录启动日志
-        ylib.getLoggerService().startup("插件启动成功");
+        ylib.getLoggerService().info("插件启动成功，使用 " + ylib.getServerType().getDisplayName() + " 平台");
         
         // 注册命令
         ylib.getCommandManager().registerCommands("mylib", new MySubCommand());
     }
     
-    private boolean isFolia() {
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-    
-    private boolean isPaper() {
-        try {
-            Class.forName("com.destroystokyo.paper.PaperConfig");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
+    @Override
+    public void onDisable() {
+        ylib.getLoggerService().info("插件已禁用");
     }
 }
 ```
@@ -77,25 +60,31 @@ public class MyPlugin extends JavaPlugin {
 ### 3. 使用核心功能
 
 ```java
-// 调度器
+// 调度器 - 自动使用最适合的调度器
 Task task = ylib.getSchedulerManager().runTask(() -> {
     getLogger().info("任务执行");
 });
 
 // 配置管理
-ConfigurationService config = ylib.getConfigurationService();
-String message = config.getString("messages.welcome", "欢迎!");
+String message = ylib.getConfigurationService().getString("messages.welcome", "欢迎!");
 
 // 日志记录
-LoggerService logger = ylib.getLoggerService();
-logger.info("插件运行中");
+ylib.getLoggerService().info("插件运行中");
+
+// 检查服务器类型
+if (ylib.isFolia()) {
+    // Folia特定功能
+} else if (ylib.isPaper()) {
+    // Paper特定功能
+} else {
+    // Spigot功能
+}
 ```
 
 ## 📖 文档
 
-- [快速开始指南](QUICK_START.md) - 快速上手YLib
-- [详细使用文档](USAGE_EXAMPLE.md) - 完整的使用示例
-- [项目总结](PROJECT_SUMMARY.md) - 项目架构和功能概述
+- [用户指南](YLIB_USER_GUIDE.md) - 完整的使用指南和示例
+- [使用示例](EXAMPLE_USAGE.md) - 详细的代码示例和最佳实践
 
 ## 🏗️ 项目架构
 
@@ -115,46 +104,46 @@ YLib/
 
 ### 环境要求
 
-- Java 17+
+- Java 8+ (核心模块)
+- Java 17+ (Folia/Paper模块，可选)
 - Gradle 8.7+
+
+### 兼容性说明
+
+YLib采用智能兼容性策略：
+
+- **核心模块** (api, common, core, spigot): 使用Java 8，支持最老的Minecraft服务器
+- **现代模块** (folia, paper): 使用Java 17，支持最新的服务器特性
+- **统一JAR**: 包含所有模块，自动适配不同环境
 
 ### 构建命令
 
 ```bash
+# 构建统一的YLib JAR文件
+./gradlew buildUnified
+
+# 构建所有模块（开发用）
+./gradlew buildAll
+
 # 构建核心模块
 ./gradlew buildYLib
 
-# 构建特定平台版本
-./gradlew buildFolia    # Folia版本
-./gradlew buildSpigot   # Spigot版本
-./gradlew buildPaper    # Paper版本
-
-# 构建所有平台版本
-./gradlew buildAll
-
-# 创建特定平台的统一JAR文件
-./gradlew :folia:shadowJar   # Folia版本
-./gradlew :spigot:shadowJar  # Spigot版本
-./gradlew :paper:shadowJar   # Paper版本
-
 # 运行测试
-./gradlew test -x checkstyleMain -x pmdMain
+./gradlew test
+
+# 快速构建（跳过测试和Javadoc）
+./gradlew build -x test -x javadoc
 ```
 
 ### 生成的JAR文件
 
-每个平台模块都会生成统一的JAR文件：
+构建完成后，在根目录的 `build/libs/` 文件夹中会生成统一的JAR文件：
 
 ```
-modules/folia/build/libs/ylib-1.0.0-beta4.jar   # Folia版本
-modules/spigot/build/libs/ylib-1.0.0-beta4.jar  # Spigot版本
-modules/paper/build/libs/ylib-1.0.0-beta4.jar   # Paper版本
+build/libs/ylib-1.0.0-beta4.jar   # 统一的YLib JAR文件
 ```
 
-根据你的服务器类型选择对应的JAR文件：
-- **Folia服务器**: 使用 `modules/folia/build/libs/ylib-1.0.0-beta4.jar`
-- **Spigot服务器**: 使用 `modules/spigot/build/libs/ylib-1.0.0-beta4.jar`
-- **Paper服务器**: 使用 `modules/paper/build/libs/ylib-1.0.0-beta4.jar`
+这个JAR文件包含了所有平台的实现，会根据运行时的服务器环境自动选择正确的实现。
 
 ## 📦 模块说明
 
@@ -169,6 +158,11 @@ modules/paper/build/libs/ylib-1.0.0-beta4.jar   # Paper版本
 | `nms` | NMS兼容性模块 | 🚧 开发中 |
 
 ## 🎯 核心功能
+
+### 自动平台检测
+- 运行时自动检测服务器类型
+- 无需手动选择或配置
+- 支持Folia、Paper、Spigot
 
 ### 调度器系统
 - 统一的任务调度API
@@ -204,6 +198,7 @@ modules/paper/build/libs/ylib-1.0.0-beta4.jar   # Paper版本
 - 命令管理系统
 - 平台特定实现
 - 统一JAR文件生成
+- 自动平台检测
 - 基础测试和文档
 
 ### 进行中 🚧
