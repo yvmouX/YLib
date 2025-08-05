@@ -102,11 +102,17 @@ public static YLib getYLib() {
 ```
 
 ```java
+# 除了下面示例的两个功能，不建议使用其他的了。因为我正在重构它。
+# In addition to the two functions shown below, it is not recommended to use others. Because I am 
+# refactoring it.
+    
 # 调度器
+# Scheduler
 Main.getYLib().getScheduler().runTask(() -> {
     /* Code */
 })
-# 命令注册
+# 注册命令
+# registerCommands
 getYLib().getCommandManager().registerCommands(
                 "yess",
                 new ReloadCmd(this),
