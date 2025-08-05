@@ -1,0 +1,164 @@
+name: 发布Releases
+
+on:
+#  push:
+#    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 拉取完整的 Git 历史
+
+      - name: 设置 JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - name: 提取插件版本号
+        id: extract_version
+        run: |
+          # 从 build.gradle 中提取版本号，并写入环境变量 VERSION
+          VERSION=$(grep "^version *= *['\"]" build.gradle.kts | head -n1 | sed "s/.*version *= *['\"]\\(.*\\)['\"].*/\\1/")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: 检查版本是否已发布
+        id: check_version
+        run: |
+          # 检查 Git 仓库中是否已存在当前版本的标签
+          # 如果存在，说明该版本已经发布过，后续步骤将跳过
+          git fetch --tags --force
+          if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "版本 v${{ env.VERSION }} 已存在，跳过发布。"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "版本 v${{ env.VERSION }} 是新版本，继续发布。"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 确保 gradlew 可执行
+        if: steps.check_version.outputs.skip == 'false'
+        run: chmod +x ./gradlew
+
+      - name: 构建插件
+        if: steps.check_version.outputs.skip == 'false'
+        run: ./gradlew build
+
+      - name: 获取当前日期
+        if: steps.check_version.outputs.skip == 'false'
+        id: get-date
+        run: |
+          echo "current-date=$(date '+%Y-%m-%d')" >> $GITHUB_OUTPUT
+          echo "current-time=$(date '+%H:%M:%S %Z')" >> $GITHUB_OUTPUT
+
+      - name: 获取版本标签
+        if: steps.check_version.outputs.skip == 'false'
+        id: get_tags
+        run: |
+          # 强制获取所有远程标签
+          git fetch --tags --force
+          
+          current_tag="v${{ env.VERSION }}"
+          
+          # 获取上一个发布的标签（按时间排序，排除当前正在创建的标签）
+          previous_tag=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -v "^$current_tag$" | head -n1)
+          
+          # 如果没有找到之前的标签，则为首次发布
+          if [ -z "$previous_tag" ]; then
+            previous_tag=""
+          fi
+          
+          echo "current_tag=${current_tag}" >> $GITHUB_OUTPUT
+          echo "previous_tag=${previous_tag}" >> $GITHUB_OUTPUT
+          echo "previous_commit=$(git rev-list -n 1 $previous_tag 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
+
+      - name: 自动生成 GitHub 风格的 Release Notes
+        if: steps.check_version.outputs.skip == 'false'
+        id: github_release_notes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const response = await github.request('POST /repos/{owner}/{repo}/releases/generate-notes', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `${process.env.VERSION}`,
+              previous_tag_name: `${{ steps.get_tags.outputs.previous_tag }}`
+            });
+            core.setOutput('body', response.data.body);
+
+      - name: 生成自定义提交日志（增强版）
+        if: steps.check_version.outputs.skip == 'false'
+        id: generate_changelog
+        run: |
+          repo_url="https://github.com/${{ github.repository }}"
+          previous_tag="${{ steps.get_tags.outputs.previous_tag }}"
+          previous_commit="${{ steps.get_tags.outputs.previous_commit }}"
+          
+          # 确保我们获取的是真正新的提交
+          if [ -n "$previous_commit" ]; then
+            log_range="$previous_commit..HEAD"
+          else
+            log_range="HEAD" # 首次发布
+          fi
+          
+          # 获取新的提交记录（排除合并提交）
+          new_commits=$(git log --pretty=format:"- [%h]($repo_url/commit/%H) %s" --no-merges "$log_range")
+          
+          # 如果没有新提交，使用特殊消息
+          if [ -z "$new_commits" ]; then
+            new_commits="- 无新提交，版本标记更新"
+          fi
+          
+          # 保持原有效果：超过5条折叠
+          first_five=$(echo "$new_commits" | head -n 5)
+          remaining=$(echo "$new_commits" | tail -n +6)
+          
+          if [ -z "$remaining" ]; then
+            changelog="$new_commits"
+          else
+            remaining_count=$(echo "$remaining" | grep -c '^-' || echo 0)
+            changelog="$first_five
+          <details>
+          <summary>View remaining $remaining_count changes</summary>
+
+          $remaining
+          </details>"
+          fi
+          
+          # 输出结果
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$changelog" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: 发布到 GitHub Releases
+        if: steps.check_version.outputs.skip == 'false'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-tag: "${{ env.VERSION }}"
+          version: "${{ env.VERSION }}"
+          version-type: release
+          github-prerelease: false
+          files: build/libs/*.jar
+          changelog: |
+            # 🚀 Release v${{ env.VERSION }}
+            **Release Date**: ${{ steps.get-date.outputs.current-date }}
+            **Java Version**: 17+
+
+            ## Commit Message
+            ${{ steps.generate_changelog.outputs.changelog }}
+            
+            ${{ steps.github_release_notes.outputs.body }}
+
+            ## Version History
+            View all releases at [Release Page](https://github.com/${{ github.repository }}/releases)
