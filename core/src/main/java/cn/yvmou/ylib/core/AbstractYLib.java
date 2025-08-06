@@ -181,7 +181,7 @@ public abstract class AbstractYLib implements YLibAPI {
         // 取消所有任务
         if (universalScheduler != null) {
             try {
-                universalScheduler.cancelAllTasks();
+                universalScheduler.cancelAllTasks(plugin);
             } catch (Exception e) {
                 getLogger().warning("取消任务时发生错误: " + e.getMessage());
             }
