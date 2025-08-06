@@ -1,12 +1,20 @@
 package cn.yvmou.ylib.api.scheduler;
 
+import org.bukkit.plugin.Plugin;
+
 /**
  * 任务接口 - 定义任务的基本操作
  *
  * @author yvmoux
  * @since 1.0.0
  */
-public interface Task {
+public interface UniversalTask {
+
+    /**
+     * 获取任务所属插件
+     * @return Plugin 任务所属插件
+     */
+    Plugin getOwningPlugin();
     
     /**
      * 取消任务
@@ -20,28 +28,10 @@ public interface Task {
     boolean isCancelled();
     
     /**
-     * 获取任务ID
-     * @return int 任务ID
-     */
-    int getTaskId();
-    
-    /**
      * 检查任务是否正在运行
      * @return boolean 如果任务正在运行返回true
      */
-    boolean isRunning();
-    
-    /**
-     * 获取延迟时间
-     * @return long 延迟时间（tick）
-     */
-    long getDelay();
-    
-    /**
-     * 获取周期时间
-     * @return long 周期时间（tick），如果不是重复任务返回-1
-     */
-    long getPeriod();
+    boolean isCurrentlyRunning();
     
     /**
      * 获取任务类型
@@ -57,8 +47,6 @@ public interface Task {
         SYNC,
         /** 异步任务 */
         ASYNC,
-        /** 延迟任务 */
-        DELAYED,
         /** 重复任务 */
         REPEATING
     }

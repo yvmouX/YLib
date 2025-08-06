@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "cn.yvmou"
-version = "1.0.0-beta4"
+version = "1.0.0-beta5"
 
 allprojects {
     apply(plugin = "java")
@@ -25,18 +25,9 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven {
-            name = "papermc"
-            url = uri("https://repo.papermc.io/repository/maven-public/")
-        }
-        maven {
-            name = "spigot"
-            url = uri("https://hub.spigotmc.org/nexus/content/repositories/public/")
-        }
-        maven {
-            name = "spigot-repo"
-            url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
-        }
+        maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+        maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/public/") }
+        maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
     }
 
     dependencies {
@@ -45,11 +36,6 @@ allprojects {
         testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
     }
 
-//    java {
-//        withSourcesJar()
-//        withJavadocJar()
-//    }
-
     // 测试平台
     tasks.withType<Test> {
         useJUnitPlatform()
@@ -57,7 +43,7 @@ allprojects {
 }
 
 var buildAll = tasks.register<Jar>("buildAll") {
-    delete(files("$projectDir/target"))
+    //delete(files("$projectDir/target"))
 
     subprojects.forEach {
         dependsOn(it.tasks.named("build"))
@@ -82,6 +68,10 @@ var buildAll = tasks.register<Jar>("buildAll") {
         println("🏷️  ArtifactId: YLib")
         println("📌 Version: ${project.version}")
     }
+}
+
+tasks.named("build") {
+    dependsOn(buildAll)
 }
 
 publishing {

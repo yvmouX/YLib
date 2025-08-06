@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.core;
 
-import cn.yvmou.ylib.api.scheduler.SchedulerManager;
+import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.common.services.ConfigurationService;
 import cn.yvmou.ylib.common.services.LoggerService;
@@ -21,7 +21,7 @@ public class YLibCore {
     private final LoggerService loggerService;
     private final ConfigurationService configService;
     private final MessageService messageService;
-    private final SchedulerManager schedulerManager;
+    private final UniversalScheduler universalScheduler;
     private final CommandManager commandManager;
     
     /**
@@ -41,7 +41,7 @@ public class YLibCore {
         this.messageService = new MessageService(plugin, loggerService);
         
         // 初始化调度器和命令管理器（这些将在平台特定模块中实现）
-        this.schedulerManager = createSchedulerManager();
+        this.universalScheduler = createSchedulerManager();
         this.commandManager = createCommandManager();
         
         // 记录初始化信息
@@ -92,10 +92,10 @@ public class YLibCore {
     
     /**
      * 获取调度器管理器
-     * @return SchedulerManager 调度器管理器实例
+     * @return UniversalScheduler 调度器管理器实例
      */
-    public SchedulerManager getScheduler() {
-        return schedulerManager;
+    public UniversalScheduler getScheduler() {
+        return universalScheduler;
     }
     
     /**
@@ -108,11 +108,11 @@ public class YLibCore {
     
     /**
      * 创建调度器管理器
-     * @return SchedulerManager 调度器管理器实例
+     * @return UniversalScheduler 调度器管理器实例
      */
-    private SchedulerManager createSchedulerManager() {
+    private UniversalScheduler createSchedulerManager() {
         // 这个方法将在平台特定模块中被重写
-        throw new UnsupportedOperationException("SchedulerManager must be implemented by platform-specific module");
+        throw new UnsupportedOperationException("UniversalScheduler must be implemented by platform-specific module");
     }
     
     /**

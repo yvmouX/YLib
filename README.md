@@ -61,7 +61,7 @@ public class MyPlugin extends JavaPlugin {
 
 ```java
 // 调度器 - 自动使用最适合的调度器
-Task task = ylib.getSchedulerManager().runTask(() -> {
+Task universalTask = ylib.getSchedulerManager().runTask(() -> {
     getLogger().info("任务执行");
 });
 

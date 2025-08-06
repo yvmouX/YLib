@@ -3,6 +3,7 @@ package cn.yvmou.ylib.api.scheduler;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 
@@ -12,7 +13,7 @@ import javax.annotation.Nullable;
  * @author yvmoux
  * @since 1.0.0
  */
-public interface SchedulerManager {
+public interface UniversalScheduler {
     
     /**
      * 检查是否为Folia服务器
@@ -23,77 +24,77 @@ public interface SchedulerManager {
     /**
      * 运行同步任务
      * @param runnable 要执行的任务
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTask(Runnable runnable);
+    UniversalTask runTask(@NotNull Runnable runnable);
     
     /**
      * 运行同步任务
      * @param plugin 插件实例
      * @param runnable 要执行的任务
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTask(Plugin plugin, Runnable runnable);
+    UniversalTask runTask(Plugin plugin, @NotNull Runnable runnable);
     
     /**
      * 运行同步任务（基于位置）
      * @param location 位置
      * @param runnable 要执行的任务
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTask(Location location, Runnable runnable);
+    UniversalTask runTask(Location location, @NotNull Runnable runnable);
     
     /**
      * 运行同步任务（基于位置）
      * @param plugin 插件实例
      * @param location 位置
      * @param runnable 要执行的任务
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTask(Plugin plugin, Location location, Runnable runnable);
+    UniversalTask runTask(Plugin plugin, Location location, @NotNull Runnable runnable);
     
     /**
      * 运行同步任务（基于实体）
      * @param entity 实体
      * @param runnable 要执行的任务
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTask(Entity entity, Runnable runnable);
+    UniversalTask runTask(Entity entity, @NotNull Runnable runnable);
     
     /**
      * 运行同步任务（基于实体）
      * @param plugin 插件实例
      * @param entity 实体
      * @param runnable 要执行的任务
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTask(Plugin plugin, Entity entity, Runnable runnable);
+    UniversalTask runTask(Plugin plugin, Entity entity, @NotNull Runnable runnable);
     
     /**
      * 延迟运行同步任务
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runLater(Runnable runnable, long delay);
+    UniversalTask runLater(@NotNull Runnable runnable, long delay);
     
     /**
      * 延迟运行同步任务
      * @param plugin 插件实例
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runLater(Plugin plugin, Runnable runnable, long delay);
+    UniversalTask runLater(Plugin plugin, @NotNull Runnable runnable, long delay);
     
     /**
      * 延迟运行同步任务（基于位置）
      * @param location 位置
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runLater(Location location, Runnable runnable, long delay);
+    UniversalTask runLater(Location location, @NotNull Runnable runnable, long delay);
     
     /**
      * 延迟运行同步任务（基于位置）
@@ -101,18 +102,18 @@ public interface SchedulerManager {
      * @param location 位置
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runLater(Plugin plugin, Location location, Runnable runnable, long delay);
+    UniversalTask runLater(Plugin plugin, Location location, @NotNull Runnable runnable, long delay);
     
     /**
      * 延迟运行同步任务（基于实体）
      * @param entity 实体
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runLater(Entity entity, Runnable runnable, long delay);
+    UniversalTask runLater(Entity entity, @NotNull Runnable runnable, long delay);
     
     /**
      * 延迟运行同步任务（基于实体）
@@ -120,18 +121,18 @@ public interface SchedulerManager {
      * @param entity 实体
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runLater(Plugin plugin, Entity entity, Runnable runnable, long delay);
+    UniversalTask runLater(Plugin plugin, Entity entity, @NotNull Runnable runnable, long delay);
     
     /**
      * 运行定时任务
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
      * @param period 周期时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTimer(Runnable runnable, long delay, long period);
+    UniversalTask runTimer(@NotNull Runnable runnable, long delay, long period);
     
     /**
      * 运行定时任务
@@ -139,9 +140,9 @@ public interface SchedulerManager {
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
      * @param period 周期时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTimer(Plugin plugin, Runnable runnable, long delay, long period);
+    UniversalTask runTimer(Plugin plugin, @NotNull Runnable runnable, long delay, long period);
     
     /**
      * 运行定时任务（基于位置）
@@ -149,9 +150,9 @@ public interface SchedulerManager {
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
      * @param period 周期时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTimer(Location location, Runnable runnable, long delay, long period);
+    UniversalTask runTimer(Location location, @NotNull Runnable runnable, long delay, long period);
     
     /**
      * 运行定时任务（基于位置）
@@ -160,9 +161,9 @@ public interface SchedulerManager {
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
      * @param period 周期时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTimer(Plugin plugin, Location location, Runnable runnable, long delay, long period);
+    UniversalTask runTimer(Plugin plugin, Location location, @NotNull Runnable runnable, long delay, long period);
     
     /**
      * 运行定时任务（基于实体）
@@ -171,9 +172,9 @@ public interface SchedulerManager {
      * @param delay 延迟时间（tick）
      * @param retired 实体死亡时的回调
      * @param period 周期时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTimer(Entity entity, Runnable runnable, long delay, @Nullable Runnable retired, long period);
+    UniversalTask runTimer(Entity entity, @NotNull Runnable runnable, long delay, @Nullable Runnable retired, long period);
     
     /**
      * 运行定时任务（基于实体）
@@ -183,50 +184,50 @@ public interface SchedulerManager {
      * @param delay 延迟时间（tick）
      * @param retired 实体死亡时的回调
      * @param period 周期时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTimer(Plugin plugin, Entity entity, Runnable runnable, long delay, @Nullable Runnable retired, long period);
+    UniversalTask runTimer(Plugin plugin, Entity entity, @NotNull Runnable runnable, long delay, @Nullable Runnable retired, long period);
     
     /**
      * 运行异步任务
      * @param runnable 要执行的任务
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runAsync(Runnable runnable);
+    UniversalTask runAsync(@NotNull Runnable runnable);
     
     /**
      * 运行异步任务
      * @param plugin 插件实例
      * @param runnable 要执行的任务
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runAsync(Plugin plugin, Runnable runnable);
+    UniversalTask runAsync(Plugin plugin, @NotNull Runnable runnable);
     
     /**
      * 延迟运行异步任务
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runLaterAsync(Runnable runnable, long delay);
+    UniversalTask runLaterAsync(@NotNull Runnable runnable, long delay);
     
     /**
      * 延迟运行异步任务
      * @param plugin 插件实例
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runLaterAsync(Plugin plugin, Runnable runnable, long delay);
+    UniversalTask runLaterAsync(Plugin plugin, @NotNull Runnable runnable, long delay);
     
     /**
      * 运行异步定时任务
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
      * @param period 周期时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTimerAsync(Runnable runnable, long delay, long period);
+    UniversalTask runTimerAsync(@NotNull Runnable runnable, long delay, long period);
     
     /**
      * 运行异步定时任务
@@ -234,20 +235,20 @@ public interface SchedulerManager {
      * @param runnable 要执行的任务
      * @param delay 延迟时间（tick）
      * @param period 周期时间（tick）
-     * @return Task 任务实例
+     * @return UniversalTask 任务实例
      */
-    Task runTimerAsync(Plugin plugin, Runnable runnable, long delay, long period);
+    UniversalTask runTimerAsync(Plugin plugin, @NotNull Runnable runnable, long delay, long period);
     
     /**
      * 取消所有任务
      */
-    void cancelAllTasks();
+    void cancelAllTasks(Plugin plugin);
     
     /**
      * 取消指定任务
-     * @param task 要取消的任务
+     * @param universalTask 要取消的任务
      */
-    void cancelTask(Task task);
+    void cancelTask(UniversalTask universalTask);
     
     /**
      * 异步传送实体

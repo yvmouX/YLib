@@ -5,7 +5,7 @@ import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
 import cn.yvmou.ylib.api.container.ServiceContainer;
 import cn.yvmou.ylib.api.error.YLibErrorHandler;
-import cn.yvmou.ylib.api.scheduler.SchedulerManager;
+import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.api.enums.ServerType;
 import cn.yvmou.ylib.api.exception.YLibException;
 import cn.yvmou.ylib.common.command.SimpleCommandManager;
@@ -36,7 +36,7 @@ public abstract class AbstractYLib implements YLibAPI {
     protected LoggerService loggerService;
     protected ConfigurationService configurationService;
     protected MessageService messageService;
-    protected SchedulerManager schedulerManager;
+    protected UniversalScheduler universalScheduler;
     protected CommandManager commandManager;
     protected ServiceContainer serviceContainer;
     protected ConfigurationManager configurationManager;
@@ -179,9 +179,9 @@ public abstract class AbstractYLib implements YLibAPI {
      */
     protected void onDisable() {
         // 取消所有任务
-        if (schedulerManager != null) {
+        if (universalScheduler != null) {
             try {
-                schedulerManager.cancelAllTasks();
+                universalScheduler.cancelAllTasks();
             } catch (Exception e) {
                 getLogger().warning("取消任务时发生错误: " + e.getMessage());
             }
@@ -234,8 +234,8 @@ public abstract class AbstractYLib implements YLibAPI {
     
     @Override
     @NotNull
-    public SchedulerManager getSchedulerManager() {
-        return schedulerManager;
+    public UniversalScheduler getSchedulerManager() {
+        return universalScheduler;
     }
     
     @Override

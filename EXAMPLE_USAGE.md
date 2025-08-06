@@ -264,7 +264,7 @@ if (ylib.isFolia()) {
 ### 2. 统一API
 ```java
 // 所有平台使用相同的API
-Task task = ylib.getSchedulerManager().runTask(() -> {
+Task universalTask = ylib.getSchedulerManager().runTask(() -> {
     // 任务逻辑
 });
 

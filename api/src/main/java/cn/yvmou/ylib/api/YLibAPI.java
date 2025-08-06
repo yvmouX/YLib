@@ -4,7 +4,7 @@ import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
 import cn.yvmou.ylib.api.container.ServiceContainer;
 import cn.yvmou.ylib.api.error.YLibErrorHandler;
-import cn.yvmou.ylib.api.scheduler.SchedulerManager;
+import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.api.enums.ServerType;
 import cn.yvmou.ylib.api.services.ConfigurationService;
 import cn.yvmou.ylib.api.services.LoggerService;
@@ -26,7 +26,7 @@ public interface YLibAPI {
      * @return 调度器管理器实例
      */
     @NotNull
-    SchedulerManager getSchedulerManager();
+    UniversalScheduler getSchedulerManager();
     
     /**
      * 获取命令管理器
