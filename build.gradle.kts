@@ -43,8 +43,6 @@ allprojects {
         compileOnly("org.jetbrains:annotations:23.0.0")
         // 测试依赖
         testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
-        testImplementation("org.mockito:mockito-core:5.7.0")
-        testImplementation("org.mockito:mockito-junit-jupiter:5.7.0")
     }
 
 //    java {
