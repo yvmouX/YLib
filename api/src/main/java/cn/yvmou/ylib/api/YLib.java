@@ -2,10 +2,8 @@ package cn.yvmou.ylib.api;
 
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
-import cn.yvmou.ylib.api.container.ServiceContainer;
 import cn.yvmou.ylib.api.error.YLibErrorHandler;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
-import cn.yvmou.ylib.api.enums.ServerType;
 import cn.yvmou.ylib.api.services.ConfigurationService;
 import cn.yvmou.ylib.api.services.LoggerService;
 import cn.yvmou.ylib.api.services.MessageService;
@@ -18,15 +16,14 @@ import org.jetbrains.annotations.NotNull;
  * @author yvmou
  * @since 1.0.0-beta5
  */
-public interface YLibAPI {
-    
+public interface YLib {
     /**
      * 获取调度器管理器
      * 
      * @return 调度器管理器实例
      */
     @NotNull
-    UniversalScheduler getSchedulerManager();
+    UniversalScheduler getScheduler();
     
     /**
      * 获取命令管理器
@@ -42,7 +39,7 @@ public interface YLibAPI {
      * @return 配置服务实例
      */
     @NotNull
-    ConfigurationService getConfigurationService();
+    ConfigurationService getConfiguration();
     
     /**
      * 获取日志服务
@@ -50,7 +47,7 @@ public interface YLibAPI {
      * @return 日志服务实例
      */
     @NotNull
-    LoggerService getLoggerService();
+    LoggerService getSimpleLogger();
     
     /**
      * 获取消息服务
@@ -58,7 +55,7 @@ public interface YLibAPI {
      * @return 消息服务实例
      */
     @NotNull
-    MessageService getMessageService();
+    MessageService getMessages();
     
     /**
      * 获取插件实例
@@ -106,7 +103,7 @@ public interface YLibAPI {
      * @return 服务器类型
      */
     @NotNull
-    ServerType getServerType();
+    String getServerType();
     
     /**
      * 检查是否为Folia服务器
@@ -144,53 +141,6 @@ public interface YLibAPI {
      */
     @NotNull
     String getBukkitVersion();
-    
-    /**
-     * 启用YLib实例
-     * 这个方法在插件启用时被调用
-     */
-    void enable();
-    
-    /**
-     * 禁用YLib实例
-     * 这个方法在插件禁用时被调用
-     */
-    void disable();
-    
-    /**
-     * 检查YLib是否已启用
-     * 
-     * @return 如果已启用返回true，否则返回false
-     */
-    boolean isEnabled();
-    
-    /**
-     * 重载YLib配置
-     * 
-     * @return 如果重载成功返回true，否则返回false
-     */
-    boolean reload();
-    
-    /**
-     * 获取服务容器
-     * <p>
-     * 服务容器提供依赖注入功能，允许注册和获取服务实例。
-     * 这是一个强大的功能，可以帮助管理插件中的各种服务和组件。
-     * </p>
-     * 
-     * <p>使用示例：</p>
-     * <pre>{@code
-     * // 注册自定义服务
-     * ylib.getServiceContainer().registerSingleton(MyService.class, new MyService());
-     * 
-     * // 在其他地方获取服务
-     * MyService service = ylib.getServiceContainer().getRequiredService(MyService.class);
-     * }</pre>
-     * 
-     * @return 服务容器实例
-     */
-    @NotNull
-    ServiceContainer getServiceContainer();
     
     /**
      * 获取配置管理器

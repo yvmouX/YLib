@@ -14,7 +14,7 @@ public final class VersionUtils {
     private VersionUtils() {
         // 工具类不允许实例化
     }
-    
+
     /**
      * 获取服务器版本
      * @return String 服务器版本
@@ -23,72 +23,7 @@ public final class VersionUtils {
     public static String getServerVersion() {
         return Bukkit.getVersion();
     }
-    
-    /**
-     * 获取服务器名称
-     * @return String 服务器名称
-     */
-    @NotNull
-    public static String getServerName() {
-        return Bukkit.getName();
-    }
-    
-    /**
-     * 检查是否为Folia服务器
-     * @return boolean 如果是Folia服务器返回true
-     */
-    public static boolean isFolia() {
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-    
-    /**
-     * 检查是否为Paper服务器
-     * @return boolean 如果是Paper服务器返回true
-     */
-    public static boolean isPaper() {
-        try {
-            Class.forName("com.destroystokyo.paper.PaperConfig");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-    
-    /**
-     * 检查是否为Spigot服务器
-     * @return boolean 如果是Spigot服务器返回true
-     */
-    public static boolean isSpigot() {
-        try {
-            Class.forName("org.spigotmc.SpigotConfig");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-    
-    /**
-     * 获取服务器类型
-     * @return String 服务器类型
-     */
-    @NotNull
-    public static String getServerType() {
-        if (isFolia()) {
-            return "Folia";
-        } else if (isPaper()) {
-            return "Paper";
-        } else if (isSpigot()) {
-            return "Spigot";
-        } else {
-            return "Unknown";
-        }
-    }
-    
+
     /**
      * 检查版本兼容性
      * @param minVersion 最小版本
@@ -97,7 +32,7 @@ public final class VersionUtils {
      */
     public static boolean isVersionCompatible(@NotNull String minVersion, @NotNull String maxVersion) {
         String currentVersion = getServerVersion();
-        return compareVersions(currentVersion, minVersion) >= 0 && 
+        return compareVersions(currentVersion, minVersion) >= 0 &&
                compareVersions(currentVersion, maxVersion) <= 0;
     }
     

@@ -19,7 +19,7 @@ public enum ServerType {
     FOLIA(
         "Folia",
         "io.papermc.paper.threadedregions.RegionizedServer",
-        "cn.yvmou.ylib.folia.YLibFolia",
+        "cn.yvmou.ylib.folia.YLibAPIImplFolia",
         1
     ),
     
@@ -29,7 +29,7 @@ public enum ServerType {
     PAPER(
         "Paper", 
         "com.destroystokyo.paper.PaperConfig",
-        "cn.yvmou.ylib.paper.YLibPaper",
+        "cn.yvmou.ylib.paper.YLibAPIImplPaper",
         2
     ),
     
@@ -39,7 +39,7 @@ public enum ServerType {
     SPIGOT(
         "Spigot",
         "org.spigotmc.SpigotConfig", 
-        "cn.yvmou.ylib.spigot.YLibSpigot",
+        "cn.yvmou.ylib.spigot.YLibAPIImplSpigot",
         3
     ),
     
@@ -57,7 +57,7 @@ public enum ServerType {
     private final String detectionClass;
     private final String implementationClass;
     private final int priority;
-    private final Logger logger = Logger.getLogger("YLib-ServerType");
+    private final static Logger logger = Logger.getLogger("YLib-ServerType");
     
     ServerType(@NotNull String displayName, @Nullable String detectionClass, 
                @Nullable String implementationClass, int priority) {
@@ -132,9 +132,6 @@ public enum ServerType {
      */
     @NotNull
     public static ServerType detectServerType() {
-        Logger logger = Logger.getLogger("YLib-Detection");
-        logger.info("开始自动检测服务器类型...");
-        
         // 按优先级顺序检测
         for (ServerType type : values()) {
             if (type == UNKNOWN) continue;
@@ -147,48 +144,5 @@ public enum ServerType {
         
         logger.warning("无法检测服务器类型，将使用UNKNOWN类型");
         return UNKNOWN;
-    }
-    
-    /**
-     * 检查指定的类是否存在
-     * 
-     * @param className 类名
-     * @return 如果类存在返回true，否则返回false
-     */
-    public static boolean isClassPresent(@NotNull String className) {
-        try {
-            Class.forName(className);
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-    
-    /**
-     * 获取服务器版本信息
-     * 
-     * @return 版本信息字符串
-     */
-    @NotNull
-    public static String getServerVersion() {
-        try {
-            return org.bukkit.Bukkit.getVersion();
-        } catch (Exception e) {
-            return "Unknown";
-        }
-    }
-    
-    /**
-     * 获取Bukkit版本信息
-     * 
-     * @return Bukkit版本信息字符串
-     */
-    @NotNull
-    public static String getBukkitVersion() {
-        try {
-            return org.bukkit.Bukkit.getBukkitVersion();
-        } catch (Exception e) {
-            return "Unknown";
-        }
     }
 }
