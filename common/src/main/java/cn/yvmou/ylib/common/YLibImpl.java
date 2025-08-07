@@ -12,8 +12,8 @@ import cn.yvmou.ylib.common.config.SimpleConfigurationManager;
 import cn.yvmou.ylib.common.services.ConfigurationService;
 import cn.yvmou.ylib.common.services.LoggerService;
 import cn.yvmou.ylib.common.services.MessageService;
+import cn.yvmou.ylib.common.services.ServerInfoService;
 import cn.yvmou.ylib.common.utils.ValidationUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -26,38 +26,35 @@ import java.util.logging.Logger;
  * @author yvmou
  * @since 1.0.0-beta5
  */
-public abstract class YLibImpl implements YLib {
+public class YLibImpl implements YLib {
     public static YLibImpl ylib;
-    // 内部实例
-    protected final CommandConfig commandConfig;
+    protected static final Logger LOGGER = Logger.getLogger("YLib");
 
     // 插件实例
     protected final JavaPlugin plugin;
-
+    
     // 服务实例
+    protected final ServerInfoService serverInfo;
+    protected final CommandConfig commandConfig;
     protected LoggerService loggerService;
     protected ConfigurationService configurationService;
     protected MessageService messageService;
-    // 调度器实例
     protected UniversalScheduler universalScheduler;
-    // 命令管理实例
     protected CommandManager commandManager;
-    //
     protected ConfigurationManager configurationManager;
-
-    protected static final Logger LOGGER = Logger.getLogger("YLib");
     /**
      * 构造函数
      *
      * @param plugin     插件实例
      * @throws YLibException 如果初始化失败
      */
-    protected YLibImpl(@NotNull JavaPlugin plugin) throws YLibException {
+    public YLibImpl(@NotNull JavaPlugin plugin) throws YLibException {
         ValidationUtils.notNull(plugin, "插件实例不能为null");
 
         ylib = this;
-        this.commandConfig = new CommandConfig(plugin, new LoggerService(plugin));
         this.plugin = plugin;
+        this.serverInfo = new ServerInfoService(plugin);
+        this.commandConfig = new CommandConfig(plugin, new LoggerService(plugin));
 
         try {
             // 初始化核心服务
@@ -110,11 +107,11 @@ public abstract class YLibImpl implements YLib {
         // 懒加载
         if (universalScheduler == null) {
             try {
-                if (isFolia()) {
+                if (getServerInfo().isFolia()) {
                     Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.folia.scheduler.FoliaScheduler");
                     universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
                             .newInstance(plugin);
-                } else if (isPaper()) {
+                } else if (getServerInfo().isPaper()) {
                     Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.paper.scheduler.PaperScheduler");
                     universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
                             .newInstance(plugin);
@@ -130,6 +127,10 @@ public abstract class YLibImpl implements YLib {
         }
         return universalScheduler;
     }
+
+    @Override
+    @NotNull
+    public ServerInfoService getServerInfo() { return serverInfo; }
     
     @Override
     @NotNull
@@ -159,97 +160,6 @@ public abstract class YLibImpl implements YLib {
     @NotNull
     public JavaPlugin getPlugin() {
         return plugin;
-    }
-    
-    @Override
-    @NotNull
-    public String getPluginName() {
-        return plugin.getName();
-    }
-    
-    @Override
-    @NotNull
-    public String getPluginVersion() {
-        return plugin.getDescription().getVersion();
-    }
-    
-    @Override
-    @NotNull
-    public String getPluginPrefix() {
-        if (plugin.getDescription().getPrefix() != null) {
-            return plugin.getDescription().getPrefix();
-        }
-        return "[" + getPluginName() + "]";
-    }
-    
-    @Override
-    @NotNull
-    public String getYLibVersion() {
-        return "1.0.0-beta5";
-    }
-    
-    @Override
-    @NotNull
-    public String getServerType() {
-        if (isFolia()) {
-            return "FOLIA";
-        } else if (isPaper()) {
-            return "PAPER";
-        } else if (isSpigot()) {
-            return "SPIGOT";
-        } else {
-            return "UNKNOWN";
-        }
-    }
-    
-    @Override
-    public boolean isFolia() {
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-    
-    @Override
-    public boolean isPaper() {
-        try {
-            Class.forName("com.destroystokyo.paper.PaperConfig");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-    
-    @Override
-    public boolean isSpigot() {
-        try {
-            Class.forName("org.spigotmc.SpigotConfig");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
-    
-    @Override
-    @NotNull
-    public String getServerVersion() {
-        try {
-            return Bukkit.getVersion();
-        } catch (Exception e) {
-            return "Unknown";
-        }
-    }
-    
-    @Override
-    @NotNull
-    public String getBukkitVersion() {
-        try {
-            return Bukkit.getBukkitVersion();
-        } catch (Exception e) {
-            return "Unknown";
-        }
     }
     
     @Override

@@ -24,7 +24,7 @@ public class MessageUtils {
      */
     public static String oldColorWithPrefix(@Nullable String prefix, String message) {
         if (prefix == null) {
-            prefix = ylib.getPluginPrefix();
+            prefix = ylib.getServerInfo().getPluginPrefix();
         }
         return ChatColor.translateAlternateColorCodes('&', "§8[§b§l§n" + prefix + "§8]§r " + message);
     }

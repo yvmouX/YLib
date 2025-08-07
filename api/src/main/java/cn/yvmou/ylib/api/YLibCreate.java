@@ -31,12 +31,12 @@ public class YLibCreate {
         // 检查包重定位
         checkPackageRelocation();
 
-        // 创建对应的实现
+        // 创建实现
         return createImpl(plugin, ServerType.detectServerType());
     }
 
     /**
-     * 创建具体的实现实例
+     * 创建实现实例
      *
      * @param plugin 插件实例
      * @return YLib API实例
@@ -49,10 +49,7 @@ public class YLibCreate {
             throw new YLibException("无法检测到支持的服务器类型。");
         }
 
-        String implClass = serverType.getImplementationClass();
-        if (implClass == null) {
-            throw new YLibException("服务器类型 " + serverType.getDisplayName() + " 没有对应的实现类");
-        }
+        String implClass = "cn.yvmou.ylib.common.YLibImpl";
 
         try {
             // 尝试加载实现类
@@ -60,11 +57,12 @@ public class YLibCreate {
 
             // 检查是否实现了YLibAPI接口
             if (!YLib.class.isAssignableFrom(clazz)) {
-                throw new YLibException("实现类 " + implClass + " 没有实现YLibAPI接口");
+                throw new YLibException("类 " + implClass + " 没有实现YLibAPI接口");
             }
 
             // 获取构造函数
-            Constructor<?> constructor = clazz.getConstructor(JavaPlugin.class);
+            Constructor<?> constructor = clazz.getDeclaredConstructor(JavaPlugin.class);
+            constructor.setAccessible(true);
 
             // 创建实例
             Object instance = constructor.newInstance(plugin);

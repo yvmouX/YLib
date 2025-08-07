@@ -19,7 +19,6 @@ public enum ServerType {
     FOLIA(
         "Folia",
         "io.papermc.paper.threadedregions.RegionizedServer",
-        "cn.yvmou.ylib.folia.YLibImplFolia",
         1
     ),
     
@@ -29,7 +28,6 @@ public enum ServerType {
     PAPER(
         "Paper", 
         "com.destroystokyo.paper.PaperConfig",
-        "cn.yvmou.ylib.paper.YLibImplPaper",
         2
     ),
     
@@ -38,8 +36,7 @@ public enum ServerType {
      */
     SPIGOT(
         "Spigot",
-        "org.spigotmc.SpigotConfig", 
-        "cn.yvmou.ylib.spigot.YLibImplSpigot",
+        "org.spigotmc.SpigotConfig",
         3
     ),
     
@@ -49,21 +46,17 @@ public enum ServerType {
     UNKNOWN(
         "Unknown",
         null,
-        null,
         999
     );
     
     private final String displayName;
     private final String detectionClass;
-    private final String implementationClass;
     private final int priority;
     private final static Logger logger = Logger.getLogger("YLib-ServerType");
     
-    ServerType(@NotNull String displayName, @Nullable String detectionClass, 
-               @Nullable String implementationClass, int priority) {
+    ServerType(@NotNull String displayName, @Nullable String detectionClass, int priority) {
         this.displayName = displayName;
         this.detectionClass = detectionClass;
-        this.implementationClass = implementationClass;
         this.priority = priority;
     }
     
@@ -86,17 +79,7 @@ public enum ServerType {
     public String getDetectionClass() {
         return detectionClass;
     }
-    
-    /**
-     * 获取实现类名
-     * 
-     * @return 实现类名，如果为UNKNOWN则返回null
-     */
-    @Nullable
-    public String getImplementationClass() {
-        return implementationClass;
-    }
-    
+
     /**
      * 获取优先级（数字越小优先级越高）
      * 

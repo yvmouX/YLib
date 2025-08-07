@@ -55,7 +55,7 @@ public class MainCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         // 如果没有参数，显示版本信息。
         if (args.length == 0) {
-            sender.sendMessage(MessageUtils.oldColorWithPrefix(null, "version " + ylib.getPluginVersion()));
+            sender.sendMessage(MessageUtils.oldColorWithPrefix(null, "version " + ylib.getServerInfo().getPluginVersion()));
             return true;
         }
 

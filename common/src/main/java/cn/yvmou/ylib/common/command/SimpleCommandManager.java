@@ -104,7 +104,7 @@ public class SimpleCommandManager implements CommandManager {
             pluginCommand.setExecutor(mainCommandExecutor);
 
             // 注册命令到 CommandMap
-            commandMap.register(ylib.getPluginName().toLowerCase(), pluginCommand);
+            commandMap.register(ylib.getServerInfo().getPluginName().toLowerCase(), pluginCommand);
             logger.info("成功注册主命令" + commandName);
 
             // 保存注册信息
@@ -165,7 +165,7 @@ public class SimpleCommandManager implements CommandManager {
 
                 // 批量注册所有命令
                 for (PluginCommand cmdObj : commandsToRegister) {
-                    commandMap.register(ylib.getPluginName().toLowerCase(), cmdObj);
+                    commandMap.register(ylib.getServerInfo().getPluginName().toLowerCase(), cmdObj);
                     logger.info("已注册命令别名：/" + cmdObj.getName() + " -> /" + commandName);
                 }
             }
