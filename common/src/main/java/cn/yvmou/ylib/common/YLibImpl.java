@@ -63,9 +63,6 @@ public abstract class YLibImpl implements YLib {
             // 初始化核心服务
             initializeServices();
 
-            // 初始化平台特定组件
-            initializePlatformSpecific();
-
             LOGGER.info("YLib实例初始化完成");
         } catch (Exception e) {
             throw new YLibException("YLib初始化失败: " + e.getMessage(), e);
@@ -99,15 +96,6 @@ public abstract class YLibImpl implements YLib {
             throw new YLibException("核心服务初始化失败", e);
         }
     }
-
-
-    /**
-     * 初始化平台特定组件
-     * 子类需要实现此方法来初始化调度器管理器和命令管理器
-     *
-     * @throws YLibException 如果初始化失败
-     */
-    protected abstract void initializePlatformSpecific() throws YLibException;
 
     public CommandConfig getCommandConfig() {
         return commandConfig;
