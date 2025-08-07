@@ -1,10 +1,8 @@
 package cn.yvmou.ylib.common.services;
 
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * 日志服务类 - 提供统一的日志功能
@@ -13,143 +11,90 @@ import java.util.logging.Logger;
  * @since 1.0.0
  */
 public class LoggerService implements cn.yvmou.ylib.api.services.LoggerService {
-    
     private final Plugin plugin;
-    private final Logger logger;
-    
+
     /**
      * 构造函数
      * @param plugin 插件实例
      */
     public LoggerService(@NotNull Plugin plugin) {
         this.plugin = plugin;
-        this.logger = plugin.getLogger();
     }
-    
-    /**
-     * 记录信息日志
-     * @param message 日志消息
-     */
-    public void info(@NotNull String message) {
-        logger.info(message);
-    }
-    
-    /**
-     * 记录警告日志
-     * @param message 日志消息
-     */
-    public void warn(@NotNull String message) {
-        logger.warning(message);
-    }
-    
-    /**
-     * 记录错误日志
-     * @param message 日志消息
-     */
-    public void error(@NotNull String message) {
-        logger.severe(message);
-    }
-    
-    /**
-     * 记录错误日志
-     * @param message 日志消息
-     * @param throwable 异常
-     */
-    public void error(@NotNull String message, @NotNull Throwable throwable) {
-        logger.log(Level.SEVERE, message, throwable);
-    }
-    
-    /**
-     * 记录调试日志
-     * @param message 日志消息
-     */
-    public void debug(@NotNull String message) {
-        logger.fine(message);
-    }
-    
-    /**
-     * 记录启动日志
-     * @param message 日志消息
-     */
-    public void startup(@NotNull String message) {
-        info("§a[STARTUP] " + message);
-    }
-    
-    /**
-     * 记录关闭日志
-     * @param message 日志消息
-     */
-    public void shutdown(@NotNull String message) {
-        info("§c[SHUTDOWN] " + message);
-    }
-    
-    /**
-     * 记录配置日志
-     * @param message 日志消息
-     */
-    public void config(@NotNull String message) {
-        info("§e[CONFIG] " + message);
-    }
-    
-    /**
-     * 记录命令日志
-     * @param message 日志消息
-     */
-    public void command(@NotNull String message) {
-        info("§6[COMMAND] " + message);
-    }
-    
-    /**
-     * 记录监听器日志
-     * @param message 日志消息
-     */
-    public void listener(@NotNull String message) {
-        info("§b[LISTENER] " + message);
-    }
-    
-    /**
-     * 记录性能日志
-     * @param message 日志消息
-     */
-    public void performance(@NotNull String message) {
-        info("§d[PERFORMANCE] " + message);
-    }
-    
-    /**
-     * 检查是否为调试模式
-     * @return boolean 如果是调试模式返回true
-     */
-    public boolean isDebugEnabled() {
-        return logger.isLoggable(Level.FINE);
-    }
-    
-    /**
-     * 设置调试模式
-     * @param enabled 是否启用调试模式
-     */
-    public void setDebugEnabled(boolean enabled) {
-        if (enabled) {
-            logger.setLevel(Level.FINE);
-        } else {
-            logger.setLevel(Level.INFO);
+
+    @Override
+    public String getConsolePrefix() {
+        try {
+            return "§8[§b§l§n" + plugin.getDescription().getName() + "§8]§r ";
+        } catch (Exception e) {
+            return "§8[§b§l§nYLib§r] ";
         }
     }
-    
+
     /**
-     * 记录警告日志（别名）
-     * @param message 日志消息
+     * info
+     *
+     * @param msg 消息
      */
-    @Override
-    public void warning(@NotNull String message) {
-        logger.warning(message);
+    public void info(@NotNull String msg) {
+        info(ChatColor.GREEN, msg); // 默认使用绿色
     }
-    
+
     /**
-     * 记录严重错误日志
-     * @param message 日志消息
+     * color info
+     *
+     * @param color 颜色
+     * @param msg 消息
      */
-    @Override
-    public void severe(@NotNull String message) {
-        logger.severe(message);
+    public void info(ChatColor color, @NotNull String msg) {
+        org.bukkit.Bukkit.getConsoleSender().sendMessage(getConsolePrefix() + (color == null ? ChatColor.GREEN : color) + msg);
+    }
+
+    /**
+     * warn
+     *
+     * @param msg 颜色
+     */
+    public void warn(@NotNull String msg) {
+        warn(ChatColor.GOLD, msg);
+    }
+
+    /**
+     * color warn
+     *
+     * @param color 颜色
+     * @param msg 消息
+     */
+    public void warn(ChatColor color, @NotNull String msg) {
+        org.bukkit.Bukkit.getConsoleSender().sendMessage(getConsolePrefix() + (color == null ? ChatColor.GOLD : color) + msg);
+    }
+
+    /**
+     * err
+     *
+     * @param msg 消息
+     */
+    public void error(@NotNull String msg) {
+        error(ChatColor.RED, msg);
+    }
+
+    /**
+     * color err
+     *
+     * @param color 颜色
+     * @param msg 消息
+     */
+    public void error(ChatColor color, @NotNull String msg) {
+        org.bukkit.Bukkit.getConsoleSender().sendMessage(getConsolePrefix() + (color == null ? ChatColor.RED : color) + msg);
+    }
+
+    /**
+     * error
+     *
+     * @param msg 颜色
+     * @param throwable 消息
+     */
+    public void error(@NotNull String msg, @NotNull Throwable throwable) {
+        error(msg); // 打印错误信息
+        throwable.printStackTrace(); // 打印堆栈跟踪
     }
 } 

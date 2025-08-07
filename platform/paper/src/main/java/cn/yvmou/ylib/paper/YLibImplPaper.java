@@ -1,9 +1,7 @@
 package cn.yvmou.ylib.paper;
 
-import cn.yvmou.ylib.api.enums.ServerType;
 import cn.yvmou.ylib.api.exception.YLibException;
-import cn.yvmou.ylib.core.coreImpl.YLibImpl;
-import cn.yvmou.ylib.paper.command.PaperCommandManager;
+import cn.yvmou.ylib.common.YLibImpl;
 import cn.yvmou.ylib.paper.scheduler.PaperScheduler;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -34,9 +32,6 @@ public class YLibImplPaper extends YLibImpl {
         try {
             // 初始化Paper特定的调度器管理器
             this.universalScheduler = new PaperScheduler(plugin);
-
-            // 初始化Paper特定的命令管理器
-            this.commandManager = new PaperCommandManager(plugin);
 
             LOGGER.info("Paper特定组件初始化完成");
         } catch (Exception e) {

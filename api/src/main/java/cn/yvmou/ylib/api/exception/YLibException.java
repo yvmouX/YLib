@@ -1,6 +1,5 @@
 package cn.yvmou.ylib.api.exception;
 
-import cn.yvmou.ylib.api.error.ErrorContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

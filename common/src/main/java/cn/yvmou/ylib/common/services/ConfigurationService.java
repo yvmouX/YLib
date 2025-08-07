@@ -47,7 +47,7 @@ public class ConfigurationService implements cn.yvmou.ylib.api.services.Configur
     public void saveDefaultConfig() {
         if (!configFile.exists()) {
             plugin.saveDefaultConfig();
-            logger.config("Default configuration saved");
+            logger.warn("Default configuration saved");
         }
     }
     
@@ -67,7 +67,7 @@ public class ConfigurationService implements cn.yvmou.ylib.api.services.Configur
      */
     public void reloadConfig() {
         loadConfig();
-        logger.config("Configuration reloaded");
+        logger.warn("Configuration reloaded");
     }
     
     /**
@@ -76,7 +76,7 @@ public class ConfigurationService implements cn.yvmou.ylib.api.services.Configur
     public void saveConfig() {
         try {
             config.save(configFile);
-            logger.config("Configuration saved");
+            logger.warn("Configuration saved");
         } catch (IOException e) {
             logger.error("Failed to save configuration", e);
             throw new YLibException("Failed to save configuration", e);
@@ -129,7 +129,7 @@ public class ConfigurationService implements cn.yvmou.ylib.api.services.Configur
         try {
             File file = new File(plugin.getDataFolder(), fileName);
             config.save(file);
-            logger.config("Custom configuration saved: " + fileName);
+            logger.warn("Custom configuration saved: " + fileName);
         } catch (IOException e) {
             logger.error("Failed to save custom configuration: " + fileName, e);
             throw new YLibException("Failed to save custom configuration: " + fileName, e);

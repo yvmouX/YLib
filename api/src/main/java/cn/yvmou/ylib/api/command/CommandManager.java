@@ -2,6 +2,8 @@ package cn.yvmou.ylib.api.command;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Set;
+
 /**
  * 命令管理器接口
  * <p>
@@ -67,7 +69,7 @@ public interface CommandManager {
      * 
      * @param commandName 命令名称
      */
-    void unregisterCommand(@NotNull String commandName);
+    void unregisterCommands(@NotNull String commandName);
     
     /**
      * 检查命令是否已注册
@@ -91,4 +93,8 @@ public interface CommandManager {
      */
     @NotNull
     String[] getRegisteredCommands();
+
+    Set<String> getRegisteredCommandNames();
+
+    Set<String> getCommandAliases(@NotNull String commandName);
 }

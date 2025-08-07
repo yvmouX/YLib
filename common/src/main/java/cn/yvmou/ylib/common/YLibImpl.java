@@ -1,19 +1,19 @@
-package cn.yvmou.ylib.core.coreImpl;
+package cn.yvmou.ylib.common;
 
 
 import cn.yvmou.ylib.api.YLib;
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
-import cn.yvmou.ylib.api.error.YLibErrorHandler;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.api.exception.YLibException;
+import cn.yvmou.ylib.common.command.CommandConfig;
 import cn.yvmou.ylib.common.command.SimpleCommandManager;
 import cn.yvmou.ylib.common.config.SimpleConfigurationManager;
-import cn.yvmou.ylib.common.error.SimpleYLibErrorHandler;
 import cn.yvmou.ylib.common.services.ConfigurationService;
 import cn.yvmou.ylib.common.services.LoggerService;
 import cn.yvmou.ylib.common.services.MessageService;
 import cn.yvmou.ylib.common.utils.ValidationUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -26,6 +26,10 @@ import java.util.logging.Logger;
  * @since 1.0.0-beta5
  */
 public abstract class YLibImpl implements YLib {
+    public static YLibImpl ylib;
+    // 内部实例
+    protected final CommandConfig commandConfig;
+
     // 插件实例
     protected final JavaPlugin plugin;
 
@@ -39,7 +43,6 @@ public abstract class YLibImpl implements YLib {
     protected CommandManager commandManager;
     //
     protected ConfigurationManager configurationManager;
-    protected YLibErrorHandler errorHandler;
 
     protected static final Logger LOGGER = Logger.getLogger("YLib");
     /**
@@ -51,6 +54,8 @@ public abstract class YLibImpl implements YLib {
     protected YLibImpl(@NotNull JavaPlugin plugin) throws YLibException {
         ValidationUtils.notNull(plugin, "插件实例不能为null");
 
+        ylib = this;
+        this.commandConfig = new CommandConfig(plugin, new LoggerService(plugin));
         this.plugin = plugin;
 
         try {
@@ -85,9 +90,6 @@ public abstract class YLibImpl implements YLib {
             // 初始化配置管理器
             this.configurationManager = new SimpleConfigurationManager(plugin, this.loggerService);
 
-            // 初始化错误处理器
-            this.errorHandler = new SimpleYLibErrorHandler(this.loggerService);
-
             // 初始化命令管理器
             this.commandManager = new SimpleCommandManager(plugin, this.loggerService, this.messageService);
 
@@ -106,6 +108,10 @@ public abstract class YLibImpl implements YLib {
      */
     protected abstract void initializePlatformSpecific() throws YLibException;
 
+    public CommandConfig getCommandConfig() {
+        return commandConfig;
+    }
+
 
 
     // ========== 实现方法 ==========
@@ -117,7 +123,7 @@ public abstract class YLibImpl implements YLib {
     
     @Override
     @NotNull
-    public CommandManager getCommandManager() {
+    public CommandManager getSimpleCommandManager() {
         return commandManager;
     }
     
@@ -160,6 +166,9 @@ public abstract class YLibImpl implements YLib {
     @Override
     @NotNull
     public String getPluginPrefix() {
+        if (plugin.getDescription().getPrefix() != null) {
+            return plugin.getDescription().getPrefix();
+        }
         return "[" + getPluginName() + "]";
     }
     
@@ -217,7 +226,7 @@ public abstract class YLibImpl implements YLib {
     @NotNull
     public String getServerVersion() {
         try {
-            return org.bukkit.Bukkit.getVersion();
+            return Bukkit.getVersion();
         } catch (Exception e) {
             return "Unknown";
         }
@@ -227,7 +236,7 @@ public abstract class YLibImpl implements YLib {
     @NotNull
     public String getBukkitVersion() {
         try {
-            return org.bukkit.Bukkit.getBukkitVersion();
+            return Bukkit.getBukkitVersion();
         } catch (Exception e) {
             return "Unknown";
         }
@@ -238,12 +247,7 @@ public abstract class YLibImpl implements YLib {
     public ConfigurationManager getConfigurationManager() {
         return configurationManager;
     }
-    
-    @Override
-    @NotNull
-    public YLibErrorHandler getErrorHandler() {
-        return errorHandler;
-    }
+
 
 
 }

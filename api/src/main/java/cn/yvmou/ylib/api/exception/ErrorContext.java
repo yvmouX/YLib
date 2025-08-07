@@ -1,4 +1,4 @@
-package cn.yvmou.ylib.api.error;
+package cn.yvmou.ylib.api.exception;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

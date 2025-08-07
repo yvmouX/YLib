@@ -1,9 +1,7 @@
 package cn.yvmou.ylib.folia;
 
-import cn.yvmou.ylib.api.enums.ServerType;
 import cn.yvmou.ylib.api.exception.YLibException;
-import cn.yvmou.ylib.core.coreImpl.YLibImpl;
-import cn.yvmou.ylib.folia.command.FoliaCommandManager;
+import cn.yvmou.ylib.common.YLibImpl;
 import cn.yvmou.ylib.folia.scheduler.FoliaScheduler;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -32,9 +30,6 @@ public class YLibImplFolia extends YLibImpl {
         try {
             // 初始化Folia特定的调度器管理器
             this.universalScheduler = new FoliaScheduler(plugin);
-
-            // 初始化Folia特定的命令管理器
-            this.commandManager = new FoliaCommandManager(plugin);
 
             LOGGER.info("Folia特定组件初始化完成");
         } catch (Exception e) {

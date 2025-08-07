@@ -19,7 +19,7 @@ public enum ServerType {
     FOLIA(
         "Folia",
         "io.papermc.paper.threadedregions.RegionizedServer",
-        "cn.yvmou.ylib.folia.YLibAPIImplFolia",
+        "cn.yvmou.ylib.folia.YLibImplFolia",
         1
     ),
     
@@ -29,7 +29,7 @@ public enum ServerType {
     PAPER(
         "Paper", 
         "com.destroystokyo.paper.PaperConfig",
-        "cn.yvmou.ylib.paper.YLibAPIImplPaper",
+        "cn.yvmou.ylib.paper.YLibImplPaper",
         2
     ),
     
@@ -39,7 +39,7 @@ public enum ServerType {
     SPIGOT(
         "Spigot",
         "org.spigotmc.SpigotConfig", 
-        "cn.yvmou.ylib.spigot.YLibAPIImplSpigot",
+        "cn.yvmou.ylib.spigot.YLibImplSpigot",
         3
     ),
     

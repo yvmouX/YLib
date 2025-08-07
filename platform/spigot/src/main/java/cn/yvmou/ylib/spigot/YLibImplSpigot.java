@@ -1,9 +1,7 @@
 package cn.yvmou.ylib.spigot;
 
-import cn.yvmou.ylib.api.enums.ServerType;
 import cn.yvmou.ylib.api.exception.YLibException;
-import cn.yvmou.ylib.core.coreImpl.YLibImpl;
-import cn.yvmou.ylib.spigot.command.SpigotCommandManager;
+import cn.yvmou.ylib.common.YLibImpl;
 import cn.yvmou.ylib.spigot.scheduler.SpigotScheduler;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -34,9 +32,6 @@ public class YLibImplSpigot extends YLibImpl {
         try {
             // 初始化Spigot特定的调度器管理器
             this.universalScheduler = new SpigotScheduler(plugin);
-
-            // 初始化Spigot特定的命令管理器
-            this.commandManager = new SpigotCommandManager(plugin);
 
             LOGGER.info("Spigot特定组件初始化完成");
         } catch (Exception e) {

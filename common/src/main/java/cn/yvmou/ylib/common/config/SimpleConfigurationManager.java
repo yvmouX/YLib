@@ -60,7 +60,7 @@ public class SimpleConfigurationManager implements ConfigurationManager {
     @NotNull
     @SuppressWarnings("unchecked")
     public <T> T registerConfiguration(@NotNull Class<T> configClass) throws ConfigurationException {
-        logger.debug("Registering configuration: " + configClass.getName());
+        logger.info("Registering configuration: " + configClass.getName());
         
         // 检查是否已注册
         if (configurationInstances.containsKey(configClass)) {
@@ -111,7 +111,7 @@ public class SimpleConfigurationManager implements ConfigurationManager {
             ConfigurationMetadata metadata = configurationMetadata.get(configClass);
             
             if (instance == null || metadata == null) {
-                logger.warning("Configuration not found for reload: " + configClass.getName());
+                logger.warn("Configuration not found for reload: " + configClass.getName());
                 return false;
             }
             
@@ -166,7 +166,7 @@ public class SimpleConfigurationManager implements ConfigurationManager {
                     Object value = fieldMeta.field.get(instance);
                     config.set(fieldMeta.configPath, value);
                 } catch (IllegalAccessException e) {
-                    logger.warning("Failed to save field: " + fieldMeta.field.getName() + " - " + e.getMessage());
+                    logger.warn("Failed to save field: " + fieldMeta.field.getName() + " - " + e.getMessage());
                 }
             }
             
@@ -440,11 +440,11 @@ public class SimpleConfigurationManager implements ConfigurationManager {
                     // 添加注释（如果有描述）
                     if (!fieldMeta.description.isEmpty()) {
                         // YAML注释需要特殊处理，这里简化处理
-                        logger.debug("Field " + fieldMeta.configPath + ": " + fieldMeta.description);
+                        logger.info("Field " + fieldMeta.configPath + ": " + fieldMeta.description);
                     }
                     
                 } catch (IllegalAccessException e) {
-                    logger.warning("Failed to get default value for field: " + fieldMeta.field.getName());
+                    logger.warn("Failed to get default value for field: " + fieldMeta.field.getName());
                 }
             }
             
@@ -543,7 +543,7 @@ public class SimpleConfigurationManager implements ConfigurationManager {
                 try {
                     listener.onConfigurationChanged(oldConfig, newConfig);
                 } catch (Exception e) {
-                    logger.warning("Configuration change listener failed: " + e.getMessage());
+                    logger.warn("Configuration change listener failed: " + e.getMessage());
                 }
             }
         }

@@ -1,5 +1,7 @@
 package cn.yvmou.ylib.api.services;
 
+import net.md_5.bungee.api.ChatColor;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -9,96 +11,62 @@ import org.jetbrains.annotations.NotNull;
  * @since 1.0.0-beta5
  */
 public interface LoggerService {
-    
     /**
-     * 记录信息日志
-     * 
-     * @param message 日志消息
+     * 获取插件前缀
+     * @return 插件前置
      */
-    void info(@NotNull String message);
-    
+    String getConsolePrefix();
+
     /**
-     * 记录警告日志
-     * 
-     * @param message 日志消息
+     * 信息
+     *
+     * @param msg 日志消息
      */
-    void warn(@NotNull String message);
-    
+    void info(@NotNull String msg);
+
     /**
-     * 记录错误日志
-     * 
-     * @param message 日志消息
+     * 颜色信息
+     *
+     * @param color 颜色
+     * @param msg 消息
      */
-    void error(@NotNull String message);
-    
+    void info(ChatColor color, @NotNull String msg);
+
     /**
-     * 记录错误日志（带异常）
-     * 
-     * @param message 日志消息
-     * @param throwable 异常对象
+     * 警告
+     *
+     * @param msg 颜色
      */
-    void error(@NotNull String message, @NotNull Throwable throwable);
-    
+    void warn(@NotNull String msg);
+
     /**
-     * 记录调试日志
-     * 
-     * @param message 日志消息
+     * 颜色警告
+     *
+     * @param color 颜色
+     * @param msg 消息
      */
-    void debug(@NotNull String message);
-    
+    void warn(ChatColor color, @NotNull String msg);
+
     /**
-     * 记录启动日志
-     * 
-     * @param message 日志消息
+     * 错误
+     *
+     * @param msg 消息
      */
-    void startup(@NotNull String message);
-    
+    void error(@NotNull String msg);
+
     /**
-     * 记录关闭日志
-     * 
-     * @param message 日志消息
+     * 颜色错误
+     *
+     * @param color 颜色
+     * @param msg 消息
      */
-    void shutdown(@NotNull String message);
-    
+    void error(ChatColor color, @NotNull String msg);
+
     /**
-     * 记录配置日志
-     * 
-     * @param message 日志消息
+     * 异常错误
+     *
+     * @param msg 颜色
+     * @param throwable 消息
      */
-    void config(@NotNull String message);
-    
-    /**
-     * 记录命令日志
-     * 
-     * @param message 日志消息
-     */
-    void command(@NotNull String message);
-    
-    /**
-     * 记录监听器日志
-     * 
-     * @param message 日志消息
-     */
-    void listener(@NotNull String message);
-    
-    /**
-     * 记录性能日志
-     * 
-     * @param message 日志消息
-     */
-    void performance(@NotNull String message);
-    
-    /**
-     * 记录严重错误日志
-     * 
-     * @param message 日志消息
-     */
-    void severe(@NotNull String message);
-    
-    /**
-     * 记录警告日志（别名）
-     * 
-     * @param message 日志消息
-     */
-    void warning(@NotNull String message);
+    void error(@NotNull String msg, @NotNull Throwable throwable);
 }

@@ -2,7 +2,6 @@ package cn.yvmou.ylib.api;
 
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
-import cn.yvmou.ylib.api.error.YLibErrorHandler;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.api.services.ConfigurationService;
 import cn.yvmou.ylib.api.services.LoggerService;
@@ -31,7 +30,7 @@ public interface YLib {
      * @return 命令管理器实例
      */
     @NotNull
-    CommandManager getCommandManager();
+    CommandManager getSimpleCommandManager();
     
     /**
      * 获取配置服务
@@ -178,46 +177,4 @@ public interface YLib {
      */
     @NotNull
     ConfigurationManager getConfigurationManager();
-    
-    /**
-     * 获取错误处理器
-     * <p>
-     * 错误处理器提供统一的错误处理机制，包括用户友好的错误消息生成、
-     * 错误恢复建议、自动恢复尝试等功能。
-     * </p>
-     * 
-     * <p>主要功能：</p>
-     * <ul>
-     *   <li>生成用户友好的错误消息</li>
-     *   <li>提供错误恢复建议</li>
-     *   <li>尝试自动错误恢复</li>
-     *   <li>错误统计和监听</li>
-     *   <li>详细的错误上下文记录</li>
-     * </ul>
-     * 
-     * <p>使用示例：</p>
-     * <pre>{@code
-     * try {
-     *     // 可能出错的操作
-     *     riskyOperation();
-     * } catch (Exception e) {
-     *     ErrorContext context = new ErrorContext("DatabaseService", "connect", getPluginName());
-     *     context.addContext("host", "localhost").addContext("port", 3306);
-     *     
-     *     YLibErrorHandler.ErrorHandlingResult result = ylib.getErrorHandler().handleError(e, context);
-     *     
-     *     // 显示用户友好消息
-     *     getLogger().info(result.getUserMessage());
-     *     
-     *     // 显示恢复建议
-     *     for (String suggestion : result.getSuggestions()) {
-     *         getLogger().info("建议: " + suggestion);
-     *     }
-     * }
-     * }</pre>
-     * 
-     * @return 错误处理器实例
-     */
-    @NotNull
-    YLibErrorHandler getErrorHandler();
 }
