@@ -43,7 +43,7 @@ public class YLibCreate {
      * @throws YLibException 如果无法创建实例
      */
     @NotNull
-    protected static YLib createImpl(@NotNull JavaPlugin plugin, ServerType serverType) throws YLibException {
+    private static YLib createImpl(@NotNull JavaPlugin plugin, ServerType serverType) throws YLibException {
 
         if (serverType == ServerType.UNKNOWN) {
             throw new YLibException("无法检测到支持的服务器类型。");
@@ -87,7 +87,7 @@ public class YLibCreate {
      *
      * @throws YLibException 如果包没有正确重定位
      */
-    protected static void checkPackageRelocation() throws YLibException {
+    private static void checkPackageRelocation() throws YLibException {
         // 运行时替换逗号以避免编译器重定位改变这个字符串
         String originalPackage = "cn,yvmou,ylib,".replace(",", ".");
         String currentPackage = YLib.class.getPackage().getName();

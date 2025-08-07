@@ -21,6 +21,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.yvmou.ylib.common.YLibImpl.ylib;
 
+/**
+ * 简单命令管理器实现
+ * <p>
+ * 提供完整的命令注册和管理功能，包括主命令注册、别名命令注册、
+ * 权限检查、配置管理等。
+ * </p>
+ *
+ * @author yvmou
+ * @since 1.0.0-beta5
+ */
 public class SimpleCommandManager implements CommandManager {
     private final Plugin plugin;
     private final LoggerService logger;

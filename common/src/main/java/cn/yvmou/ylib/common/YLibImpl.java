@@ -14,6 +14,7 @@ import cn.yvmou.ylib.common.services.LoggerService;
 import cn.yvmou.ylib.common.services.MessageService;
 import cn.yvmou.ylib.common.utils.ValidationUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -118,6 +119,27 @@ public abstract class YLibImpl implements YLib {
     @Override
     @NotNull
     public UniversalScheduler getScheduler() {
+        // 懒加载
+        if (universalScheduler == null) {
+            try {
+                if (isFolia()) {
+                    Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.folia.scheduler.FoliaScheduler");
+                    universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
+                            .newInstance(plugin);
+                } else if (isPaper()) {
+                    Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.paper.scheduler.PaperScheduler");
+                    universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
+                            .newInstance(plugin);
+                } else {
+                    Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.spigot.scheduler.SpigotScheduler");
+                    universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
+                            .newInstance(plugin);
+                }
+            } catch (Exception e) {
+                LOGGER.severe("无法创建调度器: " + e.getMessage());
+                throw new YLibException("无法创建调度器", e);
+            }
+        }
         return universalScheduler;
     }
     

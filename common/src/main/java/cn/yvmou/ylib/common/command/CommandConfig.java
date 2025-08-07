@@ -91,34 +91,42 @@ public class CommandConfig {
      * 加载配置文件
      */
     private void loadConfig() {
-        if (!configFile.exists()) {
-            // 创建数据目录
-            if (!plugin.getDataFolder().exists()) {
-                plugin.getDataFolder().mkdir();
-            }
+        // 创建数据目录
+        if (!plugin.getDataFolder().exists()) {
+            plugin.getDataFolder().mkdir();
+        }
 
+        if (!configFile.exists()) {
             try {
                 configFile.createNewFile();
                 logger.info("The command configuration file has been created: " + configFile.getAbsolutePath());
             } catch (IOException e) {
                 logger.error("Could not create config file " + configFile.getAbsolutePath());
             }
-
-            config = YamlConfiguration.loadConfiguration(configFile);
-
-            // 添加配置文件头部注释
-            if (!config.contains("_info")) {
-                config.set("_info", Arrays.asList(
-                        "YLib 命令配置文件",
-                        "该文件用于配置插件命令的各种选项",
-                        "register: 是否注册该命令",
-                        "permission: 执行命令所需权限",
-                        "onlyPlayer: 是否只允许玩家执行",
-                        "alias: 命令别名列表",
-                        "usage: 命令使用方法"
-                ));
-            }
         }
+
+        // 总是加载配置文件，无论文件是否存在
+        config = YamlConfiguration.loadConfiguration(configFile);
+
+        // 如果配置文件是新创建的，添加头部注释
+        if (!config.contains("_info")) {
+            config.set("_info", Arrays.asList(
+                    "YLib 命令配置文件",
+                    "该文件用于配置插件命令的各种选项",
+                    "register: 是否注册该命令",
+                    "permission: 执行命令所需权限",
+                    "onlyPlayer: 是否只允许玩家执行",
+                    "alias: 命令别名列表",
+                    "usage: 命令使用方法"
+            ));
+        }
+
+        try {
+            config.save(configFile);
+        } catch (IOException e) {
+            logger.error("Could not save config file " + configFile.getAbsolutePath());
+        }
+
     }
 
     /**
