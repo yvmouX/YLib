@@ -101,7 +101,18 @@ public interface SimpleCommandManager {
     @NotNull
     String[] getRegisteredCommands();
 
+    /**
+     * 获取已注册命令名称
+     *
+     * @return 已注册命令的集合
+     */
     Set<String> getRegisteredCommandNames();
 
+    /**
+     * 获取命令别名
+     *
+     * @param commandName 命令名称
+     * @return 改命令的所有别名命令
+     */
     Set<String> getCommandAliases(@NotNull String commandName);
 }
