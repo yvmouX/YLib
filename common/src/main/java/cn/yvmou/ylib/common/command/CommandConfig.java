@@ -34,23 +34,11 @@ public class CommandConfig implements cn.yvmou.ylib.api.command.CommandConfig {
 
     private File configFile;
     private FileConfiguration config;
+    private boolean isInitConfigFile;
 
     public CommandConfig(Plugin plugin, LoggerService logger) {
         this.plugin = plugin;
         this.logger = logger;
-    }
-    
-    /**
-     * 加载配置文件
-     */
-    public Map<String, SubCommand> loadConfig(String mainCommandName, Map<String, SubCommand> subCommandMap) {
-        try {
-            initConfigFile();
-        } catch (IOException e) {
-            logger.error("Could not load commands.yml: " + e.getMessage());
-        }
-
-        return initCommandConfig(mainCommandName, subCommandMap);
     }
 
     /**
@@ -59,7 +47,8 @@ public class CommandConfig implements cn.yvmou.ylib.api.command.CommandConfig {
      *
      * @throws IOException ioexception
      */
-    private void initConfigFile() throws IOException {
+    public void initConfigFile() throws IOException {
+        isInitConfigFile = true;
         // 如果配置文件或配置对象为null，初始化它
         if (configFile == null || config == null) {
             // 确保插件数据目录存在
@@ -72,7 +61,7 @@ public class CommandConfig implements cn.yvmou.ylib.api.command.CommandConfig {
             // 如果commands.yml不存在，创建一个
             if (!configFile.exists()) {
                 configFile.createNewFile();
-                logger.info("commands.yml has been created: " + configFile.getAbsolutePath());
+                logger.info("文件 commands.yml 已经被创建: " + configFile.getAbsolutePath());
             }
 
             // 加载配置文件
@@ -91,17 +80,17 @@ public class CommandConfig implements cn.yvmou.ylib.api.command.CommandConfig {
      * @param subCommandMap 子命令映射，键为子命令名称，值为子命令实例
      * @return 处理后的子命令映射
      */
-    private Map<String, SubCommand> initCommandConfig(String mainCommandName, Map<String, SubCommand> subCommandMap) {
+    public void initCommandConfig(String mainCommandName, Map<String, SubCommand> subCommandMap) {
+        if (!isInitConfigFile) { // 防止重复调用 initConfigFile()
+            try {
+                initConfigFile();
+            } catch (IOException e) {
+                logger.error("初始化配置文件失败，请联系开发者：" + e.getMessage());
+            }
+        }
         boolean configChanged = false;
-        Map<String, SubCommand> newSubCommandMap = subCommandMap;
-
 
         for (SubCommand subCommand : subCommandMap.values()) {
-            // 强制验证注解存在，如果不存在，则移除改 subCommand
-            if (!validateCommandAnnotation(subCommand)) {
-                newSubCommandMap.remove(mainCommandName, subCommand);
-            }
-
             // 如果命令路径下没有配置 创建默认配置
             try {
                 Method executeMethod = subCommand.getClass().getDeclaredMethod("execute", CommandSender.class, String[].class);
@@ -133,49 +122,6 @@ public class CommandConfig implements cn.yvmou.ylib.api.command.CommandConfig {
                 logger.error("Failed to save commands.yml", e);
             }
         }
-
-        return newSubCommandMap;
-    }
-
-    /**
-     * 验证子命令的注解
-     * <p>
-     * 强制要求所有子命令必须使用 @CommandOptions 注解，
-     * 否则抛出异常阻止插件加载
-     * </p>
-     *
-     * @param subCommand 子命令实例
-     * @throws IllegalStateException 如果注解验证失败
-     */
-    private boolean validateCommandAnnotation(SubCommand subCommand) {
-        try {
-            Method executeMethod = subCommand.getClass().getDeclaredMethod("execute", CommandSender.class, String[].class);
-
-            if (!executeMethod.isAnnotationPresent(CommandOptions.class)) {
-                logger.error(
-                        String.format("子命令类 %s 必须在其 execute 方法上使用 @CommandOptions 注解",
-                                subCommand.getClass().getSimpleName())
-                );
-                return false;
-            }
-
-            CommandOptions options = executeMethod.getAnnotation(CommandOptions.class);
-            if (options.name() == null || options.name().trim().isEmpty()) {
-                logger.error(
-                        String.format("子命令类 %s 的 @CommandOptions 注解中的 name 属性不能为空",
-                                subCommand.getClass().getSimpleName())
-                );
-                return false;
-            }
-
-        } catch (NoSuchMethodException e) {
-            logger.error(
-                    String.format("子命令类 %s 必须实现 execute(CommandSender, String[]) 方法",
-                            subCommand.getClass().getSimpleName()), e
-            );
-            return false;
-        }
-        return true;
     }
 
     private void checkConfig() {

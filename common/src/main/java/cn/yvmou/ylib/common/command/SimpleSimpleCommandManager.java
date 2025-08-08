@@ -13,11 +13,12 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Method;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.yvmou.ylib.common.YLibImpl.ylib;
@@ -37,7 +38,7 @@ public class SimpleSimpleCommandManager implements cn.yvmou.ylib.api.command.Sim
     private final LoggerService logger;
     private final MessageService message;
     private final CommandConfig commandConfig;
-    private final Map<String, SubCommand> subCommandClassList = new HashMap<>(); // 子命令 SubCommand
+    private final Map<String, SubCommand> subCommandClassList = new HashMap<>(); // 子命令名称 : SubCommand
 
     public SimpleSimpleCommandManager(Plugin plugin, LoggerService logger, MessageService message, CommandConfig commandConfig) {
         this.plugin = plugin;
@@ -49,25 +50,52 @@ public class SimpleSimpleCommandManager implements cn.yvmou.ylib.api.command.Sim
     @Override
     public void registerCommands(@NotNull String mainCommandName, @NotNull SubCommand... subCommandClass) {
         // 获取到所有的子命令
-        for (SubCommand subCommand : subCommandClass) {
-            try {
-                Method executeMethod = subCommand.getClass().getDeclaredMethod("execute", CommandSender.class, String[].class);
-                CommandOptions options = executeMethod.getAnnotation(CommandOptions.class);
-                if (options != null) {
-                    String subCommandName = options.name().toLowerCase();
-                    subCommandClassList.put(subCommandName, subCommand);
-                    logger.info("添加子命令到列表: " + subCommandName);
+        List<String> configSubCommandList = getCommandConfig().getSubCommandList(mainCommandName);
+        for (String subCommandName : configSubCommandList) {
+            for (SubCommand subCommand : subCommandClass) {
+                CommandOptions commandOptions = null;
+                String optionCommandName;
+                // 确保 subCommandName 正确实现
+                try {
+                    Method method = subCommand.getClass().getDeclaredMethod("execute", CommandSender.class, String[].class);
+                    commandOptions = method.getAnnotation(CommandOptions.class);
+                    optionCommandName = commandOptions.name().trim().toLowerCase();
+
+                    // 确保 子命令类 在 execute 方法上 实现 @CommandOptions 注解
+                    if (!method.isAnnotationPresent(CommandOptions.class)) {
+                        logger.error(
+                                String.format("子命令类 %s 必须在其 execute 方法上使用 @CommandOptions 注解",
+                                        subCommand.getClass().getSimpleName())
+                        );
+                        logger.error("如果你不是开发者，请无视这条警告，并检查commands.yml");
+                        continue;
+                    }
+
+                    // 确保 子命令类 的 @CommandOptions 注解 中 name 属性不为空
+                    if (optionCommandName.isEmpty()) {
+                        logger.error(
+                                String.format("子命令类 %s 的 @CommandOptions 注解中的 name 属性不能为空",
+                                        subCommand.getClass().getSimpleName())
+                        );
+                        logger.error("如果你不是开发者，请无视这条警告，并检查commands.yml");
+                        continue;
+                    }
+                } catch (NoSuchMethodException e) {
+                    logger.error("命令 " + mainCommandName + " 的子命令 " + subCommandName + " 必须实现 execute(CommandSender, String[]) 方法");
+                    logger.error("如果你不是开发者，请无视这条警告，并检查commands.yml: " + e.getMessage());
                 }
-            } catch (NoSuchMethodException e) {
-                logger.error("子命令必须实现 execute(CommandSender, String[]) 方法: " + e.getMessage());
+                subCommandClassList.put(subCommandName, subCommand);
+                logger.info("添加子命令到列表: " + subCommandName);
             }
         }
+
         // 初始化 CommandConfig
         // 1、创建commands.yml（如果配置文件不存在）
         // 2、初始commands.yml 内容（如果该路径下没有内容），强制继承自 SubCommand 的方法必须实现 CommandOptions 注解
         logger.info("正在初始化命令配置...");
         try {
-            getCommandConfig().loadConfig(mainCommandName, subCommandClassList);
+            getCommandConfig().initConfigFile();
+            getCommandConfig().initCommandConfig(mainCommandName, subCommandClassList);
         } catch (Exception e) {
             logger.error("初始化命令配置时发生错误: " + e.getMessage());
         }
