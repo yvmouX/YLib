@@ -1,7 +1,6 @@
 package cn.yvmou.ylib.api.services;
 
 import net.md_5.bungee.api.ChatColor;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 /**
