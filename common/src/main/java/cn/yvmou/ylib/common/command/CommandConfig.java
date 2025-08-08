@@ -16,6 +16,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 命令配置管理器
@@ -37,138 +38,207 @@ public class CommandConfig implements cn.yvmou.ylib.api.command.CommandConfig {
     public CommandConfig(Plugin plugin, LoggerService logger) {
         this.plugin = plugin;
         this.logger = logger;
-        this.configFile = new File(plugin.getDataFolder(), "commands.yml");
-        loadConfig();
     }
-
-    public void initCommandConfig(String commandName, SubCommand... subCommands) {
-        boolean configCreated = false;
-        boolean configChanged = false;
-
-        if (!configFile.exists()) {
-            configCreated = true;
-            logger.warn("Config file doesn't exist. Creating new one.");
+    
+    /**
+     * 加载配置文件
+     */
+    public Map<String, SubCommand> loadConfig(String mainCommandName, Map<String, SubCommand> subCommandMap) {
+        try {
+            initConfigFile();
+        } catch (IOException e) {
+            logger.error("Could not load commands.yml: " + e.getMessage());
         }
 
-        for (SubCommand subCommand : subCommands) {
+        return initCommandConfig(mainCommandName, subCommandMap);
+    }
+
+    /**
+     * 初始化配置文件
+     * 如果配置文件不存在，则创建一个
+     *
+     * @throws IOException ioexception
+     */
+    private void initConfigFile() throws IOException {
+        // 如果配置文件或配置对象为null，初始化它
+        if (configFile == null || config == null) {
+            // 确保插件数据目录存在
+            if (!plugin.getDataFolder().exists()) {
+                plugin.getDataFolder().mkdirs();
+            }
+
+            configFile = new File(plugin.getDataFolder(), "commands.yml");
+
+            // 如果commands.yml不存在，创建一个
+            if (!configFile.exists()) {
+                configFile.createNewFile();
+                logger.info("commands.yml has been created: " + configFile.getAbsolutePath());
+            }
+
+            // 加载配置文件
+            config = YamlConfiguration.loadConfiguration(configFile);
+        }
+    }
+
+    /**
+     * 初始化命令配置
+     * <p>
+     * 根据子命令的注解信息，在配置文件中创建相应的配置项。
+     * 如果配置已存在，则不会覆盖。
+     * </p>
+     * 
+     * @param mainCommandName 主命令名称
+     * @param subCommandMap 子命令映射，键为子命令名称，值为子命令实例
+     * @return 处理后的子命令映射
+     */
+    private Map<String, SubCommand> initCommandConfig(String mainCommandName, Map<String, SubCommand> subCommandMap) {
+        boolean configChanged = false;
+        Map<String, SubCommand> newSubCommandMap = subCommandMap;
+
+
+        for (SubCommand subCommand : subCommandMap.values()) {
+            // 强制验证注解存在，如果不存在，则移除改 subCommand
+            if (!validateCommandAnnotation(subCommand)) {
+                newSubCommandMap.remove(mainCommandName, subCommand);
+            }
+
+            // 如果命令路径下没有配置 创建默认配置
             try {
-                Method executeMethod = subCommand.getClass().getDeclaredMethod("execute",
-                        CommandSender.class, String[].class);
+                Method executeMethod = subCommand.getClass().getDeclaredMethod("execute", CommandSender.class, String[].class);
+                // 获取子命令的注解参数
+                CommandOptions options = executeMethod.getAnnotation(CommandOptions.class);
+                String basePath = "commands." + mainCommandName + "." + options.name();
+                // 检查配置是否存在
+                if (!config.contains(basePath)) {
+                    config.set(basePath + ".permission", options.permission().isEmpty() ? "none" : options.permission());
+                    config.set(basePath + ".onlyPlayer", options.onlyPlayer());
+                    config.set(basePath + ".register", options.register());
+                    config.set(basePath + ".usage", options.usage().isEmpty() ? "none" : options.usage());
+                    config.set(basePath + ".alias", options.alias().length < 1 ? new ArrayList<>() : Arrays.asList(options.alias()));
 
-                if (executeMethod.isAnnotationPresent(CommandOptions.class)) {
-                    CommandOptions options = executeMethod.getAnnotation(CommandOptions.class);
-                    String basePath = "commands." + commandName + "." + options.name();
-
-                    // 检查配置是否存在，不存在创建默认配置
-                    if (!config.contains(basePath)) {
-                        config.set(basePath + ".permission", options.permission().isEmpty() ? "none" : options.permission());
-                        config.set(basePath + ".onlyPlayer", options.onlyPlayer());
-                        config.set(basePath + ".register", options.register());
-                        config.set(basePath + ".usage", options.usage().isEmpty() ? "none" : options.usage());
-                        config.set(basePath + ".alias", options.alias().length < 1 ? "none" : options.alias());
-
-                        configChanged = true;
-
-                        logger.warn("The command configuration file does not exit, a default configuration file will be created.");
-                    }
+                    configChanged = true;
+                    logger.info("已为命令 " + mainCommandName + " 的子命令 " + options.name() + " 创建默认配置");
                 }
             } catch (NoSuchMethodException e) {
-                logger.error("subCommand " + subCommand.getClass().getSimpleName() + " no correct method was found");
+                throw new IllegalStateException("子命令必须实现 execute(CommandSender, String[]) 方法", e);
             }
         }
 
-        if (configChanged || configCreated) {
+        // 保存默认配置
+        if (configChanged) {
             try {
                 config.save(configFile);
-                logger.warn("The command configuration file has been saved.");
+                logger.info("commands.yml 配置文件已保存");
             } catch (IOException e) {
-                logger.error("Could not save command config file " + configFile.getAbsolutePath() + e.getMessage());
+                logger.error("Failed to save commands.yml", e);
             }
         }
+
+        return newSubCommandMap;
     }
 
-    private void loadConfig() {
-        // 创建数据目录
-        if (!plugin.getDataFolder().exists()) {
-            plugin.getDataFolder().mkdir();
-        }
-
-        if (!configFile.exists()) {
-            try {
-                configFile.createNewFile();
-                logger.info("The command configuration file has been created: " + configFile.getAbsolutePath());
-            } catch (IOException e) {
-                logger.error("Could not create config file " + configFile.getAbsolutePath());
-            }
-        }
-
-        // 总是加载配置文件，无论文件是否存在
-        config = YamlConfiguration.loadConfiguration(configFile);
-
-        // 如果配置文件是新创建的，添加头部注释
-        if (!config.contains("_info")) {
-            config.set("_info", Arrays.asList(
-                    "YLib 命令配置文件",
-                    "该文件用于配置插件命令的各种选项",
-                    "register: 是否注册该命令",
-                    "permission: 执行命令所需权限",
-                    "onlyPlayer: 是否只允许玩家执行",
-                    "alias: 命令别名列表",
-                    "usage: 命令使用方法"
-            ));
-        }
-
+    /**
+     * 验证子命令的注解
+     * <p>
+     * 强制要求所有子命令必须使用 @CommandOptions 注解，
+     * 否则抛出异常阻止插件加载
+     * </p>
+     *
+     * @param subCommand 子命令实例
+     * @throws IllegalStateException 如果注解验证失败
+     */
+    private boolean validateCommandAnnotation(SubCommand subCommand) {
         try {
-            config.save(configFile);
-        } catch (IOException e) {
-            logger.error("Could not save config file " + configFile.getAbsolutePath());
-        }
+            Method executeMethod = subCommand.getClass().getDeclaredMethod("execute", CommandSender.class, String[].class);
 
+            if (!executeMethod.isAnnotationPresent(CommandOptions.class)) {
+                logger.error(
+                        String.format("子命令类 %s 必须在其 execute 方法上使用 @CommandOptions 注解",
+                                subCommand.getClass().getSimpleName())
+                );
+                return false;
+            }
+
+            CommandOptions options = executeMethod.getAnnotation(CommandOptions.class);
+            if (options.name() == null || options.name().trim().isEmpty()) {
+                logger.error(
+                        String.format("子命令类 %s 的 @CommandOptions 注解中的 name 属性不能为空",
+                                subCommand.getClass().getSimpleName())
+                );
+                return false;
+            }
+
+        } catch (NoSuchMethodException e) {
+            logger.error(
+                    String.format("子命令类 %s 必须实现 execute(CommandSender, String[]) 方法",
+                            subCommand.getClass().getSimpleName()), e
+            );
+            return false;
+        }
+        return true;
+    }
+
+    private void checkConfig() {
+        try {
+            initConfigFile();
+        } catch (IOException e) {
+            logger.error("初始化配置文件出错: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public FileConfiguration getConfig() {
+        checkConfig();
         return config;
     }
 
     @Override
-    public List<String> getSubCommandList(String mainCommand) {
-        ConfigurationSection configSection = config.getConfigurationSection("commands." + mainCommand);
-        if (configSection == null) { return null; }
+    public List<String> getSubCommandList(String mainCommandName) {
+        checkConfig();
+        ConfigurationSection configSection = config.getConfigurationSection("commands." + mainCommandName);
+        if (configSection == null) {
+            return null;
+        }
 
         return new ArrayList<>(configSection.getKeys(false));
     }
 
     @Override
     @NotNull
-    public List<String> getCommandAliases(@NotNull String commandName, @NotNull String subCommandName) {
-        String path = "commands." + commandName + "." + subCommandName + ".alias";
+    public List<String> getCommandAliases(@NotNull String mainCommandName, @NotNull String subCommandName) {
+        checkConfig();
+        String path = "commands." + mainCommandName + "." + subCommandName + ".alias";
         return config.getStringList(path);
     }
 
     @Override
     @NotNull
-    public String getCommandUsage(@NotNull String commandName, @NotNull String subCommandName) {
-        String path = "commands." + commandName + "." + subCommandName + ".usage";
-        return config.getString(path, "/" + commandName + " " + subCommandName);
+    public String getCommandUsage(@NotNull String mainCommandName, @NotNull String subCommandName) {
+        checkConfig();
+        String path = "commands." + mainCommandName + "." + subCommandName + ".usage";
+        return config.getString(path, "/" + mainCommandName + " " + subCommandName);
     }
 
     @Override
-    public boolean isPlayerOnly(@NotNull String commandName, @NotNull String subCommandName) {
-        String path = "commands." + commandName + "." + subCommandName + ".onlyPlayer";
+    public boolean isPlayerOnly(@NotNull String mainCommandName, @NotNull String subCommandName) {
+        checkConfig();
+        String path = "commands." + mainCommandName + "." + subCommandName + ".onlyPlayer";
         return config.getBoolean(path, false);
     }
 
     @Override
     @NotNull
-    public String getCommandPermission(@NotNull String commandName, @NotNull String subCommandName) {
-        String path = "commands." + commandName + "." + subCommandName + ".permission";
+    public String getCommandPermission(@NotNull String mainCommandName, @NotNull String subCommandName) {
+        checkConfig();
+        String path = "commands." + mainCommandName + "." + subCommandName + ".permission";
         return config.getString(path, "");
     }
 
     @Override
-    public boolean isCommandEnabled(@NotNull String commandName, @NotNull String subCommandName) {
-        String path = "commands." + commandName + "." + subCommandName + ".register";
+    public boolean isCommandRegister(@NotNull String mainCommandName, @NotNull String subCommandName) {
+        checkConfig();
+        String path = "commands." + mainCommandName + "." + subCommandName + ".register";
         return config.getBoolean(path, true);
     }
 }

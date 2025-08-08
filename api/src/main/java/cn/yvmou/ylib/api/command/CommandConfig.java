@@ -64,5 +64,5 @@ public interface CommandConfig {
      * @param subCommandName 子命令名称
      * @return 如果启用返回true，否则返回false
      */
-    boolean isCommandEnabled(@NotNull String commandName, @NotNull String subCommandName);
+    boolean isCommandRegister(@NotNull String commandName, @NotNull String subCommandName);
 }

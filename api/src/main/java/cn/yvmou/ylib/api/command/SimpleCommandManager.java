@@ -60,16 +60,6 @@ public interface SimpleCommandManager {
      * @param subCommands 子命令实例数组
      */
     void registerCommands(@NotNull String commandName, @NotNull SubCommand... subCommands);
-    
-    /**
-     * 注销命令
-     * <p>
-     * 注销指定的主命令及其所有子命令和别名。
-     * </p>
-     * 
-     * @param commandName 命令名称
-     */
-    void unregisterCommands(@NotNull String commandName);
 
     /**
      *  获取命令配置文件
@@ -77,42 +67,4 @@ public interface SimpleCommandManager {
      * @return 命令配置文件实例化
      */
     CommandConfig getCommandConfig();
-    
-    /**
-     * 检查命令是否已注册
-     * 
-     * @param commandName 命令名称
-     * @return 如果已注册返回true，否则返回false
-     */
-    boolean isCommandRegistered(@NotNull String commandName);
-    
-    /**
-     * 获取已注册的命令数量
-     * 
-     * @return 已注册的命令数量
-     */
-    int getRegisteredCommandCount();
-    
-    /**
-     * 获取已注册的命令列表
-     * 
-     * @return 已注册的命令名称数组
-     */
-    @NotNull
-    String[] getRegisteredCommands();
-
-    /**
-     * 获取已注册命令名称
-     *
-     * @return 已注册命令的集合
-     */
-    Set<String> getRegisteredCommandNames();
-
-    /**
-     * 获取命令别名
-     *
-     * @param commandName 命令名称
-     * @return 改命令的所有别名命令
-     */
-    Set<String> getCommandAliases(@NotNull String commandName);
 }

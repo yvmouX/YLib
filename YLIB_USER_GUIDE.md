@@ -108,6 +108,8 @@ syncTask.cancel();
 
 ### 命令管理系统
 
+> **⚠️ 重要更新**：从 1.0.0-beta6 开始，所有子命令**必须**使用 `@CommandOptions` 注解，否则插件将无法加载！
+
 ```java
 @CommandOptions(
     name = "mylib",
@@ -149,6 +151,46 @@ public class MyMainCommand implements SubCommand {
 
 // 注册命令
 ylib.getCommandManager().registerCommands("mylib", new MyMainCommand());
+
+// ⚠️ 注意：如果子命令类没有使用 @CommandOptions 注解，
+// 注册时会抛出 IllegalStateException 并阻止插件加载
+```
+
+#### 必填注解示例
+
+```java
+public class ReloadCommand implements SubCommand {
+    
+    @CommandOptions(name = "reload") // 最简单的必填配置
+    @Override
+    public boolean execute(CommandSender sender, String[] args) {
+        sender.sendMessage("配置已重载！");
+        return true;
+    }
+}
+```
+
+#### 完整注解示例
+
+```java
+public class SetWarpCommand implements SubCommand {
+    
+    @CommandOptions(
+        name = "setwarp",
+        permission = "myplugin.warp.set",
+        onlyPlayer = true,
+        alias = {"sw", "createwarp"},
+        usage = "/warp setwarp <名称>",
+        description = "设置一个新的传送点",
+        register = true
+    )
+    @Override
+    public boolean execute(CommandSender sender, String[] args) {
+        // 命令逻辑
+        return true;
+    }
+}
+```
 ```
 
 ### 配置管理

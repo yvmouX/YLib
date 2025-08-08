@@ -18,6 +18,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.util.logging.Logger;
 
 /**
@@ -77,21 +78,13 @@ public class YLibImpl implements YLib {
             // 初始化配置管理器
             this.configurationManager = new SimpleConfigurationManager(plugin, this.loggerService);
             // 初始化命令管理器
-            this.simpleCommandManager = new SimpleSimpleCommandManager(plugin, this.loggerService, this.messageService);
-            // 初始化命令配置管理器
-            this.commandConfig = new CommandConfig(plugin, new LoggerService(plugin));
+            this.simpleCommandManager = new SimpleSimpleCommandManager(plugin, this.loggerService, this.messageService, new CommandConfig(plugin, this.loggerService));
 
             LOGGER.info("核心服务初始化完成");
         } catch (Exception e) {
             throw new YLibException("核心服务初始化失败", e);
         }
     }
-
-    public CommandConfig getCommandConfig() {
-        return commandConfig;
-    }
-
-
 
     // ========== 实现方法 ==========
     @Override

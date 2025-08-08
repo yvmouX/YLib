@@ -19,13 +19,11 @@ import org.jetbrains.annotations.NotNull;
 public class AliasCommand implements CommandExecutor {
     
     private final Plugin plugin;
-    private final LoggerService logger;
     private final String mainCommandName;
     private final String originalCommand;
 
-    public AliasCommand(@NotNull Plugin plugin, @NotNull LoggerService logger, @NotNull String mainCommandName, @NotNull String originalCommand) {
+    public AliasCommand(@NotNull Plugin plugin, @NotNull String mainCommandName, @NotNull String originalCommand) {
         this.plugin = plugin;
-        this.logger = logger;
         this.mainCommandName = mainCommandName;
         this.originalCommand = originalCommand;
     }

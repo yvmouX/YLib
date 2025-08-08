@@ -1,22 +1,15 @@
 package cn.yvmou.ylib.common.command.core;
 
-import cn.yvmou.ylib.api.command.CommandOptions;
 import cn.yvmou.ylib.api.command.SubCommand;
 import cn.yvmou.ylib.api.services.MessageService;
-import cn.yvmou.ylib.common.command.CommandConfig;
 import cn.yvmou.ylib.common.services.LoggerService;
 import cn.yvmou.ylib.common.utils.MessageUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static cn.yvmou.ylib.common.YLibImpl.ylib;
 
@@ -30,25 +23,18 @@ import static cn.yvmou.ylib.common.YLibImpl.ylib;
  * @since 1.0.0-beta5
  */
 public class MainCommand implements CommandExecutor {
-    private final Plugin plugin;
-    private final String commandName;
-    private final Map<String, SubCommand> subCommands = new HashMap<>(); // 子命令 SubCommand
-    private final Map<String, CommandOptions> commandOptions = new HashMap<>();
-    private CommandConfig commandConfig;
+    private final String mainCommandName;
+    private final Map<String, SubCommand> newSubCommandClassList = new HashMap<>(); // 存储已注册的子命令，键为子命令名称，值为子命令实例
     private final LoggerService logger;
     private final MessageService message;
 
-    public MainCommand(Plugin plugin, LoggerService logger, MessageService message, String commandName, SubCommand... subCommands) {
-        this.plugin = plugin;
-        this.commandName = commandName;
+    public MainCommand(LoggerService logger, MessageService message, String mainCommandName, Map<String, SubCommand> subCommandClassList) {
+        this.mainCommandName = mainCommandName;
         this.logger = logger;
         this.message = message;
-        commandConfig = new CommandConfig(plugin, logger);
 
-        // 初始化配置
-        commandConfig.initCommandConfig(commandName, subCommands);
-        // 注册子子命令
-        registerSubCommands(commandName, subCommands);
+        // 注册 需要执行的 子命令
+        requireExecuteSubCommands(subCommandClassList);
     }
 
     @Override
@@ -60,71 +46,65 @@ public class MainCommand implements CommandExecutor {
         }
 
         String subCommandName = args[0].toLowerCase();
-        SubCommand subCommand = subCommands.get(subCommandName);
+        SubCommand subCommand = newSubCommandClassList.get(subCommandName);
 
+        // 如果子命令不存在 显示可用命令列表
         if (subCommand == null) {
             sender.sendMessage(MessageUtils.oldColorWithPrefix(null, "&cunknown command:&f " + subCommandName + "\n" +
                     "&a可用子命令列表："));
-            List<String> s = commandConfig.getSubCommandList(command.getName());
+            List<String> s = ylib.getSimpleCommandManager().getCommandConfig().getSubCommandList(command.getName());
+            List<String> isNull = new ArrayList<>(); // 创建一个集合，判断 是否有可用的子命令
             for (String cmd : s) {
-                message.sendMessage(sender, cmd);
+                if (ylib.getSimpleCommandManager().getCommandConfig().isCommandRegister(mainCommandName, cmd)) {
+                    message.sendMessage(sender, cmd);
+                    isNull.add(cmd);
+                }
+            }
+            if (isNull.isEmpty()) {
+                message.sendMessage(sender, "no such command");
             }
             return true;
         }
 
-        CommandOptions options = commandOptions.get(subCommandName);
-        if (options == null) {
-            logger.warn("Can't find command options for subcommand " + subCommandName);
-            return false;
-        }
-
         // 检查命令是否启用
-        if (!commandConfig.isCommandEnabled(commandName, subCommandName)) {
-            message.sendMessage(sender, "&c" + commandName + " is not enabled");
+        if (!ylib.getSimpleCommandManager().getCommandConfig().isCommandRegister(mainCommandName, subCommandName)) {
+            message.sendMessage(sender, "&c" + mainCommandName + " is not registered");
             return true;
         }
 
-        // 检查是否只运行玩家执行
-        if (commandConfig.isPlayerOnly(commandName, subCommandName)) {
-            message.sendMessage(sender, "&c" + commandName + " can only be used with players ");
+        // 检查是否只允许玩家执行
+        if (ylib.getSimpleCommandManager().getCommandConfig().isPlayerOnly(mainCommandName, subCommandName) && !(sender instanceof org.bukkit.entity.Player)) {
+            message.sendMessage(sender, "&c" + subCommandName + " 命令只能由玩家执行");
             return true;
         }
 
         // 检查权限
-        String permission = commandConfig.getCommandPermission(commandName, subCommandName);
-        if (!permission.isEmpty() && sender.hasPermission(permission)) {
-            message.sendMessage(sender, "&c" + commandName + " You do not have permission to use this command");
+        String permission = ylib.getSimpleCommandManager().getCommandConfig().getCommandPermission(mainCommandName, subCommandName);
+        if (!permission.isEmpty() && !sender.hasPermission(permission)) {
+            message.sendMessage(sender, "&c" + mainCommandName + " You do not have permission to use this command");
             return true;
         }
 
         return subCommand.execute(sender, args);
     }
 
-    private void registerSubCommands(String commandName, SubCommand... subCommands) {
+    private void requireExecuteSubCommands(Map<String, SubCommand> subCommandClassList) {
         // 获取到所有的子命令
-        try {
-            for (SubCommand subCommand : subCommands) {
-                Method method = subCommand.getClass().getDeclaredMethod("execute", CommandSender.class, String[].class);
-
-                if (method.isAnnotationPresent(CommandOptions.class)) {
-                    CommandOptions commandOptions = method.getAnnotation(CommandOptions.class);
-
-                    this.subCommands.put(commandOptions.name().toLowerCase(), subCommand);
-                }
-            }
-        } catch (NoSuchMethodException ignored) {
+        for (Map.Entry<String, SubCommand> entry : subCommandClassList.entrySet()) {
+            String subCommandName = entry.getKey();
+            SubCommand subCommand = entry.getValue();
+            newSubCommandClassList.put(subCommandName.toLowerCase(), subCommand);
+            logger.info("注册子命令: " + subCommandName);
         }
 
         // 移除未注册命令
-        ConfigurationSection commands = commandConfig.getConfig().getConfigurationSection("commands." + commandName);
-        if (commands != null) {
-            commands.getKeys(false).forEach(cmd -> {
-                boolean b = commandConfig.getConfig().getBoolean("commands." + commandName + "." + cmd + ".register", true);
-                if (!b) {
-                    this.subCommands.remove(cmd);
-                    logger.warn("已移除未注册命令: " + cmd);
-                }
-            });
+        List<String> commands = ylib.getSimpleCommandManager().getCommandConfig().getSubCommandList(mainCommandName);
+        for (String command : commands) {
+            boolean isRegister = ylib.getSimpleCommandManager().getCommandConfig().isCommandRegister(mainCommandName, command);
+            if (!isRegister) {
+                newSubCommandClassList.remove(command.toLowerCase());
+                logger.warn("已移除未注册命令: " + command);
+            }
         }
     }
 }
