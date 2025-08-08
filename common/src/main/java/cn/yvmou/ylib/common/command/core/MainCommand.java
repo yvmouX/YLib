@@ -24,7 +24,8 @@ import static cn.yvmou.ylib.common.YLibImpl.ylib;
  */
 public class MainCommand implements CommandExecutor {
     private final String mainCommandName;
-    private final Map<String, SubCommand> newSubCommandClassList = new HashMap<>(); // 存储已注册的子命令，键为子命令名称，值为子命令实例
+    private Map<String, SubCommand> subCommandClassList = new HashMap<>();
+   // private final Map<String, SubCommand> newSubCommandClassList = new HashMap<>(); // 存储已注册的子命令，键为子命令名称，值为子命令实例
     private final LoggerService logger;
     private final MessageService message;
 
@@ -33,8 +34,9 @@ public class MainCommand implements CommandExecutor {
         this.logger = logger;
         this.message = message;
 
-        // 注册 需要执行的 子命令
-        requireExecuteSubCommands(subCommandClassList);
+        this.subCommandClassList = subCommandClassList;
+//        // 注册 需要执行的 子命令
+//        requireExecuteSubCommands(subCommandClassList);
     }
 
     @Override
@@ -46,22 +48,16 @@ public class MainCommand implements CommandExecutor {
         }
 
         String subCommandName = args[0].toLowerCase();
-        SubCommand subCommand = newSubCommandClassList.get(subCommandName);
+        SubCommand subCommand = subCommandClassList.get(subCommandName);
 
         // 如果子命令不存在 显示可用命令列表
         if (subCommand == null) {
-            sender.sendMessage(MessageUtils.oldColorWithPrefix(null, "&cunknown command:&f " + subCommandName + "\n" +
-                    "&a可用子命令列表："));
-            List<String> s = ylib.getSimpleCommandManager().getCommandConfig().getSubCommandList(command.getName());
-            List<String> isNull = new ArrayList<>(); // 创建一个集合，判断 是否有可用的子命令
-            for (String cmd : s) {
-                if (ylib.getSimpleCommandManager().getCommandConfig().isCommandRegister(mainCommandName, cmd)) {
-                    message.sendMessage(sender, cmd);
-                    isNull.add(cmd);
-                }
-            }
-            if (isNull.isEmpty()) {
-                message.sendMessage(sender, "no such command");
+            message.sendMessage(sender, "&cUnknown subcommand '" + subCommandName + "'");
+            message.sendMessage(sender, "&a可用子命令列表：");
+            if (subCommandClassList.isEmpty()) {
+                message.sendMessage(sender, "&cNo subcommand found");
+            } else {
+                message.sendMessage(sender, subCommandClassList.keySet().toString());
             }
             return true;
         }
@@ -88,24 +84,24 @@ public class MainCommand implements CommandExecutor {
         return subCommand.execute(sender, args);
     }
 
-    private void requireExecuteSubCommands(Map<String, SubCommand> subCommandClassList) {
-        // 获取到所有的子命令
-        for (Map.Entry<String, SubCommand> entry : subCommandClassList.entrySet()) {
-            String subCommandName = entry.getKey();
-            SubCommand subCommand = entry.getValue();
-            newSubCommandClassList.put(subCommandName.toLowerCase(), subCommand);
-            logger.info("注册子命令: " + subCommandName);
-        }
-
-        // 移除未注册命令
-        List<String> commands = ylib.getSimpleCommandManager().getCommandConfig().getSubCommandList(mainCommandName);
-        for (String command : commands) {
-            boolean isRegister = ylib.getSimpleCommandManager().getCommandConfig().isCommandRegister(mainCommandName, command);
-            if (!isRegister) {
-                newSubCommandClassList.remove(command.toLowerCase());
-                logger.warn("已移除未注册命令: " + command);
-            }
-        }
-    }
+//    private void requireExecuteSubCommands(Map<String, SubCommand> subCommandClassList) {
+//        // 获取到所有的子命令
+//        for (Map.Entry<String, SubCommand> entry : subCommandClassList.entrySet()) {
+//            String subCommandName = entry.getKey();
+//            SubCommand subCommand = entry.getValue();
+//            subCommandClassList.put(subCommandName.toLowerCase(), subCommand);
+//            logger.info("注册子命令: " + subCommandName);
+//        }
+//
+//        // 移除未注册命令
+//        List<String> commands = ylib.getSimpleCommandManager().getCommandConfig().getSubCommandList(mainCommandName);
+//        for (String command : commands) {
+//            boolean isRegister = ylib.getSimpleCommandManager().getCommandConfig().isCommandRegister(mainCommandName, command);
+//            if (!isRegister) {
+//                newSubCommandClassList.remove(command.toLowerCase());
+//                logger.warn("已移除未注册命令: " + command);
+//            }
+//        }
+//    }
 }
 
