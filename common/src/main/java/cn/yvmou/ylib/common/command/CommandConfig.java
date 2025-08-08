@@ -27,7 +27,7 @@ import java.util.List;
  * @author yvmou
  * @since 1.0.0-beta5
  */
-public class CommandConfig {
+public class CommandConfig implements cn.yvmou.ylib.api.command.CommandConfig {
     private final Plugin plugin;
     private final LoggerService logger;
 
@@ -87,9 +87,6 @@ public class CommandConfig {
         }
     }
 
-    /**
-     * 加载配置文件
-     */
     private void loadConfig() {
         // 创建数据目录
         if (!plugin.getDataFolder().exists()) {
@@ -129,83 +126,47 @@ public class CommandConfig {
 
     }
 
-    /**
-     * 获取配置文件
-     * @return 配置文件实例
-     */
+    @Override
     public FileConfiguration getConfig() {
         return config;
     }
 
-    /**
-     * 获取子命令列表
-     * @param mainCommand 主命令
-     * @return 子命令列表
-     */
+    @Override
     public List<String> getSubCommandList(String mainCommand) {
         ConfigurationSection configSection = config.getConfigurationSection("commands." + mainCommand);
         if (configSection == null) { return null; }
 
         return new ArrayList<>(configSection.getKeys(false));
     }
-    /**
-     * 获取命令别名列表
-     *
-     * @param commandName 主命令名称
-     * @param subCommandName 子命令名称
-     * @return 别名列表
-     */
+
+    @Override
     @NotNull
     public List<String> getCommandAliases(@NotNull String commandName, @NotNull String subCommandName) {
         String path = "commands." + commandName + "." + subCommandName + ".alias";
         return config.getStringList(path);
     }
 
-    /**
-     * 获取命令使用方法
-     *
-     * @param commandName 主命令名称
-     * @param subCommandName 子命令名称
-     * @return 使用方法字符串
-     */
+    @Override
     @NotNull
     public String getCommandUsage(@NotNull String commandName, @NotNull String subCommandName) {
         String path = "commands." + commandName + "." + subCommandName + ".usage";
         return config.getString(path, "/" + commandName + " " + subCommandName);
     }
 
-    /**
-     * 检查命令是否只允许玩家执行
-     *
-     * @param commandName 主命令名称
-     * @param subCommandName 子命令名称
-     * @return 如果只允许玩家执行返回true，否则返回false
-     */
+    @Override
     public boolean isPlayerOnly(@NotNull String commandName, @NotNull String subCommandName) {
         String path = "commands." + commandName + "." + subCommandName + ".onlyPlayer";
         return config.getBoolean(path, false);
     }
 
-    /**
-     * 获取命令权限
-     *
-     * @param commandName 主命令名称
-     * @param subCommandName 子命令名称
-     * @return 权限字符串，可能为空
-     */
+    @Override
     @NotNull
     public String getCommandPermission(@NotNull String commandName, @NotNull String subCommandName) {
         String path = "commands." + commandName + "." + subCommandName + ".permission";
         return config.getString(path, "");
     }
 
-    /**
-     * 检查命令是否启用
-     *
-     * @param commandName 主命令名称
-     * @param subCommandName 子命令名称
-     * @return 如果启用返回true，否则返回false
-     */
+    @Override
     public boolean isCommandEnabled(@NotNull String commandName, @NotNull String subCommandName) {
         String path = "commands." + commandName + "." + subCommandName + ".register";
         return config.getBoolean(path, true);

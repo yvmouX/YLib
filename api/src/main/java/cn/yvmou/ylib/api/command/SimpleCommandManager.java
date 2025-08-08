@@ -40,7 +40,7 @@ import java.util.Set;
  * @author yvmou
  * @since 1.0.0-beta5
  */
-public interface CommandManager {
+public interface SimpleCommandManager {
     
     /**
      * 注册主命令及其子命令
@@ -70,6 +70,13 @@ public interface CommandManager {
      * @param commandName 命令名称
      */
     void unregisterCommands(@NotNull String commandName);
+
+    /**
+     *  获取命令配置文件
+     *
+     * @return 命令配置文件实例化
+     */
+    CommandConfig getCommandConfig();
     
     /**
      * 检查命令是否已注册

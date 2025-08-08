@@ -1,6 +1,5 @@
 package cn.yvmou.ylib.common.command;
 
-import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.command.SubCommand;
 import cn.yvmou.ylib.common.command.core.AliasCommand;
 import cn.yvmou.ylib.common.command.core.MainCommand;
@@ -31,17 +30,19 @@ import static cn.yvmou.ylib.common.YLibImpl.ylib;
  * @author yvmou
  * @since 1.0.0-beta5
  */
-public class SimpleCommandManager implements CommandManager {
+public class SimpleSimpleCommandManager implements cn.yvmou.ylib.api.command.SimpleCommandManager {
     private final Plugin plugin;
     private final LoggerService logger;
     private final MessageService message;
+    private final CommandConfig commandConfig;
     private final Map<String, MainCommand> registeredCommands = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> commandAliases = new ConcurrentHashMap<>();
 
-    public SimpleCommandManager(Plugin plugin, LoggerService logger, MessageService message) {
+    public SimpleSimpleCommandManager(Plugin plugin, LoggerService logger, MessageService message) {
         this.plugin = plugin;
         this.logger = logger;
         this.message = message;
+        commandConfig = new CommandConfig(plugin, logger);
     }
 
     @Override
@@ -172,6 +173,11 @@ public class SimpleCommandManager implements CommandManager {
         } catch (Exception e) {
             logger.warn("注册命令别名时发生错误: " + e.getMessage());
         }
+    }
+
+    @Override
+    public CommandConfig getCommandConfig() {
+        return commandConfig;
     }
 
     @Override

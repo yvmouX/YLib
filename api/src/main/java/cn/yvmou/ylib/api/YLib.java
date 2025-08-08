@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.api;
 
-import cn.yvmou.ylib.api.command.CommandManager;
+import cn.yvmou.ylib.api.command.SimpleCommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.api.services.ConfigurationService;
@@ -38,7 +38,7 @@ public interface YLib {
      * @return 命令管理器实例
      */
     @NotNull
-    CommandManager getSimpleCommandManager();
+    SimpleCommandManager getSimpleCommandManager();
     
     /**
      * 获取配置服务
