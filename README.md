@@ -32,7 +32,7 @@ dependencies {
 }
 
 shadowJar {
-    relocate("com.github.yvmouX.ylib", "YOUR_PACKAGE.lib.ylib")
+    relocate("cn.yvmou.ylib", "YOUR_PACKAGE.lib.ylib")
 }
 ```
 </details>
