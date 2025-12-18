@@ -9,6 +9,7 @@ import cn.yvmou.ylib.api.services.LoggerService;
 import cn.yvmou.ylib.api.services.MessageService;
 import cn.yvmou.ylib.api.services.ServerInfoService;
 import cn.yvmou.ylib.exception.YLibException;
+import cn.yvmou.ylib.impl.command.CommandConfigImpl;
 import cn.yvmou.ylib.impl.command.SimpleCommandManagerImpl;
 import cn.yvmou.ylib.impl.config.SimpleConfigurationManager;
 import cn.yvmou.ylib.impl.services.LoggerServiceImpl;
@@ -52,6 +53,8 @@ public class YLibImpl implements YLib {
             this.messageService = new MessageServiceImpl(plugin, loggerService);
             // 初始化配置管理器
             this.configurationManager = new SimpleConfigurationManager(plugin, loggerService);
+            // 初始化命令配置管理器
+            this.commandConfig = new CommandConfigImpl(plugin, loggerService);
             // 初始化命令管理器
             this.simpleCommandManager = new SimpleCommandManagerImpl(plugin, getScheduler(), loggerService, messageService, serverInfo, commandConfig);
 
