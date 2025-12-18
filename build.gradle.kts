@@ -4,26 +4,11 @@ plugins {
     id("com.gradleup.shadow") version "9.3.0"
 }
 
-group = "com.github.yvmouX"
-version = "1.0.0-beta5"
-
-subprojects {
+allprojects {
     apply(plugin = "java-library")
-    java {
-        when (project.name) {
-            "folia", "paper" -> {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
-            }
-            else -> {
-                sourceCompatibility = JavaVersion.VERSION_1_8
-                targetCompatibility = JavaVersion.VERSION_1_8
-            }
-        }
-        // 生成源码和文档 JAR
-//        withSourcesJar()
-//        withJavadocJar()
-    }
+
+    group = "com.github.yvmouX"
+    version = "1.0.0-beta5"
 
     repositories {
         mavenCentral()
@@ -32,22 +17,44 @@ subprojects {
         maven { url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") }
     }
 
-    dependencies {
-        compileOnly("org.jetbrains:annotations:23.0.0")
-        testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+    java {
+        // 打印调试信息，确认每个项目匹配到了什么版本
+        println("Configuring JDK for project: ${project.name} (${project.path})")
+        
+        when (project.path) {
+            // Folia 和 Paper 必须是 Java 17+
+            ":platform:folia", ":platform:paper" -> {
+                println("  -> Target: Java 17 (Folia/Paper specific)")
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+            // 根项目作为容器，必须能容纳所有子模块，所以设为 21 (或者你环境的最高版本)
+            ":" -> {
+                println("  -> Target: Java 21 (Root project container)")
+                sourceCompatibility = JavaVersion.VERSION_21
+                targetCompatibility = JavaVersion.VERSION_21
+            }
+            // 其他所有模块 (common, core, spigot) 默认为 Java 8，保证最大兼容性
+            else -> {
+                println("  -> Target: Java 8 (Legacy/Universal)")
+                sourceCompatibility = JavaVersion.VERSION_1_8
+                targetCompatibility = JavaVersion.VERSION_1_8
+            }
+        }
     }
 
-    tasks.withType<Test> {
-        useJUnitPlatform()
+    dependencies {
+        compileOnly("org.jetbrains:annotations:23.0.0")
     }
 }
 
-
-
-
 dependencies {
-    api(project("common"))
-    api(project("core"))
+    api(project(":common"))
+    api(project(":core"))
+    api(project(":platform"))
+    api(project(":platform:folia"))
+    api(project(":platform:spigot"))
+    api(project(":platform:paper"))
 }
 
 publishing {
@@ -87,15 +94,4 @@ publishing {
             }
         }
     }
-}
-
-tasks.shadowJar {
-    mergeServiceFiles()
-}
-
-tasks.build {
-    dependsOn(tasks.shadowJar)
-}
-tasks.publish {
-    dependsOn(tasks.shadowJar)
 }

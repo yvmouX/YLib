@@ -1,3 +1,9 @@
 /.gradle
 /.idea
-/build
+/build/
+/common/build
+/core/build
+/platform/build
+/platform/folia/build
+/platform/paper/build
+/platform/spigot/build
