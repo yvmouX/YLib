@@ -45,6 +45,11 @@ subprojects {
 
 
 
+dependencies {
+    api(project("common"))
+    api(project("core"))
+}
+
 publishing {
     publications {
         create<MavenPublication>("release") {
@@ -85,23 +90,6 @@ publishing {
 }
 
 tasks.shadowJar {
-    val libs = listOf(
-        project(":common"),
-        project(":core")
-    )
-
-    dependsOn(libs.map { it.tasks.named("jar") })
-
-    libs.forEach { p ->
-        val ss = p.extensions.getByType<org.gradle.api.tasks.SourceSetContainer>()
-        from(ss.getByName("main").output)
-    }
-
-    val runtimeConfs = libs.mapNotNull { it.configurations.findByName("runtimeClasspath") }
-    if (runtimeConfs.isNotEmpty()) {
-        configurations = runtimeConfs
-    }
-
     mergeServiceFiles()
 }
 
