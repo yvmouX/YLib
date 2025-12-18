@@ -42,45 +42,46 @@ shadowJar {
   <summary>[Click to show]</summary>
 
 ```xml
+
 <repository>
     <id>jitpack.io</id>
     <url>https://jitpack.io</url>
 </repository>
 
 <dependencies>
-    <dependency>
-        <groupId>com.github.yvmouX</groupId>
-        <artifactId>YLib</artifactId>
-        <version>VERSION</version>
-        <scope>compile</scope>
-    </dependency>
+<dependency>
+    <groupId>com.github.ylib</groupId>
+    <artifactId>YLib</artifactId>
+    <version>VERSION</version>
+    <scope>compile</scope>
+</dependency>
 </dependencies>
 
 <build>
-    <plugins>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-shade-plugin</artifactId>
-            <version>3.6.0</version>
-            <executions>
-                <execution>
-                    <phase>package</phase>
-                    <goals>
-                        <goal>shade</goal>
-                    </goals>
-                </execution>
-            </executions>
-            <configuration>
-                <relocations>
-                    <relocation>
-                        <pattern>com.github.yvmouX.yliib</pattern>
-                        <!-- !! Don't forget to replace -->
-                        <shadedPattern>YOUR_PACKAGE.lib.folialib</shadedPattern>
-                    </relocation>
-                </relocations>
-            </configuration>
-        </plugin>
-    </plugins>
+<plugins>
+    <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+            <execution>
+                <phase>package</phase>
+                <goals>
+                    <goal>shade</goal>
+                </goals>
+            </execution>
+        </executions>
+        <configuration>
+            <relocations>
+                <relocation>
+                    <pattern>com.github.ylib.yliib</pattern>
+                    <!-- !! Don't forget to replace -->
+                    <shadedPattern>YOUR_PACKAGE.lib.folialib</shadedPattern>
+                </relocation>
+            </relocations>
+        </configuration>
+    </plugin>
+</plugins>
 </build>
 ```
 </details>
