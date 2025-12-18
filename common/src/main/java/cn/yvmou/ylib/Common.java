@@ -1,4 +1,4 @@
 package cn.yvmou.ylib;
 
-public class Main {
+public class Common {
 }

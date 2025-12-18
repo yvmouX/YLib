@@ -28,7 +28,7 @@ allprojects {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17
             }
-            // 根项目作为容器，必须能容纳所有子模块，所以设为 21 (或者你环境的最高版本)
+            // 根项目作为容器，必须能容纳所有子模块，所以设为 21
             ":" -> {
                 println("  -> Target: Java 21 (Root project container)")
                 sourceCompatibility = JavaVersion.VERSION_21
