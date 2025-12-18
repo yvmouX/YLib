@@ -152,6 +152,49 @@ public class LoggerServiceImpl implements LoggerService {
         }
 
         String msg = replacePlaceholders(format, args);
-        Bukkit.getLogger().info(getConsolePrefix() + "§8[" + defaultColor + "§l§n" + level + "§8]§r " + defaultColor + msg);
+
+        // 前缀
+        String prefix = getConsolePrefix();
+
+        // 控制台 ANSI （为什么有这个，因为IDEA 不显示日志颜色（（（（（（（（（（）
+        String ansiColor = mapChatColorToAnsi(defaultColor);
+        String ansiOutput = ansiColor + "[" + level + "] " + msg + ANSI_RESET;
+        System.out.println(ansiOutput); // 用 System.out.println 保证 ANSI 输出
+
+        // 2️Bukkit 控制台 ChatColor 输出
+        String bukkitOutput = prefix + "§8[" + defaultColor + "§l§n" + level + "§8]§r " + defaultColor + msg;
+        Bukkit.getConsoleSender().sendMessage(bukkitOutput);
+    }
+
+    // ANSI 颜色码映射
+    private static final String ANSI_RESET = "\u001B[0m";
+    private static final String ANSI_BLACK = "\u001B[30m";
+    private static final String ANSI_RED = "\u001B[31m";
+    private static final String ANSI_GREEN = "\u001B[32m";
+    private static final String ANSI_YELLOW = "\u001B[33m";
+    private static final String ANSI_BLUE = "\u001B[34m";
+    private static final String ANSI_PURPLE = "\u001B[35m";
+    private static final String ANSI_CYAN = "\u001B[36m";
+    private static final String ANSI_WHITE = "\u001B[37m";
+
+    private static String mapChatColorToAnsi(ChatColor color) {
+        switch (color) {
+            case BLACK: return ANSI_BLACK;
+            case DARK_RED: return ANSI_RED;
+            case DARK_GREEN: return ANSI_GREEN;
+            case GOLD: return ANSI_YELLOW;
+            case DARK_BLUE: return ANSI_BLUE;
+            case DARK_PURPLE: return ANSI_PURPLE;
+            case AQUA: return ANSI_CYAN;
+            case WHITE: return ANSI_WHITE;
+            case RED: return ANSI_RED;
+            case GREEN: return ANSI_GREEN;
+            case YELLOW: return ANSI_YELLOW;
+            case BLUE: return ANSI_BLUE;
+            case LIGHT_PURPLE: return ANSI_PURPLE;
+            case DARK_AQUA: return ANSI_CYAN;
+            case GRAY: return ANSI_WHITE;
+            default: return ANSI_RESET;
+        }
     }
 }
