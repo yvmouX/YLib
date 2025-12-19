@@ -88,11 +88,13 @@ public class SimpleCommandManagerImpl implements SimpleCommandManager {
 
         }
 
+        // 加载命令配置文件到内存 (这里提前加载到内容是无误的，因为 initCommandConfigFromAnnotations 方法在写入新的配置后会自动执行 config.save() 方法)
+        commandConfig.loadCommandConfiguration();
+
         // 初始化所有声明的子命令，写入 命令文件
         commandConfig.initCommandConfigFromAnnotations(mainCommandName, defSubCommandClassMap);
 
-        // 加载命令配置文件到内存
-        commandConfig.loadCommandConfiguration();
+
 
         // 重新获取 configSubCommandList，因为 initCommandConfigFromAnnotations 可能会更新配置
         final List<String> configSubCommandList = commandConfig.getSubCommandList(mainCommandName);
