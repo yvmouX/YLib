@@ -22,5 +22,5 @@ public interface SubCommand {
      * @param args 命令参数
      * @return 如果命令执行成功返回true，否则返回false
      */
-    boolean execute(@NotNull CommandSender sender, @NotNull String[] args);
+    boolean execute(CommandSender sender, String[] args);
 }
