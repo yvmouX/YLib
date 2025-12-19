@@ -1,15 +1,13 @@
 package cn.yvmou.ylib.impl.command;
 
-import cn.yvmou.ylib.api.command.CommandConfig;
-import cn.yvmou.ylib.api.command.CommandOptions;
-import cn.yvmou.ylib.api.command.SimpleCommandManager;
-import cn.yvmou.ylib.api.command.SubCommand;
+import cn.yvmou.ylib.api.command.*;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.api.services.LoggerService;
 import cn.yvmou.ylib.api.services.MessageService;
 import cn.yvmou.ylib.api.services.ServerInfoService;
 import cn.yvmou.ylib.impl.command.core.AliasCommand;
 import cn.yvmou.ylib.impl.command.core.MainCommand;
+import cn.yvmou.ylib.impl.command.core.TabComplete;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
@@ -17,6 +15,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -106,18 +105,19 @@ public class SimpleCommandManagerImpl implements SimpleCommandManager {
 
         // 从 命令文件 获取到所有的子命令的列表
         for (String subCommandName : configSubCommandList) {
-            for (SubCommand subCommand : subCommandClass) {
-                // 检查 命令文件下 register 是否为 true，的情况下才进行注册
-                if (commandConfig.isCommandRegister(mainCommandName, subCommandName)) {
+            // 检查 命令文件下 register 是否为 true，的情况下才进行注册
+            if (commandConfig.isCommandRegister(mainCommandName, subCommandName)) {
+                SubCommand subCommand = defSubCommandClassMap.get(subCommandName);
+                if (subCommand != null) {
                     requireRegisterConfigSubCommandClassMap.put(subCommandName, subCommand);
                     logger.debug(
                             String.format("正在准备注册命令: /%s %s", mainCommandName, subCommandName)
                     );
-                } else {
-                    logger.warn(
-                            String.format("正在准备移除命令: /%s %s", mainCommandName, subCommandName)
-                    );
                 }
+            } else {
+                logger.warn(
+                        String.format("正在准备移除命令: /%s %s", mainCommandName, subCommandName)
+                );
             }
         }
 
@@ -167,6 +167,21 @@ public class SimpleCommandManagerImpl implements SimpleCommandManager {
             PluginCommand pluginCommand = commandConstructor.newInstance(commandName, plugin);
 
             pluginCommand.setExecutor(new MainCommand(logger, message, commandName, requireRegisterConfigSubCommandClassMap, serverInfo, commandConfig));
+
+            // 注册 TabCompleter
+            Map<String, CommandComplete.Tab[]> subCommandTabs = new HashMap<>();
+            for (Map.Entry<String, SubCommand> entry : requireRegisterConfigSubCommandClassMap.entrySet()) {
+                try {
+                    Method method = getDeclaredMethod(entry.getValue().getClass(), "execute", CommandSender.class, String[].class);
+                    if (method != null && method.isAnnotationPresent(CommandComplete.class)) {
+                        CommandComplete cc = method.getAnnotation(CommandComplete.class);
+                        subCommandTabs.put(entry.getKey().toLowerCase(), cc.value());
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            List<String> subCommandNames = new ArrayList<>(requireRegisterConfigSubCommandClassMap.keySet());
+            pluginCommand.setTabCompleter(new TabComplete(commandName, subCommandNames, subCommandTabs));
 
             commandMap.register(serverInfo.getPluginName(), pluginCommand);
             logger.debug("Successfully registered MainCommand: " + commandName);
@@ -240,7 +255,22 @@ public class SimpleCommandManagerImpl implements SimpleCommandManager {
                 );
             }
         } catch (Exception e) {
-            logger.warn("Error occurred while registering the AliasCommand: " + e.getMessage());
+            logger.error("Error occurred while registering the AliasCommand: " + e.getMessage());
+        }
+    }
+
+
+
+    private @Nullable Method getDeclaredMethod(@NotNull Class<?> clazz, @NotNull String methodName, @NotNull Class<?>... parameterTypes) {
+        if (parameterTypes == null || parameterTypes.length == 0) {
+            throw new IllegalArgumentException("parameterTypes must not be null or empty");
+        }
+
+        try {
+            return clazz.getDeclaredMethod(methodName, parameterTypes);
+        } catch (NoSuchMethodException e) {
+            logger.error("Error occurred while getting the method: {} in class: {} Detail: {}", methodName, clazz.getName(), e.getMessage());
+            return null;
         }
     }
 

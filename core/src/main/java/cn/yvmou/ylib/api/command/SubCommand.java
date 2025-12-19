@@ -1,7 +1,6 @@
 package cn.yvmou.ylib.api.command;
 
 import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * 子命令接口
