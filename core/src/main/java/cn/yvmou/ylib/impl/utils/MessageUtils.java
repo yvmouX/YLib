@@ -3,8 +3,6 @@ package cn.yvmou.ylib.impl.utils;
 import org.bukkit.ChatColor;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nullable;
-
 public class MessageUtils {
     public static String format(String format, Object... args) {
         return String.format(format, args);
