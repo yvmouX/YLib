@@ -50,13 +50,6 @@ public class SimpleCommandManagerImpl implements SimpleCommandManager {
         final Map<String, SubCommand> requireRegisterConfigSubCommandClassMap = new HashMap<>();
         // 已在 方法中使用 CommandOptions 注解声明的 命令名称和SubCommand 之间的 MAP
         final Map<String, SubCommand> defSubCommandClassMap = new ConcurrentHashMap<>();
-        
-        // 初始化 命令文件
-        try {
-            commandConfig.loadCommandConfiguration();
-        } catch (Exception e) {
-            logger.error("初始化命令文件时发生错误: " + e.getMessage());
-        }
 
         // 获取所有 声明 的子命令
         for (SubCommand sc : subCommandClass) {
@@ -96,32 +89,34 @@ public class SimpleCommandManagerImpl implements SimpleCommandManager {
         }
 
         // 初始化所有声明的子命令，写入 命令文件
-        commandConfig.initCommandConfig(mainCommandName, defSubCommandClassMap);
+        commandConfig.initCommandConfigFromAnnotations(mainCommandName, defSubCommandClassMap);
 
-        // 重新获取 configSubCommandList，因为 initCommandConfig 可能会更新配置
+        // 加载命令配置文件到内存
+        commandConfig.loadCommandConfiguration();
+
+        // 重新获取 configSubCommandList，因为 initCommandConfigFromAnnotations 可能会更新配置
         final List<String> configSubCommandList = commandConfig.getSubCommandList(mainCommandName);
 
-        if (configSubCommandList != null) {
-            // 从 命令文件 获取到所有的子命令的列表
-            for (String subCommandName : configSubCommandList) {
-                for (SubCommand subCommand : subCommandClass) {
-                    // 检查 命令文件下 register 是否为 true，的情况下才进行注册
-                    if (commandConfig.isCommandRegister(mainCommandName, subCommandName)) {
-                        requireRegisterConfigSubCommandClassMap.put(subCommandName, subCommand);
-                        logger.debug(
-                                String.format("正在准备注册命令: /%s %s", mainCommandName, subCommandName)
-                        );
-                    } else {
-                        logger.warn(
-                                String.format("正在准备移除命令: /%s %s", mainCommandName, subCommandName)
-                        );
-                    }
+        if (configSubCommandList == null) {
+            logger.error("命令 {} 没有在 commands.yml 中找到需要创建的子命令", mainCommandName);
+            return;
+        }
+
+        // 从 命令文件 获取到所有的子命令的列表
+        for (String subCommandName : configSubCommandList) {
+            for (SubCommand subCommand : subCommandClass) {
+                // 检查 命令文件下 register 是否为 true，的情况下才进行注册
+                if (commandConfig.isCommandRegister(mainCommandName, subCommandName)) {
+                    requireRegisterConfigSubCommandClassMap.put(subCommandName, subCommand);
+                    logger.debug(
+                            String.format("正在准备注册命令: /%s %s", mainCommandName, subCommandName)
+                    );
+                } else {
+                    logger.warn(
+                            String.format("正在准备移除命令: /%s %s", mainCommandName, subCommandName)
+                    );
                 }
             }
-        } else {
-            logger.warn(
-                    String.format("命令 %s 没有在 commands.yml 中配置子命令列表", mainCommandName)
-            );
         }
 
         // 尝试注册主命令

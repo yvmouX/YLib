@@ -39,7 +39,7 @@ public interface CommandConfig {
      * @param mainCommandName 主命令名称
      * @param subCommandMap 子命令映射，键为子命令名称，值为子命令实例
      */
-    void initCommandConfig(String mainCommandName, Map<String, SubCommand> subCommandMap);
+    void initCommandConfigFromAnnotations(String mainCommandName, Map<String, SubCommand> subCommandMap);
 
     /**
      * 获取配置文件

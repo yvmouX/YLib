@@ -78,7 +78,7 @@ public @interface CommandOptions {
      * 
      * @return 使用方法字符串
      */
-    String usage() default "";
+    String usage() default "AUTO";
     
     /**
      * 命令描述

@@ -30,12 +30,11 @@ public class CommandConfigImpl implements CommandConfig {
         this.logger = logger;
     }
 
+
     @Override
     public void loadCommandConfiguration() {
-        if (configFile != null) {
-            return;
-        }
-        configFile = new File(plugin.getDataFolder(), "commands.yml");
+        ensureConfigFileExists();
+
         if (!configFile.exists()) {
             boolean v = false;
             try {
@@ -53,7 +52,7 @@ public class CommandConfigImpl implements CommandConfig {
     }
 
     @Override
-    public void initCommandConfig(String mainCommandName, Map<String, SubCommand> subCommandMap) {
+    public void initCommandConfigFromAnnotations(String mainCommandName, Map<String, SubCommand> subCommandMap) {
         boolean configChanged = false;
 
         for (SubCommand subCommand : subCommandMap.values()) {
@@ -64,15 +63,35 @@ public class CommandConfigImpl implements CommandConfig {
                 CommandOptions options = executeMethod.getAnnotation(CommandOptions.class);
                 String basePath = "commands." + mainCommandName + "." + options.name();
                 // 检查配置是否存在
-                if (!config.contains(basePath)) {
-                    config.set(basePath + ".permission", options.permission().isEmpty() ? "none" : options.permission());
-                    config.set(basePath + ".onlyPlayer", options.onlyPlayer());
-                    config.set(basePath + ".register", options.register());
-                    config.set(basePath + ".usage", options.usage().isEmpty() ? "none" : options.usage());
-                    config.set(basePath + ".alias", options.alias().length < 1 ? new ArrayList<>() : Arrays.asList(options.alias()));
-
+                if (!config.contains(basePath + ".permission")) {
                     configChanged = true;
-                    logger.info("已为命令 " + mainCommandName + " 的子命令 " + options.name() + " 创建默认配置");
+                    config.set(basePath + ".permission", options.permission().isEmpty() ? "none" : options.permission());
+                    logger.debug("已为命令/{} {} permission 创建配置", mainCommandName, options.name());
+                }
+                if (!config.contains(basePath + ".description")) {
+                    configChanged = true;
+                    config.set(basePath + ".description", options.description().isEmpty() ? "none" : options.description());
+                    logger.debug("已为命令/{} {} description 创建配置", mainCommandName, options.name());
+                }
+                if (!config.contains(basePath + ".usage")) {
+                    configChanged = true;
+                    config.set(basePath + ".usage", options.usage().isEmpty() ? "none" : options.usage());
+                    logger.debug("已为命令/{} {} usage 创建配置", mainCommandName, options.name());
+                }
+                if (!config.contains(basePath + ".onlyPlayer")) {
+                    configChanged = true;
+                    config.set(basePath + ".onlyPlayer", options.onlyPlayer());
+                    logger.debug("已为命令/{} {} onlyPlayer 创建配置", mainCommandName, options.name());
+                }
+                if (!config.contains(basePath + ".register")) {
+                    configChanged = true;
+                    config.set(basePath + ".register", options.register());
+                    logger.debug("已为命令/{} {} register 创建配置", mainCommandName, options.name());
+                }
+                if (!config.contains(basePath + ".alias")) {
+                    configChanged = true;
+                    config.set(basePath + ".alias", options.alias().length < 1 ? new ArrayList<>() : Arrays.asList(options.alias()));
+                    logger.debug("已为命令/{} {} alias 创建配置", mainCommandName, options.name());
                 }
             } catch (NoSuchMethodException e) {
                 throw new IllegalStateException("子命令必须实现 execute(CommandSender, String[]) 方法", e);
@@ -154,5 +173,11 @@ public class CommandConfigImpl implements CommandConfig {
 
     private void checkConfig() {
         loadCommandConfiguration();
+    }
+
+    private void ensureConfigFileExists() {
+        if (configFile != null) return;
+
+        configFile = new File(plugin.getDataFolder(), "commands.yml");
     }
 }
