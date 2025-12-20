@@ -13,7 +13,7 @@ import java.util.List;
  * </p>
  *
  * @author yvmou
- * @since 1.0.0-beta5
+ * @since 1.0.0
  */
 public class ConfigurationValidationResult {
     

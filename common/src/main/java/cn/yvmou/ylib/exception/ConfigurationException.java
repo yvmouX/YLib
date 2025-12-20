@@ -1,7 +1,4 @@
-package cn.yvmou.ylib.api.config;
-
-
-import cn.yvmou.ylib.exception.YLibException;
+package cn.yvmou.ylib.exception;
 
 /**
  * 配置异常
@@ -10,12 +7,9 @@ import cn.yvmou.ylib.exception.YLibException;
  * </p>
  *
  * @author yvmou
- * @since 1.0.0-beta5
+ * @since 1.0.0
  */
 public class ConfigurationException extends YLibException {
-    
-    private static final long serialVersionUID = 1L;
-    
     /** 配置类 */
     private final Class<?> configurationClass;
     /** 配置路径 */
@@ -94,24 +88,6 @@ public class ConfigurationException extends YLibException {
         super(message, cause);
         this.configurationClass = configurationClass;
         this.configPath = configPath;
-    }
-    
-    /**
-     * 获取配置类
-     * 
-     * @return 配置类，如果未指定则返回null
-     */
-    public Class<?> getConfigurationClass() {
-        return configurationClass;
-    }
-    
-    /**
-     * 获取配置路径
-     * 
-     * @return 配置路径，如果未指定则返回null
-     */
-    public String getConfigPath() {
-        return configPath;
     }
     
     @Override

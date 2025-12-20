@@ -29,7 +29,7 @@ import java.lang.annotation.Target;
  * }</pre>
  *
  * @author yvmou
- * @since 1.0.0-beta5
+ * @since 1.0.0
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

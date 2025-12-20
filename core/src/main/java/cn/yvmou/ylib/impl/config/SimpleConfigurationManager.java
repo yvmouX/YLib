@@ -4,6 +4,7 @@ import cn.yvmou.ylib.api.config.*;
 import cn.yvmou.ylib.api.config.ConfigurationValidationResult.ValidationError;
 import cn.yvmou.ylib.api.config.ConfigurationValidationResult.ValidationWarning;
 import cn.yvmou.ylib.api.services.LoggerService;
+import cn.yvmou.ylib.exception.ConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;

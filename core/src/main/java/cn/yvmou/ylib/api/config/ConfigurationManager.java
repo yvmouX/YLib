@@ -1,5 +1,6 @@
 package cn.yvmou.ylib.api.config;
 
+import cn.yvmou.ylib.exception.ConfigurationException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,7 +37,7 @@ import java.util.Map;
  * }</pre>
  *
  * @author yvmou
- * @since 1.0.0-beta5
+ * @since 1.0.0
  */
 public interface ConfigurationManager {
     
