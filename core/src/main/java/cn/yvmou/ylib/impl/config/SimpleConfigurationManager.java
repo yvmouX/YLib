@@ -78,6 +78,20 @@ public class SimpleConfigurationManager implements ConfigurationManager {
             loader.generateDefault(instance, metadata);
         }
         
+        // Validate configuration
+        ConfigurationValidationResult validationResult = validator.validate(instance, metadata);
+        if (!validationResult.isValid()) {
+            for (ValidationError error : validationResult.getErrors()) {
+                logger.error(error.toString());
+            }
+            throw new ConfigurationException(configClass, "Configuration validation failed: " + validationResult.getErrorCount() + " errors found.");
+        }
+        if (validationResult.hasWarnings()) {
+            for (ConfigurationValidationResult.ValidationWarning warning : validationResult.getWarnings()) {
+                logger.warn(warning.toString());
+            }
+        }
+        
         logger.info("Configuration registered: " + configClass.getSimpleName());
         return instance;
     }
@@ -115,6 +129,28 @@ public class SimpleConfigurationManager implements ConfigurationManager {
             
             // Reload configuration values
             loader.load(instance, metadata);
+            
+            // Validate configuration
+            ConfigurationValidationResult validationResult = validator.validate(instance, metadata);
+            if (!validationResult.isValid()) {
+                logger.error("Configuration validation failed during reload for: " + configClass.getSimpleName());
+                for (ValidationError error : validationResult.getErrors()) {
+                    logger.error(error.toString());
+                }
+                
+                // Rollback to old instance
+                if (oldInstance != null) {
+                    logger.warn("Rolling back to previous valid configuration...");
+                    copyConfiguration(oldInstance, instance, metadata);
+                }
+                
+                return false;
+            }
+            if (validationResult.hasWarnings()) {
+                for (ConfigurationValidationResult.ValidationWarning warning : validationResult.getWarnings()) {
+                    logger.warn(warning.toString());
+                }
+            }
             
             // Notify listeners
             notifyConfigurationChanged(configClass, oldInstance, instance);
@@ -227,22 +263,24 @@ public class SimpleConfigurationManager implements ConfigurationManager {
     private Object cloneConfiguration(Object instance, ConfigurationMetadata metadata) {
         try {
             Object clone = instance.getClass().getDeclaredConstructor().newInstance();
-            
-            // Copy field values
-            for (ConfigurationMetadata.FieldMetadata fieldMeta : metadata.fields) {
-                try {
-                    Object value = fieldMeta.field.get(instance);
-                    fieldMeta.field.set(clone, value);
-                } catch (IllegalAccessException e) {
-                    // Should not happen as we set accessible in parser
-                    logger.error("Failed to copy field: " + fieldMeta.configPath, e);
-                }
-            }
-            
+            copyConfiguration(instance, clone, metadata);
             return clone;
         } catch (Exception e) {
             logger.error("Failed to clone configuration instance: " + e.getMessage(), e);
             return null;
+        }
+    }
+
+    private void copyConfiguration(Object source, Object target, ConfigurationMetadata metadata) {
+        // Copy field values
+        for (ConfigurationMetadata.FieldMetadata fieldMeta : metadata.fields) {
+            try {
+                Object value = fieldMeta.field.get(source);
+                fieldMeta.field.set(target, value);
+            } catch (IllegalAccessException e) {
+                // Should not happen as we set accessible in parser
+                logger.error("Failed to copy field: " + fieldMeta.configPath, e);
+            }
         }
     }
     

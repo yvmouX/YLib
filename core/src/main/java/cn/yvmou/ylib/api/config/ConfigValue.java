@@ -8,23 +8,26 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 配置值注解
+ * Configuration value annotation.
  * <p>
- * 标记在字段上，表示这个字段对应配置文件中的一个值。
- * YLib会自动从配置文件中读取值并注入到字段中。
+ *     Mark a field to indicate that it should be populated with a value from the configuration file.
+ *     YLib will automatically read the value from the file and inject it into the field.
  * </p>
+ * <p>
  * 
- * <p>使用示例：</p>
- * <pre>{@code
- * @ConfigValue("database.host")
- * private String databaseHost = "localhost";
- * 
- * @ConfigValue(value = "server.port", required = true)
- * private int serverPort;
- * 
- * @ConfigValue(value = "features.enabled", description = "启用的功能列表")
- * private List<String> enabledFeatures = Arrays.asList("feature1", "feature2");
- * }</pre>
+ * <p>Usage example:</p>
+ * <pre>
+ *     {@code
+ *     @ConfigValue("database.host")
+ *     private String databaseHost = "localhost";
+ *
+ *     @ConfigValue(value = "server.port", required = true)
+ *     private int serverPort;
+ *
+ *     @ConfigValue(value = "features.enabled", description = "Enabled features list")
+ *     private List<String> enabledFeatures = Arrays.asList("feature1", "feature2");
+ *     }
+ * </pre>
  *
  * @author yvmou
  * @since 1.0.0
@@ -34,9 +37,9 @@ import java.lang.annotation.Target;
 public @interface ConfigValue {
 
     /**
-     * 配置路径
+     * Configuration path.
      * <p>
-     * 使用点号分隔的路径，如 "database.host" 对应配置文件中的：
+     *     Use dot-separated path, e.g., "database.host" for:
      * </p>
      *
      * <pre>{@code
@@ -44,46 +47,46 @@ public @interface ConfigValue {
      *   host: localhost
      * }</pre>
      *
-     * @return 配置路径
+     * @return Configuration path.
      */
     @NotNull
     String value();
     
     /**
-     * 配置描述
+     * Configuration description.
      * <p>
-     * 用于生成配置文件时的注释说明。
+     *     Used to generate comments in the configuration file.
      * </p>
      * 
-     * @return 配置描述
+     * @return Configuration description.
      */
     @NotNull
     String description() default "";
     
     /**
-     * 是否必需
+     * Whether the value is required.
      * <p>
-     * 如果为true，当配置文件中缺少这个值时会抛出异常。
-     * 如果为false，将使用字段的默认值。
+     *     If true, an exception will be thrown if the value is missing in the configuration file.
+     *     If false, the field's default value will be used.
      * </p>
      * 
-     * @return 是否必需
+     * @return Whether the value is required.
      */
     boolean required() default false;
     
     /**
-     * 验证表达式
+     * Validation expression.
      * <p>
-     * 简单的验证规则，支持：
-     * - "min:N" - 最小值（数字类型）
-     * - "max:N" - 最大值（数字类型）
-     * - "range:N-M" - 范围（数字类型）
-     * - "length:N" - 长度（字符串类型）
-     * - "regex:pattern" - 正则表达式（字符串类型）
-     * - "enum:A,B,C" - 枚举值（字符串类型）
+     *     Simple validation rules, supported:
+     * - "min:N" - Minimum value (numeric type)
+     * - "max:N" - Maximum value (numeric type) 
+     * - "range:N-M" - Range (numeric type)
+     * - "length:N" - Length (string type)
+     * - "regex:pattern" - Regular expression (string type)
+     * - "enum:A,B,C" - Enum values (string type)
      * </p>
      * 
-     * @return 验证表达式
+     * @return Validation expression.
      */
     @NotNull
     String validation() default "";
