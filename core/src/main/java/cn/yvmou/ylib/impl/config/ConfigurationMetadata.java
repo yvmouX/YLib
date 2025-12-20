@@ -21,7 +21,7 @@ public class ConfigurationMetadata {
     public final String configName;
     public final String configFile;
     public final boolean autoCreate;
-    public final int priority;
+    public final String version;
     public final List<FieldMetadata> fields;
     
     /**
@@ -31,15 +31,15 @@ public class ConfigurationMetadata {
      * @param configName 配置名称
      * @param configFile 配置文件名
      * @param autoCreate 是否自动创建
-     * @param priority 优先级
+     * @param version 版本号
      */
     public ConfigurationMetadata(@NotNull Class<?> configClass, @NotNull String configName, 
-                               @NotNull String configFile, boolean autoCreate, int priority) {
+                               @NotNull String configFile, boolean autoCreate, @NotNull String version) {
         this.configClass = configClass;
         this.configName = configName;
         this.configFile = configFile;
         this.autoCreate = autoCreate;
-        this.priority = priority;
+        this.version = version;
         this.fields = new ArrayList<>();
     }
     
@@ -61,7 +61,6 @@ public class ConfigurationMetadata {
         public final String description;
         public final boolean required;
         public final String validation;
-        public final boolean sensitive;
         
         /**
          * 构造函数
@@ -71,16 +70,14 @@ public class ConfigurationMetadata {
          * @param description 描述
          * @param required 是否必需
          * @param validation 验证规则
-         * @param sensitive 是否敏感
          */
         public FieldMetadata(@NotNull Field field, @NotNull String configPath, @NotNull String description,
-                           boolean required, @NotNull String validation, boolean sensitive) {
+                           boolean required, @NotNull String validation) {
             this.field = field;
             this.configPath = configPath;
             this.description = description;
             this.required = required;
             this.validation = validation;
-            this.sensitive = sensitive;
         }
     }
 }

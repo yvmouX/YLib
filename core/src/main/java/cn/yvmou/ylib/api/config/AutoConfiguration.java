@@ -8,26 +8,31 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 自动配置注解
+ * AutoConfiguration
  * <p>
- * 标记在类上，表示这个类包含自动配置信息。
- * YLib会自动扫描并应用这些配置。
+ *     YLib will automatically apply these configurations.
+ * </p>
+ * <p>
+ *     usage:
+ * </p>
+ * <pre>
+ *     {@code 
+ *     @AutoConfiguration("database")
+ *     public class DatabaseConfig {
+ *         @ConfigValue("database.host")
+ *         private String host = "localhost";
+ *         
+ *         @ConfigValue("database.port")
+ *         private int port = 3306;
+ *         
+ *         // getters and setters...
+ *     }
+ *     }
+ * </pre>
+ * <p>
+ *     In this example, YLib will automatically apply the configurations in DatabaseConfig class.
  * </p>
  * 
- * <p>使用示例：</p>
- * <pre>{@code
- * @AutoConfiguration
- * public class DatabaseConfig {
- *     @ConfigValue("database.host")
- *     private String host = "localhost";
- *     
- *     @ConfigValue("database.port")
- *     private int port = 3306;
- *     
- *     // getters and setters...
- * }
- * }</pre>
- *
  * @author yvmou
  * @since 1.0.0
  */
@@ -43,37 +48,46 @@ public @interface AutoConfiguration {
      * 
      * @return 配置名称
      */
+    /**
+     * Configuration name, used to identify this configuration group.
+     * <p>
+     * If not specified, the class name (without Config suffix) will be used as the configuration name.
+     * </p>
+     * 
+     * @return Configuration name
+     */
     @NotNull
     String value() default "";
     
     /**
-     * 配置文件名称
-     * <p>
-     * 默认使用config.yml，可以指定其他配置文件。
-     * </p>
+     * Configuration file name.
      * 
-     * @return 配置文件名称
+     * @return Configuration file name
      */
     @NotNull
-    String configFile() default "config.yml";
+    String configFile();
     
     /**
-     * 是否自动创建默认配置
+     * Whether to automatically create default configuration file.
      * <p>
-     * 如果为true，当配置文件不存在时，会自动创建包含默认值的配置文件。
+     * If true, when the configuration file does not exist, a default configuration file will be created with default values.
      * </p>
      * 
-     * @return 是否自动创建默认配置
+     * @return Whether to automatically create default configuration file
      */
     boolean autoCreate() default true;
-    
+
     /**
-     * 配置优先级
+     * Configuration version number.
      * <p>
-     * 数值越小优先级越高，用于控制多个配置的加载顺序。
+     * Used for configuration file version control. When the version number in the code is higher than the version number in the configuration file,
+     * an automatic backup and migration process will be triggered.
+     * If not specified, it will be set to NONE.
+     * When the version number is NONE, no automatic backup and migration process will be triggered.
      * </p>
-     * 
-     * @return 优先级
+     *
+     * @return Configuration version number
      */
-    int priority() default 0;
+    @NotNull
+    String version() default "NONE";
 }

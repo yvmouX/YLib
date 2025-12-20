@@ -87,15 +87,4 @@ public @interface ConfigValue {
      */
     @NotNull
     String validation() default "";
-    
-    /**
-     * 是否敏感信息
-     * <p>
-     * 如果为true，在日志中会隐藏这个配置的值（显示为***）。
-     * 适用于密码、API密钥等敏感信息。
-     * </p>
-     * 
-     * @return 是否敏感信息
-     */
-    boolean sensitive() default false;
 }

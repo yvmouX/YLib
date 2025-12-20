@@ -21,17 +21,22 @@ public class SimpleConfigurationManager implements ConfigurationManager {
     private final ConfigurationLoader loader;
     private final ConfigurationValidator validator;
     
-    // 配置实例缓存 Map Class<?> -> ClassInstance
+    // Configuration instance cache 
+    // Map Class<?> -> ClassInstance
     private final Map<Class<?>, Object> configurationInstances = new ConcurrentHashMap<>();
     
-    // 配置元数据缓存 Map Class<?> -> ConfigurationMetadata
+    // Configuration metadata cache 
+    // Map Class<?> -> ConfigurationMetadata
     private final Map<Class<?>, ConfigurationMetadata> configurationMetadata = new ConcurrentHashMap<>();
     
-    // 配置变更监听器
+    // Configuration change listeners 
+    // Map Class<?> -> List<ConfigurationChangeListener<Object>>
     private final Map<Class<?>, List<ConfigurationChangeListener<Object>>> listeners = new ConcurrentHashMap<>();
     
-    // 统计信息
+    // Statistics 
+    // Total reloads count
     private volatile int totalReloads = 0;
+    // Total validations count
     private volatile int totalValidations = 0;
 
     public SimpleConfigurationManager(@NotNull JavaPlugin plugin, @NotNull LoggerService logger) {
@@ -54,16 +59,21 @@ public class SimpleConfigurationManager implements ConfigurationManager {
         
         // Parse configuration metadata
         ConfigurationMetadata metadata = parser.parse(configClass);
-        configurationMetadata.put(configClass, metadata);
+        configurationMetadata.put(configClass, metadata); // configurationMetadata already cached
         
         // Create configuration instance
-        T instance = createConfigurationInstance(configClass);
+        T instance = createConfigurationInstance(configClass); // configurationInstances already cached
         configurationInstances.put(configClass, instance);
         
+        // Check version and migrate if needed
+        loader.checkVersionAndMigrate(instance, metadata);
+
         // Load configuration values
+        // if the config file doesn't exist, this method does nothing
         loader.load(instance, metadata);
         
-        // 如果需要，生成默认配置文件
+        // Generate default config file if autoCreate is enabled
+        // And if the config already exists, this method does nothing
         if (metadata.autoCreate) {
             loader.generateDefault(instance, metadata);
         }
@@ -100,13 +110,13 @@ public class SimpleConfigurationManager implements ConfigurationManager {
                 return false;
             }
             
-            // 创建旧配置的副本（用于变更通知）
-            Object oldInstance = cloneConfiguration(instance);
+            // Create a copy of the old configuration instance (for change notification)
+            Object oldInstance = cloneConfiguration(instance, metadata);
             
-            // 重新加载配置值
+            // Reload configuration values
             loader.load(instance, metadata);
             
-            // 通知监听器
+            // Notify listeners
             notifyConfigurationChanged(configClass, oldInstance, instance);
             
             totalReloads++;
@@ -206,10 +216,6 @@ public class SimpleConfigurationManager implements ConfigurationManager {
        │  私有方法 | Private Method
        └─────────────────────────────────────────────────────────────────┘
      */
-    
-    /**
-     * 创建配置实例
-     */
     private <T> T createConfigurationInstance(Class<T> configClass) throws ConfigurationException {
         try {
             return configClass.getDeclaredConstructor().newInstance();
@@ -218,21 +224,28 @@ public class SimpleConfigurationManager implements ConfigurationManager {
         }
     }
     
-    /**
-     * 克隆配置实例
-     */
-    private Object cloneConfiguration(Object instance) {
-        // 简化实现，实际项目中可能需要深度克隆
+    private Object cloneConfiguration(Object instance, ConfigurationMetadata metadata) {
         try {
-            return instance.getClass().getDeclaredConstructor().newInstance();
+            Object clone = instance.getClass().getDeclaredConstructor().newInstance();
+            
+            // Copy field values
+            for (ConfigurationMetadata.FieldMetadata fieldMeta : metadata.fields) {
+                try {
+                    Object value = fieldMeta.field.get(instance);
+                    fieldMeta.field.set(clone, value);
+                } catch (IllegalAccessException e) {
+                    // Should not happen as we set accessible in parser
+                    logger.error("Failed to copy field: " + fieldMeta.configPath, e);
+                }
+            }
+            
+            return clone;
         } catch (Exception e) {
+            logger.error("Failed to clone configuration instance: " + e.getMessage(), e);
             return null;
         }
     }
     
-    /**
-     * 通知配置变更监听器
-     */
     private void notifyConfigurationChanged(Class<?> configClass, Object oldConfig, Object newConfig) {
         List<ConfigurationChangeListener<Object>> classListeners = listeners.get(configClass);
         if (classListeners != null) {
@@ -240,7 +253,7 @@ public class SimpleConfigurationManager implements ConfigurationManager {
                 try {
                     listener.onConfigurationChanged(oldConfig, newConfig);
                 } catch (Exception e) {
-                    logger.warn("Configuration change listener failed: " + e.getMessage());
+                    logger.error("Configuration change listener failed: " + e.getMessage(), e);
                 }
             }
         }

@@ -23,7 +23,7 @@ public class ConfigurationParser {
     public ConfigurationMetadata parse(@NotNull Class<?> configClass) throws ConfigurationException {
         final ConfigurationMetadata metadata = getConfigurationMetadata(configClass);
 
-        // 解析字段注解
+        // Parse field annotations
         Field[] fields = configClass.getDeclaredFields();
         for (Field field : fields) {
             ConfigValue configValue = field.getAnnotation(ConfigValue.class);
@@ -33,8 +33,7 @@ public class ConfigurationParser {
                     configValue.value(),
                     configValue.description(),
                     configValue.required(),
-                    configValue.validation(),
-                    configValue.sensitive()
+                    configValue.validation()
                 ));
             }
         }
@@ -50,7 +49,7 @@ public class ConfigurationParser {
 
         // Retrieve the configuration name from the annotation; The autoConfig.value() default value is empty if not specified.
         // So if autoConfig.value() is empty, use the class name (without "Config" suffix) as the config name.
-        // eg: PlayerTaskConfig.class -> "playertask"
+        // eg: PlayerConfig.class -> "player"
         //     @AutoConfiguration("custom") -> "custom"
         String configName = autoConfig.value().isEmpty() ?
             configClass.getSimpleName().replace("Config", "").toLowerCase() :
@@ -61,7 +60,7 @@ public class ConfigurationParser {
                 configName,
                 autoConfig.configFile(),
                 autoConfig.autoCreate(),
-                autoConfig.priority()
+                autoConfig.version()
         );
     }
 }
