@@ -88,7 +88,7 @@ public class YLibImpl implements YLib {
 
     @Override
     @NotNull
-    public CommandManager getSimpleCommandManager() {
+    public CommandManager getCommandManager() {
         return commandManager;
     }
 

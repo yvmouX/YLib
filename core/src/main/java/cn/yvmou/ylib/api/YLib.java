@@ -26,7 +26,7 @@ public interface YLib {
      * @return 命令管理器实例
      */
     @NotNull
-    CommandManager getSimpleCommandManager();
+    CommandManager getCommandManager();
 
 
     /**
