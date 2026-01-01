@@ -1,11 +1,12 @@
 package cn.yvmou.ylib.api;
 
-import cn.yvmou.ylib.api.command.SimpleCommandManager;
+import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
-import cn.yvmou.ylib.api.services.LoggerService;
 import cn.yvmou.ylib.api.services.MessageService;
 import cn.yvmou.ylib.api.services.ServerInfoService;
+import cn.yvmou.ylib.enums.LoggerOption;
+import cn.yvmou.ylib.impl.logger.LoggerImpl;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -25,15 +26,8 @@ public interface YLib {
      * @return 命令管理器实例
      */
     @NotNull
-    SimpleCommandManager getSimpleCommandManager();
+    CommandManager getSimpleCommandManager();
 
-    /**
-     * 获取日志服务
-     *
-     * @return 日志服务实例
-     */
-    @NotNull
-    LoggerService getSimpleLogger();
 
     /**
      * 获取消息服务
@@ -88,4 +82,14 @@ public interface YLib {
     @NotNull
     ConfigurationManager getConfigurationManager();
 
+
+    LoggerImpl createLogger();
+
+    LoggerImpl createLogger(@NotNull LoggerOption option);
+
+    LoggerImpl createLogger(@NotNull String prefix);
+
+    LoggerImpl createLogger(@NotNull String prefix, @NotNull LoggerOption option);
+
+    String getConsolePrefix();
 }

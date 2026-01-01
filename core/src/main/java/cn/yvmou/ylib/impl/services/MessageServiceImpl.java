@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.impl.services;
 
-import cn.yvmou.ylib.api.services.LoggerService;
+import cn.yvmou.ylib.api.logger.Logger;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 public class MessageServiceImpl implements cn.yvmou.ylib.api.services.MessageService {
     
     private final Plugin plugin;
-    private final LoggerService logger;
+    private final Logger logger;
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([A-Fa-f0-9]{6})");
     
     /**
@@ -31,7 +31,7 @@ public class MessageServiceImpl implements cn.yvmou.ylib.api.services.MessageSer
      * @param plugin 插件实例
      * @param logger 日志服务
      */
-    public MessageServiceImpl(@NotNull Plugin plugin, @NotNull LoggerService logger) {
+    public MessageServiceImpl(@NotNull Plugin plugin, @NotNull Logger logger) {
         this.plugin = plugin;
         this.logger = logger;
     }

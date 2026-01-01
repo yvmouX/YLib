@@ -38,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
  * @author yvmou
  * @since 1.0.0
  */
-public interface SimpleCommandManager {
+public interface CommandManager {
 
     /**
      * 注册主命令及其子命令

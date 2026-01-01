@@ -1,28 +1,26 @@
-package cn.yvmou.ylib.impl.services;
+package cn.yvmou.ylib.impl.logger;
 
-import cn.yvmou.ylib.api.services.LoggerService;
+import cn.yvmou.ylib.api.logger.Logger;
+import cn.yvmou.ylib.enums.LoggerOption;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.concurrent.CompletableFuture;
+public class LoggerImpl implements Logger {
+    private final String prefix;
+    private final Boolean debug;
+    private final Boolean ansi;
 
-public class LoggerServiceImpl implements LoggerService {
-    private final JavaPlugin plugin;
-
-    public LoggerServiceImpl(@NotNull final JavaPlugin plugin) {
-        this.plugin = plugin;
+    public LoggerImpl(String prefix) {
+        this.prefix = prefix;
+        ansi = false;
+        debug = true;
     }
 
-    @Override
-    @NotNull
-    public String getConsolePrefix() {
-        String prefix = plugin.getDescription().getPrefix();
-        String pluginName = (prefix == null || prefix.isEmpty()) ? "UNKNOWN" : prefix;
-        return "§8[§b§l§n" + pluginName + "§8]§r ";
+    public LoggerImpl(String prefix, LoggerOption option) {
+        this.prefix = prefix;
+        debug = option == LoggerOption.DEBUG;
+        ansi = option == LoggerOption.ANSI;
     }
 
     @Override
@@ -32,6 +30,8 @@ public class LoggerServiceImpl implements LoggerService {
 
     @Override
     public void debug(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args) {
+        if (!debug) return;
+
         log(color, "DEBUG", format, args);
     }
 
@@ -65,63 +65,22 @@ public class LoggerServiceImpl implements LoggerService {
         log(color, "ERROR", format, args);
     }
 
-    @Override
-    public void error(@NotNull String format, @NotNull Throwable throwable, @NotNull Object... args) {
-        error(format + ": " + throwable.getClass().getSimpleName() + "\n" + stackTraceToString(throwable), args);
-    }
-
-    @Override
-    public @NotNull CompletableFuture<Void> debugAsync(@NotNull String format, @NotNull Object... args) {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public @NotNull CompletableFuture<Void> infoAsync(@NotNull String format, @NotNull Object... args) {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public @NotNull CompletableFuture<Void> warnAsync(@NotNull String format, @NotNull Object... args) {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public @NotNull CompletableFuture<Void> errorAsync(@NotNull String format, @NotNull Object... args) {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public void logToFile(@NotNull String level, @NotNull String format, @NotNull Object... args) {
-        // TODO
-    }
-
-    @Override
-    public void setLogLevel(@NotNull LogLevel level) {
-        // TODO
-    }
-
-    @Override
-    public @NotNull LogLevel getLogLevel() {
-        // TODO
-        return null;
-    }
 
     /*
        ┌─────────────────────────────────────────────────────────────────┐
        │  私有方法 | Private Method
        └─────────────────────────────────────────────────────────────────┘
      */
-    private int countPlaceholders(@NotNull String format) {
-        int count = 0, index = 0;
-        while ((index = format.indexOf("{}", index)) != -1) {
-            count++;
-            index += 2;
+    private void log(@NotNull ChatColor defaultColor, @NotNull String level, @NotNull String format, @NotNull Object... args) {
+        String msg = replacePlaceholders(format, args);
+        if (ansi) {
+            String ansiColor = mapChatColorToAnsi(defaultColor);
+            String ansiOutput = ansiColor + "[" + level + "] " + msg + ANSI_RESET;
+            System.out.println(ansiOutput);
+        } else {
+            String bukkitOutput = prefix + "§8[" + defaultColor + "§l§n" + level + "§8]§r " + defaultColor + msg;
+            Bukkit.getConsoleSender().sendMessage(bukkitOutput);
         }
-        return count;
     }
 
     private String replacePlaceholders(@NotNull String format, @NotNull Object... args) {
@@ -134,36 +93,6 @@ public class LoggerServiceImpl implements LoggerService {
             argIndex++;
         }
         return sb.toString();
-    }
-
-    private String stackTraceToString(@NotNull Throwable throwable) {
-        StringWriter sw = new StringWriter();
-        try (PrintWriter pw = new PrintWriter(sw)) {
-            throwable.printStackTrace(pw);
-        }
-        return sw.toString();
-    }
-
-    private void log(@NotNull ChatColor defaultColor, @NotNull String level, @NotNull String format, @NotNull Object... args) {
-        // 参数占位符数量检查
-        int placeholders = countPlaceholders(format);
-        if (args.length < placeholders) {
-            throw new IllegalArgumentException("Expected " + placeholders + " arguments for format string, but got " + args.length);
-        }
-
-        String msg = replacePlaceholders(format, args);
-
-        // 前缀
-        String prefix = getConsolePrefix();
-
-        // 控制台 ANSI （为什么有这个，因为IDEA 不显示日志颜色（（（（（（（（（（）
-        String ansiColor = mapChatColorToAnsi(defaultColor);
-        String ansiOutput = ansiColor + "[" + level + "] " + msg + ANSI_RESET;
-        System.out.println(ansiOutput); // 用 System.out.println 保证 ANSI 输出
-
-        // 2️Bukkit 控制台 ChatColor 输出
-        String bukkitOutput = prefix + "§8[" + defaultColor + "§l§n" + level + "§8]§r " + defaultColor + msg;
-        Bukkit.getConsoleSender().sendMessage(bukkitOutput);
     }
 
     // ANSI 颜色码映射

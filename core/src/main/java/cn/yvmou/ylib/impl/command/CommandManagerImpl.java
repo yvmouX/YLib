@@ -1,8 +1,8 @@
 package cn.yvmou.ylib.impl.command;
 
 import cn.yvmou.ylib.api.command.*;
+import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
-import cn.yvmou.ylib.api.services.LoggerService;
 import cn.yvmou.ylib.api.services.MessageService;
 import cn.yvmou.ylib.api.services.ServerInfoService;
 import cn.yvmou.ylib.impl.command.core.AliasCommand;
@@ -26,15 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class SimpleCommandManagerImpl implements SimpleCommandManager {
+public class CommandManagerImpl implements CommandManager {
     private final JavaPlugin plugin;
     private final UniversalScheduler scheduler;
-    private final LoggerService logger;
+    private final Logger logger;
     private final MessageService message;
     private final ServerInfoService serverInfo;
     private final CommandConfig commandConfig;
 
-    public SimpleCommandManagerImpl(JavaPlugin plugin, UniversalScheduler scheduler, LoggerService logger, MessageService message, ServerInfoService serverInfo, CommandConfig commandConfig) {
+    public CommandManagerImpl(JavaPlugin plugin, UniversalScheduler scheduler, Logger logger, MessageService message, ServerInfoService serverInfo, CommandConfig commandConfig) {
         this.plugin = plugin;
         this.scheduler = scheduler;
         this.logger = logger;

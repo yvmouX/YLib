@@ -2,7 +2,7 @@ package cn.yvmou.ylib.impl.command.core;
 
 import cn.yvmou.ylib.api.command.CommandConfig;
 import cn.yvmou.ylib.api.command.SubCommand;
-import cn.yvmou.ylib.api.services.LoggerService;
+import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.api.services.MessageService;
 import cn.yvmou.ylib.api.services.ServerInfoService;
 import cn.yvmou.ylib.impl.utils.MessageUtils;
@@ -26,12 +26,12 @@ import java.util.Map;
 public class MainCommand implements CommandExecutor {
     private final String mainCommandName;
     private Map<String, SubCommand> requireRegisterConfigSubCommandClassMap = new HashMap<>();
-    private final LoggerService logger;
+    private final Logger logger;
     private final MessageService message;
     private final ServerInfoService serverInfo;
     private final CommandConfig commandConfig;
 
-    public MainCommand(LoggerService logger, MessageService message, String mainCommandName, Map<String, SubCommand> requireRegisterConfigSubCommandClassMap, ServerInfoService serverInfo, CommandConfig commandConfig) {
+    public MainCommand(Logger logger, MessageService message, String mainCommandName, Map<String, SubCommand> requireRegisterConfigSubCommandClassMap, ServerInfoService serverInfo, CommandConfig commandConfig) {
         this.mainCommandName = mainCommandName;
         this.logger = logger;
         this.message = message;

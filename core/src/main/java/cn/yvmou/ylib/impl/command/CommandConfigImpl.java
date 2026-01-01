@@ -3,7 +3,7 @@ package cn.yvmou.ylib.impl.command;
 import cn.yvmou.ylib.api.command.CommandConfig;
 import cn.yvmou.ylib.api.command.CommandOptions;
 import cn.yvmou.ylib.api.command.SubCommand;
-import cn.yvmou.ylib.api.services.LoggerService;
+import cn.yvmou.ylib.api.logger.Logger;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -21,11 +21,11 @@ import java.util.Map;
 
 public class CommandConfigImpl implements CommandConfig {
     private final Plugin plugin;
-    private final LoggerService logger;
+    private final Logger logger;
 
     private File configFile;
     private FileConfiguration config;
-    public CommandConfigImpl(Plugin plugin, LoggerService logger) {
+    public CommandConfigImpl(Plugin plugin, Logger logger) {
         this.plugin = plugin;
         this.logger = logger;
     }

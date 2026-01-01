@@ -50,6 +50,21 @@ public interface ConfigurationManager {
      */
     @NotNull
     <T> T registerConfiguration(@NotNull Class<T> configClass) throws ConfigurationException;
+
+    /**
+     * Register configuration instance.
+     * <p>
+     * Registers a pre-instantiated configuration object. Use this method if your configuration class
+     * does not have a no-args constructor or requires manual initialization.
+     * </p>
+     *
+     * @param <T> The configuration type
+     * @param instance The configuration instance
+     * @return The configuration instance
+     * @throws ConfigurationException If registration fails
+     */
+    @NotNull
+    <T> T registerConfiguration(@NotNull T instance) throws ConfigurationException;
     
     /**
      * Get configuration instance.

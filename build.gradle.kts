@@ -4,11 +4,17 @@ plugins {
     id("com.gradleup.shadow") version "9.3.0"
 }
 
+tasks.shadowJar {
+    archiveClassifier.set("")
+    // 排除签名文件，避免冲突
+    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+}
+
 allprojects {
     apply(plugin = "java-library")
 
     group = "com.github.yvmouX"
-    version = "1.0.0-beta5"
+    version = "1.0.0"
 
     repositories {
         mavenCentral()

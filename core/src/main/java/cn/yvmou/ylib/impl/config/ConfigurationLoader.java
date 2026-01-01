@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.impl.config;
 
-import cn.yvmou.ylib.api.services.LoggerService;
+import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.exception.ConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -19,9 +19,9 @@ import java.lang.reflect.Field;
 public class ConfigurationLoader {
 
     private final JavaPlugin plugin;
-    private final LoggerService logger;
+    private final Logger logger;
 
-    public ConfigurationLoader(@NotNull JavaPlugin plugin, @NotNull LoggerService logger) {
+    public ConfigurationLoader(@NotNull JavaPlugin plugin, @NotNull Logger logger) {
         this.plugin = plugin;
         this.logger = logger;
     }

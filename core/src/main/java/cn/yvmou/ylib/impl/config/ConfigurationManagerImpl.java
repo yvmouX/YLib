@@ -3,7 +3,7 @@ package cn.yvmou.ylib.impl.config;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
 import cn.yvmou.ylib.api.config.ConfigurationValidationResult;
 import cn.yvmou.ylib.api.config.ConfigurationValidationResult.ValidationError;
-import cn.yvmou.ylib.api.services.LoggerService;
+import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.exception.ConfigurationException;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -14,8 +14,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class SimpleConfigurationManager implements ConfigurationManager {
-    private final LoggerService logger;
+public class ConfigurationManagerImpl implements ConfigurationManager {
+    private final Logger logger;
     
     private final ConfigurationParser parser;
     private final ConfigurationLoader loader;
@@ -39,7 +39,7 @@ public class SimpleConfigurationManager implements ConfigurationManager {
     // Total validations count
     private volatile int totalValidations = 0;
 
-    public SimpleConfigurationManager(@NotNull JavaPlugin plugin, @NotNull LoggerService logger) {
+    public ConfigurationManagerImpl(@NotNull JavaPlugin plugin, @NotNull Logger logger) {
         this.logger = logger;
         this.parser = new ConfigurationParser();
         this.loader = new ConfigurationLoader(plugin, logger);
@@ -48,8 +48,17 @@ public class SimpleConfigurationManager implements ConfigurationManager {
     
     @Override
     @NotNull
-    @SuppressWarnings("unchecked")
     public <T> T registerConfiguration(@NotNull Class<T> configClass) throws ConfigurationException {
+        // Create configuration instance
+        T instance = createConfigurationInstance(configClass);
+        return registerConfiguration(instance);
+    }
+
+    @Override
+    @NotNull
+    @SuppressWarnings("unchecked")
+    public <T> T registerConfiguration(@NotNull T instance) throws ConfigurationException {
+        Class<T> configClass = (Class<T>) instance.getClass();
         logger.info("Registering configuration: " + configClass.getName());
         
         // Check if already registered, return existing instance if so
@@ -61,8 +70,7 @@ public class SimpleConfigurationManager implements ConfigurationManager {
         ConfigurationMetadata metadata = parser.parse(configClass);
         configurationMetadata.put(configClass, metadata); // configurationMetadata already cached
         
-        // Create configuration instance
-        T instance = createConfigurationInstance(configClass); // configurationInstances already cached
+        // Cache configuration instance
         configurationInstances.put(configClass, instance);
         
         // Check version and migrate if needed
