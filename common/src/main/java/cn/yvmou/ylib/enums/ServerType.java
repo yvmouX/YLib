@@ -63,4 +63,17 @@ public enum ServerType {
         }
         return UNKNOWN;
     }
+
+    @Override
+    public String toString() {
+        if (this == ServerType.UNKNOWN) {
+            return "Unknown Server Type";
+        } if (this == ServerType.FOLIA) {
+            return "Folia";
+        } else if (this == ServerType.PAPER) {
+            return "Paper";
+        } else {
+            return "Spigot";
+        }
+    }
 }

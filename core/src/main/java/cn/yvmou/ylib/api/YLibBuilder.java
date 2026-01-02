@@ -37,9 +37,9 @@ public class YLibBuilder {
         try {
             Class<?> clazz = Class.forName(implClass);
 
-            Constructor<?> constructor = clazz.getDeclaredConstructor(JavaPlugin.class);
+            Constructor<?> constructor = clazz.getDeclaredConstructor(JavaPlugin.class, ServerType.class);
             constructor.setAccessible(true);
-            Object instance = constructor.newInstance(plugin);
+            Object instance = constructor.newInstance(plugin, serverType);
 
             return (YLib) instance;
         } catch (Exception e) {

@@ -1,20 +1,22 @@
 package cn.yvmou.ylib.impl.logger;
 
+import cn.yvmou.ylib.GlobalOption;
 import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.enums.LoggerOption;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public class LoggerImpl implements Logger {
     private final String prefix;
-    private final Boolean debug;
-    private final Boolean ansi;
+    private Boolean debug;
+    private Boolean ansi;
+    private Player targetPlayer;
 
     public LoggerImpl(String prefix) {
         this.prefix = prefix;
-        ansi = false;
-        debug = true;
     }
 
     public LoggerImpl(String prefix, LoggerOption option) {
@@ -30,7 +32,8 @@ public class LoggerImpl implements Logger {
 
     @Override
     public void debug(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args) {
-        if (!debug) return;
+        boolean isDebugEnabled = (debug != null ? debug : GlobalOption.Logger.DEBUG);
+        if (!isDebugEnabled) return;
 
         log(color, "DEBUG", format, args);
     }
@@ -66,20 +69,45 @@ public class LoggerImpl implements Logger {
     }
 
 
+    @Override
+    public Logger toPlayer(@NotNull Player player) {
+        this.targetPlayer = player;
+        return this;
+    }
+
+    @Override
+    public Logger toPlayer(@NotNull CommandSender sender) {
+        this.targetPlayer = (Player) sender;
+        return this;
+    }
+
+
     /*
        ┌─────────────────────────────────────────────────────────────────┐
        │  私有方法 | Private Method
        └─────────────────────────────────────────────────────────────────┘
      */
     private void log(@NotNull ChatColor defaultColor, @NotNull String level, @NotNull String format, @NotNull Object... args) {
+        message(defaultColor, level, format, args);
+    }
+
+    private void message(@NotNull ChatColor defaultColor, @NotNull String level, @NotNull String format, @NotNull Object... args) {
         String msg = replacePlaceholders(format, args);
-        if (ansi) {
-            String ansiColor = mapChatColorToAnsi(defaultColor);
-            String ansiOutput = ansiColor + "[" + level + "] " + msg + ANSI_RESET;
-            System.out.println(ansiOutput);
+
+        if (targetPlayer != null) {
+            String playerOutput = prefix + "§8[" + defaultColor + "§l§n" + level + "§8]§r " + defaultColor + msg;
+            targetPlayer.sendMessage(playerOutput);
+            targetPlayer = null;
         } else {
-            String bukkitOutput = prefix + "§8[" + defaultColor + "§l§n" + level + "§8]§r " + defaultColor + msg;
-            Bukkit.getConsoleSender().sendMessage(bukkitOutput);
+            boolean isAnsiEnabled = (ansi != null ? ansi : GlobalOption.Logger.ANSI);
+            if (isAnsiEnabled) {
+                String ansiColor = mapChatColorToAnsi(defaultColor);
+                String ansiOutput = ansiColor + "[" + level + "] " + msg + ANSI_RESET;
+                System.out.println(ansiOutput);
+            } else {
+                String bukkitOutput = prefix + "§8[" + defaultColor + "§l§n" + level + "§8]§r " + defaultColor + msg;
+                Bukkit.getConsoleSender().sendMessage(bukkitOutput);
+            }
         }
     }
 

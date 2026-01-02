@@ -1,10 +1,9 @@
 package cn.yvmou.ylib.impl.command;
 
+import cn.yvmou.ylib.PluginInfo;
 import cn.yvmou.ylib.api.command.*;
 import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
-import cn.yvmou.ylib.api.services.MessageService;
-import cn.yvmou.ylib.api.services.ServerInfoService;
 import cn.yvmou.ylib.impl.command.core.AliasCommand;
 import cn.yvmou.ylib.impl.command.core.MainCommand;
 import cn.yvmou.ylib.impl.command.core.TabComplete;
@@ -30,16 +29,12 @@ public class CommandManagerImpl implements CommandManager {
     private final JavaPlugin plugin;
     private final UniversalScheduler scheduler;
     private final Logger logger;
-    private final MessageService message;
-    private final ServerInfoService serverInfo;
     private final CommandConfig commandConfig;
 
-    public CommandManagerImpl(JavaPlugin plugin, UniversalScheduler scheduler, Logger logger, MessageService message, ServerInfoService serverInfo, CommandConfig commandConfig) {
+    public CommandManagerImpl(JavaPlugin plugin, UniversalScheduler scheduler, Logger logger, CommandConfig commandConfig) {
         this.plugin = plugin;
         this.scheduler = scheduler;
         this.logger = logger;
-        this.message = message;
-        this.serverInfo = serverInfo;
         this.commandConfig = commandConfig;
     }
 
@@ -166,7 +161,7 @@ public class CommandManagerImpl implements CommandManager {
             commandConstructor.setAccessible(true);
             PluginCommand pluginCommand = commandConstructor.newInstance(commandName, plugin);
 
-            pluginCommand.setExecutor(new MainCommand(logger, message, commandName, requireRegisterConfigSubCommandClassMap, serverInfo, commandConfig));
+            pluginCommand.setExecutor(new MainCommand(logger, commandName, requireRegisterConfigSubCommandClassMap, commandConfig));
 
             // 注册 TabCompleter
             Map<String, CommandComplete.Tab[]> subCommandTabs = new HashMap<>();
@@ -183,7 +178,7 @@ public class CommandManagerImpl implements CommandManager {
             List<String> subCommandNames = new ArrayList<>(requireRegisterConfigSubCommandClassMap.keySet());
             pluginCommand.setTabCompleter(new TabComplete(commandName, subCommandNames, subCommandTabs));
 
-            commandMap.register(serverInfo.getPluginName(), pluginCommand);
+            commandMap.register(PluginInfo.getPluginName(), pluginCommand);
             logger.debug("Successfully registered MainCommand: " + commandName);
         } catch (Exception e) {
             logger.error("Error occurred while registering the MainCommand: " + commandName + " " + e.getMessage());
@@ -243,7 +238,7 @@ public class CommandManagerImpl implements CommandManager {
             List<String> willInfo = new ArrayList<>();
             String willSubCommandInfo = null;
             for (Map.Entry<PluginCommand, String> entry : commandsToRegister.entrySet()) {
-                commandMap.register(serverInfo.getPluginPrefix(), entry.getKey());
+                commandMap.register(PluginInfo.getPluginPrefix(), entry.getKey());
                 willInfo.add(entry.getKey().getName());
                 willSubCommandInfo = entry.getValue();
                 logger.debug("已注册命令别名：/" + entry.getKey().getName() + " -> /" + mainCommandName + " " + entry.getValue());

@@ -3,8 +3,6 @@ package cn.yvmou.ylib.api;
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
-import cn.yvmou.ylib.api.services.MessageService;
-import cn.yvmou.ylib.api.services.ServerInfoService;
 import cn.yvmou.ylib.enums.LoggerOption;
 import cn.yvmou.ylib.impl.logger.LoggerImpl;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -14,28 +12,12 @@ public interface YLib {
     @NotNull
     UniversalScheduler getScheduler();
     /**
-     * 获取服务器信息服务
-     *
-     * @return 服务器信息服务实例
-     */
-    @NotNull ServerInfoService getServerInfo();
-
-    /**
      * 获取命令管理器
      *
      * @return 命令管理器实例
      */
     @NotNull
     CommandManager getCommandManager();
-
-
-    /**
-     * 获取消息服务
-     *
-     * @return 消息服务实例
-     */
-    @NotNull
-    MessageService getMessages();
 
     /**
      * 获取插件实例
@@ -91,5 +73,9 @@ public interface YLib {
 
     LoggerImpl createLogger(@NotNull String prefix, @NotNull LoggerOption option);
 
-    String getConsolePrefix();
+    String getPluginName();
+
+    String getPluginPrefix();
+
+    String getPluginVersion();
 }

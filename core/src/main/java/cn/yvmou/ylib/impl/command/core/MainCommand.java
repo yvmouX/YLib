@@ -1,10 +1,9 @@
 package cn.yvmou.ylib.impl.command.core;
 
+import cn.yvmou.ylib.PluginInfo;
 import cn.yvmou.ylib.api.command.CommandConfig;
 import cn.yvmou.ylib.api.command.SubCommand;
 import cn.yvmou.ylib.api.logger.Logger;
-import cn.yvmou.ylib.api.services.MessageService;
-import cn.yvmou.ylib.api.services.ServerInfoService;
 import cn.yvmou.ylib.impl.utils.MessageUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -27,16 +26,12 @@ public class MainCommand implements CommandExecutor {
     private final String mainCommandName;
     private Map<String, SubCommand> requireRegisterConfigSubCommandClassMap = new HashMap<>();
     private final Logger logger;
-    private final MessageService message;
-    private final ServerInfoService serverInfo;
     private final CommandConfig commandConfig;
 
-    public MainCommand(Logger logger, MessageService message, String mainCommandName, Map<String, SubCommand> requireRegisterConfigSubCommandClassMap, ServerInfoService serverInfo, CommandConfig commandConfig) {
+    public MainCommand(Logger logger, String mainCommandName, Map<String, SubCommand> requireRegisterConfigSubCommandClassMap, CommandConfig commandConfig) {
         this.mainCommandName = mainCommandName;
         this.logger = logger;
-        this.message = message;
         this.requireRegisterConfigSubCommandClassMap = requireRegisterConfigSubCommandClassMap;
-        this.serverInfo = serverInfo;
         this.commandConfig = commandConfig;
     }
 
@@ -44,7 +39,7 @@ public class MainCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         // 如果没有参数，显示版本信息。
         if (args.length == 0) {
-            sender.sendMessage(MessageUtils.oldColorWithPrefix(serverInfo.getPluginPrefix(), "version " + serverInfo.getPluginVersion()));
+            sender.sendMessage(MessageUtils.oldColorWithPrefix(PluginInfo.getPluginPrefix(), "version " + PluginInfo.getPluginVersion()));
             return true;
         }
 
@@ -53,26 +48,26 @@ public class MainCommand implements CommandExecutor {
 
         // 如果子命令不存在 显示可用命令列表
         if (subCommand == null) {
-            message.sendMessage(sender, "&cUnknown subcommand '" + subCommandName + "'");
-            message.sendMessage(sender, "&cAvailable subCommands：");
+            logger.toPlayer(sender).info("&cUnknown subcommand '" + subCommandName + "'");
+            logger.toPlayer(sender).info("&cAvailable subCommands：");
             if (requireRegisterConfigSubCommandClassMap.isEmpty()) {
-                message.sendMessage(sender, "&cNo subcommand found");
+                logger.toPlayer(sender).info("&cNo subcommand found");
             } else {
-                message.sendMessage(sender, requireRegisterConfigSubCommandClassMap.keySet().toString());
+                logger.toPlayer(sender).info(requireRegisterConfigSubCommandClassMap.keySet().toString());
             }
             return true;
         }
 
         // 检查是否只允许玩家执行
         if (commandConfig.isPlayerOnly(mainCommandName, subCommandName) && !(sender instanceof org.bukkit.entity.Player)) {
-            message.sendMessage(sender, "&c" + subCommandName + " command can only be executed by player");
+            logger.toPlayer(sender).warn("&c" + subCommandName + " command can only be executed by player");
             return true;
         }
 
         // 检查权限
         String permission = commandConfig.getCommandPermission(mainCommandName, subCommandName);
         if (!permission.isEmpty() && !sender.hasPermission(permission)) {
-            message.sendMessage(sender, "&c" + mainCommandName + " You do not have permission to use this command");
+            logger.toPlayer(sender).warn("&c" + subCommandName + " command permission denied");
             return true;
         }
 

@@ -5,16 +5,13 @@ import cn.yvmou.ylib.api.command.CommandConfig;
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
-import cn.yvmou.ylib.api.services.MessageService;
-import cn.yvmou.ylib.api.services.ServerInfoService;
 import cn.yvmou.ylib.enums.LoggerOption;
+import cn.yvmou.ylib.enums.ServerType;
 import cn.yvmou.ylib.exception.YLibException;
 import cn.yvmou.ylib.impl.command.CommandConfigImpl;
 import cn.yvmou.ylib.impl.command.CommandManagerImpl;
 import cn.yvmou.ylib.impl.config.ConfigurationManagerImpl;
 import cn.yvmou.ylib.impl.logger.LoggerImpl;
-import cn.yvmou.ylib.impl.services.MessageServiceImpl;
-import cn.yvmou.ylib.impl.services.ServerInfoServiceImpl;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -23,17 +20,16 @@ import org.jetbrains.annotations.NotNull;
 public class YLibImpl implements YLib {
     // Plugin instance
     private final JavaPlugin plugin;
-    // 服务实例
+    private final ServerType serverType;
     // Server instance
-    private ServerInfoService serverInfo;
     private CommandConfig commandConfig;
-    private MessageService messageService;
     private UniversalScheduler universalScheduler;
     private CommandManager commandManager;
     private ConfigurationManager configurationManager;
 
-    public YLibImpl(@NotNull JavaPlugin plugin) throws YLibException {
+    public YLibImpl(@NotNull JavaPlugin plugin, ServerType serverType) throws YLibException {
         this.plugin = plugin;
+        this.serverType = serverType;
 
         // 初始化核心服务
         initializeServices();
@@ -41,16 +37,16 @@ public class YLibImpl implements YLib {
 
     protected void initializeServices() throws YLibException {
         try {
-            // 初始化服务器信息服务
-            this.serverInfo = new ServerInfoServiceImpl(plugin);
-            // 初始化消息服务
-            this.messageService = new MessageServiceImpl(plugin, createLogger());
+            // Plugin Info
+            PluginInfo.pluginName = plugin.getName();
+            PluginInfo.pluginPrefix = "§8[§b§l§n" + plugin.getDescription().getPrefix() + "§8]§r ";
+            PluginInfo.pluginVersion = plugin.getDescription().getVersion();
             // 初始化配置管理器
             this.configurationManager = new ConfigurationManagerImpl(plugin, createLogger());
             // 初始化命令配置管理器
             this.commandConfig = new CommandConfigImpl(plugin, createLogger());
             // 初始化命令管理器
-            this.commandManager = new CommandManagerImpl(plugin, getScheduler(), createLogger(), messageService, serverInfo, commandConfig);
+            this.commandManager = new CommandManagerImpl(plugin, getScheduler(), createLogger(), commandConfig);
         } catch (Exception e) {
             throw new YLibException("核心服务初始化失败", e);
         }
@@ -62,21 +58,23 @@ public class YLibImpl implements YLib {
     public UniversalScheduler getScheduler() {
         if (universalScheduler == null) {
             try {
-                if (getServerInfo().isFolia()) {
+                if (serverType == ServerType.FOLIA) {
                     Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.scheduler.FoliaScheduler");
                     universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
                             .newInstance(plugin);
-                } else if (getServerInfo().isPaper()) {
+                } else if (serverType == ServerType.PAPER) {
                     Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.scheduler.PaperScheduler");
                     universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
                             .newInstance(plugin);
-                } else {
+                } else if (serverType == ServerType.SPIGOT) {
                     Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.scheduler.SpigotScheduler");
                     universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
                             .newInstance(plugin);
+                } else {
+                    throw new YLibException("Unsupported server type: " + serverType);
                 }
             } catch (Exception e) {
-                throw new YLibException("无法创建调度器", e);
+                throw new YLibException("Failed to get scheduler", e);
             }
         }
         return universalScheduler;
@@ -84,19 +82,10 @@ public class YLibImpl implements YLib {
 
     @Override
     @NotNull
-    public ServerInfoService getServerInfo() { return serverInfo; }
-
-    @Override
-    @NotNull
     public CommandManager getCommandManager() {
         return commandManager;
     }
 
-    @Override
-    @NotNull
-    public MessageService getMessages() {
-        return messageService;
-    }
 
     @Override
     @NotNull
@@ -113,12 +102,12 @@ public class YLibImpl implements YLib {
     // ========= 日志服务 ==========
     @Override
     public LoggerImpl createLogger() {
-        return new LoggerImpl(getConsolePrefix());
+        return new LoggerImpl(PluginInfo.getPluginPrefix());
     }
 
     @Override
     public LoggerImpl createLogger(@NotNull LoggerOption option) {
-        return new LoggerImpl(getConsolePrefix(), option);
+        return new LoggerImpl(PluginInfo.getPluginPrefix(), option);
     }
 
     @Override
@@ -131,10 +120,19 @@ public class YLibImpl implements YLib {
         return new LoggerImpl(prefix, option);
     }
 
+    // ========= 插件信息 ==========
     @Override
-    public String getConsolePrefix() {
-        String prefix = plugin.getDescription().getPrefix();
-        String pluginName = (prefix == null ? "UNKNOW" : prefix);
-        return "§8[§b§l§n" + pluginName + "§8]§r ";
+    public String getPluginName() {
+        return PluginInfo.getPluginName();
+    }
+
+    @Override
+    public String getPluginPrefix() {
+        return PluginInfo.getPluginPrefix();
+    }
+
+    @Override
+    public String getPluginVersion() {
+        return PluginInfo.getPluginVersion();
     }
 }

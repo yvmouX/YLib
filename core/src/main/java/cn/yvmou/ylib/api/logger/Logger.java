@@ -1,6 +1,8 @@
 package cn.yvmou.ylib.api.logger;
 
 import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public interface Logger {
@@ -19,4 +21,8 @@ public interface Logger {
     void error(@NotNull String format, @NotNull Object... args);
 
     void error(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args);
+
+    Logger toPlayer(@NotNull Player player);
+
+    Logger toPlayer(@NotNull CommandSender sender);
 }
