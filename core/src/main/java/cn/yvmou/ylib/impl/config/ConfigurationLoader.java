@@ -17,7 +17,6 @@ import java.lang.reflect.Field;
  * Responsible for loading, saving, and generating configuration files.
  */
 public class ConfigurationLoader {
-
     private final JavaPlugin plugin;
     private final Logger logger;
 
@@ -129,7 +128,13 @@ public class ConfigurationLoader {
                     fieldMeta.field.setAccessible(true);
                     Object defaultValue = fieldMeta.field.get(instance);
                     
-                    config.set(fieldMeta.configPath, defaultValue);
+                    // For enum types, convert to string to avoid YAML type tags
+                    Object valueToSet = defaultValue;
+                    if (defaultValue != null && defaultValue.getClass().isEnum()) {
+                        valueToSet = defaultValue.toString();
+                    }
+                    
+                    config.set(fieldMeta.configPath, valueToSet);
                     
                     // Add comment (if description exists)
                     if (!fieldMeta.description.isEmpty()) {
