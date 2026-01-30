@@ -1,4 +1,4 @@
-package cn.yvmou.ylib.schelduler;
+package cn.yvmou.ylib.scheduler;
 
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.api.scheduler.UniversalTask;
