@@ -1,5 +1,6 @@
 package cn.yvmou.ylib.api;
 
+import cn.yvmou.ylib.YLib;
 import cn.yvmou.ylib.enums.ServerType;
 import cn.yvmou.ylib.exception.YLibException;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -33,7 +34,7 @@ public class YLibBuilder {
             throw new YLibException("YLib cannot detect your server type.");
         }
 
-        String implClass = "cn.yvmou.ylib.YLibImpl";
+        String implClass = "cn.yvmou.ylib.YLib";
         try {
             Class<?> clazz = Class.forName(implClass);
 

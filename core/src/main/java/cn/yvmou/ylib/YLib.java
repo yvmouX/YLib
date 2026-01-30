@@ -1,6 +1,5 @@
 package cn.yvmou.ylib;
 
-import cn.yvmou.ylib.api.YLib;
 import cn.yvmou.ylib.api.command.CommandConfig;
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
@@ -17,7 +16,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings({"unused", "SpellCheckingInspection"})
-public class YLibImpl implements YLib {
+public class YLib {
+
+    public static YLib instance;
     // Plugin instance
     private final JavaPlugin plugin;
     private final ServerType serverType;
@@ -27,10 +28,11 @@ public class YLibImpl implements YLib {
     private CommandManager commandManager;
     private ConfigurationManager configurationManager;
 
-    public YLibImpl(@NotNull JavaPlugin plugin, ServerType serverType) throws YLibException {
+    public YLib(@NotNull JavaPlugin plugin, ServerType serverType) throws YLibException {
         this.plugin = plugin;
         this.serverType = serverType;
 
+        instance = this;
         // 初始化核心服务
         initializeServices();
     }
@@ -53,7 +55,6 @@ public class YLibImpl implements YLib {
     }
 
     // ========== 实现方法 ==========
-    @Override
     @NotNull
     public UniversalScheduler getScheduler() {
         if (universalScheduler == null) {
@@ -80,58 +81,82 @@ public class YLibImpl implements YLib {
         return universalScheduler;
     }
 
-    @Override
     @NotNull
     public CommandManager getCommandManager() {
         return commandManager;
     }
 
 
-    @Override
     @NotNull
     public JavaPlugin getPlugin() {
         return plugin;
     }
 
-    @Override
+    /**
+     * 获取配置管理器
+     * <p>
+     * 配置管理器提供基于注解的自动配置功能，支持约定优于配置的理念。
+     * 让配置管理变得更加简单和智能。
+     * </p>
+     *
+     * <p>主要功能：</p>
+     * <ul>
+     *   <li>自动扫描和加载配置类</li>
+     *   <li>自动生成默认配置文件</li>
+     *   <li>配置值验证和类型转换</li>
+     *   <li>配置热重载</li>
+     *   <li>配置变更监听</li>
+     * </ul>
+     *
+     * <p>使用示例：</p>
+     * <pre>{@code
+     * // 注册配置类
+     * DatabaseConfig dbConfig = ylib.getConfigurationManager().registerConfiguration(DatabaseConfig.class);
+     *
+     * // 使用配置
+     * String host = dbConfig.getHost();
+     * int port = dbConfig.getPort();
+     *
+     * // 监听配置变更
+     * ylib.getConfigurationManager().addConfigurationListener(DatabaseConfig.class, (oldConfig, newConfig) -> {
+     *     // 重新连接数据库
+     *     reconnectDatabase(newConfig);
+     * });
+     * }</pre>
+     *
+     * @return 配置管理器实例
+     */
     @NotNull
     public ConfigurationManager getConfigurationManager() {
         return configurationManager;
     }
 
     // ========= 日志服务 ==========
-    @Override
     public LoggerImpl createLogger() {
         return new LoggerImpl(PluginInfo.getPluginPrefix());
     }
 
-    @Override
     public LoggerImpl createLogger(@NotNull LoggerOption option) {
         return new LoggerImpl(PluginInfo.getPluginPrefix(), option);
     }
 
-    @Override
     public LoggerImpl createLogger(@NotNull String prefix) {
         return new LoggerImpl(prefix);
     }
 
-    @Override
     public LoggerImpl createLogger(@NotNull String prefix, @NotNull LoggerOption option) {
         return new LoggerImpl(prefix, option);
     }
 
     // ========= 插件信息 ==========
-    @Override
     public String getPluginName() {
         return PluginInfo.getPluginName();
     }
 
-    @Override
     public String getPluginPrefix() {
         return PluginInfo.getPluginPrefix();
     }
 
-    @Override
     public String getPluginVersion() {
         return PluginInfo.getPluginVersion();
     }
