@@ -1,9 +1,7 @@
 package cn.yvmou.ylib.api.scheduler;
 
 import cn.yvmou.ylib.YLib;
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 public class UniversalRunnable implements Runnable {
@@ -21,67 +19,73 @@ public class UniversalRunnable implements Runnable {
     @NotNull
     public synchronized UniversalTask runTask(@NotNull Plugin plugin) throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runTask(plugin, this));
+        return setupTask(getScheduler().runTask(plugin, this));
     }
+
     @NotNull
     public synchronized UniversalTask runTask() throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runTask(this));
+        return setupTask(getScheduler().runTask(this));
     }
 
     @NotNull
     public synchronized UniversalTask runAsync(@NotNull Plugin plugin) throws IllegalArgumentException, IllegalStateException  {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runAsync(plugin, this));
+        return setupTask(getScheduler().runAsync(plugin, this));
     }
+
     @NotNull
     public synchronized UniversalTask runAsync() throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runAsync(this));
+        return setupTask(getScheduler().runAsync(this));
     }
 
     @NotNull
     public synchronized UniversalTask runLater(@NotNull Plugin plugin, long delay) throws IllegalArgumentException, IllegalStateException  {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runLater(plugin, this, delay));
+        return setupTask(getScheduler().runLater(plugin, this, delay));
     }
+
     @NotNull
     public synchronized UniversalTask runLater(long delay) throws IllegalArgumentException, IllegalStateException  {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runLater(this, delay));
+        return setupTask(getScheduler().runLater(this, delay));
     }
 
     @NotNull
     public synchronized UniversalTask runLaterAsync(@NotNull Plugin plugin, long delay) throws IllegalArgumentException, IllegalStateException  {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runLaterAsync(plugin, this, delay));
+        return setupTask(getScheduler().runLaterAsync(plugin, this, delay));
     }
+
     @NotNull
     public synchronized UniversalTask runLaterAsync(long delay) throws IllegalArgumentException, IllegalStateException  {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runLaterAsync(this, delay));
+        return setupTask(getScheduler().runLaterAsync(this, delay));
     }
 
     @NotNull
     public synchronized UniversalTask runTimer(@NotNull Plugin plugin, long delay, long period) throws IllegalArgumentException, IllegalStateException  {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runTimer(plugin, this, delay, period));
+        return setupTask(getScheduler().runTimer(plugin, this, delay, period));
     }
+
     @NotNull
     public synchronized UniversalTask runTimer(long delay, long period) throws IllegalArgumentException, IllegalStateException  {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runTimer(this, delay, period));
+        return setupTask(getScheduler().runTimer(this, delay, period));
     }
 
     @NotNull
     public synchronized UniversalTask runTimerAsync(@NotNull Plugin plugin, long delay, long period) throws IllegalArgumentException, IllegalStateException  {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runTimerAsync(plugin, this, delay, period));
+        return setupTask(getScheduler().runTimerAsync(plugin, this, delay, period));
     }
+
     @NotNull
     public synchronized  UniversalTask runTimerAsync(long delay, long period) throws IllegalArgumentException, IllegalStateException  {
         checkNotYetScheduled();
-        return setupTask(YLib.instance.getScheduler().runTimerAsync(this, delay, period));
+        return setupTask(getScheduler().runTimerAsync(this, delay, period));
     }
 
     @Override
@@ -89,10 +93,13 @@ public class UniversalRunnable implements Runnable {
 
     }
 
-//    public synchronized int getTask() throws IllegalStateException {
-//        checkScheduled();
-//        return task.getTaskId();
-//    }
+    private UniversalScheduler getScheduler() {
+        UniversalScheduler scheduler = YLib._getGlobalScheduler();
+        if (scheduler == null) {
+            throw new IllegalStateException("YLib has not been initialized yet!");
+        }
+        return scheduler;
+    }
 
     private void checkScheduled() {
         if (task == null) {

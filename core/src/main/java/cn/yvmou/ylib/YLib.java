@@ -31,6 +31,9 @@ public class YLib {
     private static final String PAPER_SCHEDULER_CLASS = "cn.yvmou.ylib.scheduler.PaperScheduler";
     private static final String SPIGOT_SCHEDULER_CLASS = "cn.yvmou.ylib.scheduler.SpigotScheduler";
 
+    // Static Scheduler for UniversalRunnable
+    private static UniversalScheduler globalScheduler;
+
     public YLib(@NotNull JavaPlugin plugin) throws YLibException {
         this(plugin, ServerType.detectServerType());
     }
@@ -55,9 +58,20 @@ public class YLib {
             this.commandConfig = new CommandConfigImpl(plugin, createLogger());
             // 初始化命令管理器
             this.commandManager = new CommandManagerImpl(plugin, getScheduler(), createLogger(), commandConfig);
+            
+            // Set global scheduler for UniversalRunnable
+            globalScheduler = getScheduler();
         } catch (Exception e) {
             throw new YLibException("核心服务初始化失败", e);
         }
+    }
+
+    /**
+     * Internal method for UniversalRunnable to access the scheduler.
+     * @return UniversalScheduler instance or null if not initialized
+     */
+    public static UniversalScheduler _getGlobalScheduler() {
+        return globalScheduler;
     }
 
     // ========== 实现方法 ==========
