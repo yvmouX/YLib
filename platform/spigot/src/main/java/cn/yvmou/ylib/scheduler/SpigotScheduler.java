@@ -185,7 +185,7 @@ public class SpigotScheduler implements UniversalScheduler {
 
     @Override
     public void teleportAsync(Entity entity, Location location) {
-        scheduler.runTaskAsynchronously(plugin, () -> entity.teleport(location));
+        runTask(() -> entity.teleport(location));
     }
 
     private long checkDelay(long delay) {

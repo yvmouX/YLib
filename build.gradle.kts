@@ -14,7 +14,7 @@ allprojects {
     apply(plugin = "java-library")
 
     group = "com.github.yvmouX"
-    version = "1.0.0-alpha.1"
+    version = "1.0.0-alpha.2"
 
     repositories {
         mavenCentral()

@@ -191,7 +191,7 @@ public class FoliaScheduler implements UniversalScheduler {
 
     @Override
     public void teleportAsync(Entity entity, Location location) {
-        asyncScheduler.runNow(plugin, task -> entity.teleport(location));
+        entity.teleportAsync(location);
     }
 
     private long checkDelay(long delay) {

@@ -183,7 +183,7 @@ public class PaperScheduler implements UniversalScheduler {
 
     @Override
     public void teleportAsync(Entity entity, Location location) {
-        scheduler.runTaskAsynchronously(plugin, () -> entity.teleport(location));
+        entity.teleportAsync(location);
     }
 
     private long checkDelay(long delay) {
