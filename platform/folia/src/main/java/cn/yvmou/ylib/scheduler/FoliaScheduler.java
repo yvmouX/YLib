@@ -194,7 +194,7 @@ public class FoliaScheduler implements UniversalScheduler {
         entity.teleportAsync(location);
     }
 
-    private long checkDelay(long delay) {
+    private static long checkDelay(long delay) {
         if (delay <= 0) {
             return 1;
         }

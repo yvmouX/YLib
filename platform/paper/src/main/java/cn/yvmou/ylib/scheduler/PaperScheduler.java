@@ -187,8 +187,8 @@ public class PaperScheduler implements UniversalScheduler {
     }
 
     private long checkDelay(long delay) {
-        if (delay <= 0) {
-            return 1;
+        if (delay < 0) {
+            return 0;
         }
         return delay;
     }

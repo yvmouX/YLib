@@ -120,6 +120,7 @@ public class CommandManagerImpl implements CommandManager {
             registerMainCommands(mainCommandName, requireRegisterConfigSubCommandClassMap);
         } catch (Exception e) {
             logger.error("注册命令时发生错误: " + e.getMessage());
+            e.printStackTrace();
         }
 
         // 注册别名命令
@@ -129,10 +130,12 @@ public class CommandManagerImpl implements CommandManager {
                     registerAliasCommands(mainCommandName, configSubCommandList);
                 } catch (Exception e) {
                     logger.error("注册别名命令时发生错误: " + e.getMessage());
+                    e.printStackTrace();
                 }
             });
         } catch (Exception e) {
             logger.error("调度别名命令注册任务时发生错误: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -178,6 +181,7 @@ public class CommandManagerImpl implements CommandManager {
             logger.debug("Successfully registered MainCommand: " + commandName);
         } catch (Exception e) {
             logger.error("Error occurred while registering the MainCommand: " + commandName + " " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -243,6 +247,7 @@ public class CommandManagerImpl implements CommandManager {
             }
         } catch (Exception e) {
             logger.error("Error occurred while registering the AliasCommand: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -257,6 +262,7 @@ public class CommandManagerImpl implements CommandManager {
             return clazz.getDeclaredMethod(methodName, parameterTypes);
         } catch (NoSuchMethodException e) {
             logger.error("Error occurred while getting the method: {} in class: {} Detail: {}", methodName, clazz.getName(), e.getMessage());
+            // No stack trace needed here as this is often expected
             return null;
         }
     }
@@ -268,6 +274,7 @@ public class CommandManagerImpl implements CommandManager {
             return (CommandMap) commandMapField.get(Bukkit.getPluginManager());
         } catch (Exception ex) {
             logger.error("Error occurred while registering the CommandMap, please report this issue: " + ex.getMessage());
+            ex.printStackTrace();
             return null;
         }
     }
