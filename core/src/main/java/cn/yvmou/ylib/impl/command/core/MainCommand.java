@@ -48,26 +48,26 @@ public class MainCommand implements CommandExecutor {
 
         // 如果子命令不存在 显示可用命令列表
         if (subCommand == null) {
-            logger.toPlayer(sender).info("&cUnknown subcommand '" + subCommandName + "'");
-            logger.toPlayer(sender).info("&cAvailable subCommands：");
+            logger.to(sender).info("&cUnknown subcommand '" + subCommandName + "'");
+            logger.to(sender).info("&cAvailable subCommands：");
             if (requireRegisterConfigSubCommandClassMap.isEmpty()) {
-                logger.toPlayer(sender).info("&cNo subcommand found");
+                logger.to(sender).info("&cNo subcommand found");
             } else {
-                logger.toPlayer(sender).info(requireRegisterConfigSubCommandClassMap.keySet().toString());
+                logger.to(sender).info(requireRegisterConfigSubCommandClassMap.keySet().toString());
             }
             return true;
         }
 
         // 检查是否只允许玩家执行
         if (commandConfig.isPlayerOnly(mainCommandName, subCommandName) && !(sender instanceof org.bukkit.entity.Player)) {
-            logger.toPlayer(sender).warn("&c" + subCommandName + " command can only be executed by player");
+            logger.to(sender).warn("&c" + subCommandName + " command can only be executed by player");
             return true;
         }
 
         // 检查权限
         String permission = commandConfig.getCommandPermission(mainCommandName, subCommandName);
         if (!permission.isEmpty() && !sender.hasPermission(permission)) {
-            logger.toPlayer(sender).warn("&c" + subCommandName + " command permission denied");
+            logger.to(sender).warn("&c" + subCommandName + " command permission denied");
             return true;
         }
 

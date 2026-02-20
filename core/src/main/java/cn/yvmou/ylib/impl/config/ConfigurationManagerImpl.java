@@ -149,6 +149,10 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
                 // Rollback to old instance
                 if (oldInstance != null) {
                     logger.warn("Rolling back to previous valid configuration...");
+                    // copyConfiguration(oldInstance, instance, metadata);
+                    // 修复：这里应该是 copyConfiguration(oldInstance, instance, metadata) 的逻辑
+                    // 但由于 copyConfiguration 方法签名的限制，这里需要重新实现或调整
+                    // 暂时保留原逻辑，但要注意 oldInstance 必须非空
                     copyConfiguration(oldInstance, instance, metadata);
                 }
                 
@@ -161,7 +165,9 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
             }
             
             // Notify listeners
-            notifyConfigurationChanged(configClass, oldInstance, instance);
+            if (oldInstance != null) {
+                notifyConfigurationChanged(configClass, oldInstance, instance);
+            }
             
             totalReloads++;
             logger.info("Configuration reloaded: " + configClass.getSimpleName());
@@ -280,6 +286,8 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
     }
 
     private void copyConfiguration(Object source, Object target, ConfigurationMetadata metadata) {
+        if (source == null || target == null || metadata == null) return;
+        
         // Copy field values
         for (ConfigurationMetadata.FieldMetadata fieldMeta : metadata.fields) {
             try {
@@ -293,9 +301,8 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
     }
     
     private void notifyConfigurationChanged(Class<?> configClass, Object oldConfig, Object newConfig) {
-        List<ConfigurationChangeListener<Object>> classListeners = listeners.get(configClass);
-        if (classListeners != null) {
-            for (ConfigurationChangeListener<Object> listener : classListeners) {
+        if (listeners.containsKey(configClass)) {
+            for (ConfigurationChangeListener<Object> listener : listeners.get(configClass)) {
                 try {
                     listener.onConfigurationChanged(oldConfig, newConfig);
                 } catch (Exception e) {

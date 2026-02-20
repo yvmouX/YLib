@@ -1,28 +1,32 @@
 package cn.yvmou.ylib.impl.logger;
 
-import cn.yvmou.ylib.GlobalOption;
 import cn.yvmou.ylib.api.logger.Logger;
-import cn.yvmou.ylib.enums.LoggerOption;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import org.bukkit.command.ConsoleCommandSender;
 import org.jetbrains.annotations.NotNull;
+
+import java.text.MessageFormat;
+import java.util.logging.Level;
 
 public class LoggerImpl implements Logger {
     private final String prefix;
-    private Boolean debug;
-    private Boolean ansi;
-    private Player targetPlayer;
+    private final CommandSender target;
+    private static boolean debugEnabled = false;
 
     public LoggerImpl(String prefix) {
-        this.prefix = prefix;
+        this(prefix, null);
     }
 
-    public LoggerImpl(String prefix, LoggerOption option) {
+    // 私有构造，用于创建临时的 Logger 实例
+    private LoggerImpl(String prefix, CommandSender target) {
         this.prefix = prefix;
-        debug = option == LoggerOption.DEBUG;
-        ansi = option == LoggerOption.ANSI;
+        this.target = target;
+    }
+
+    public static void setDebug(boolean debug) {
+        debugEnabled = debug;
     }
 
     @Override
@@ -32,9 +36,7 @@ public class LoggerImpl implements Logger {
 
     @Override
     public void debug(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args) {
-        boolean isDebugEnabled = (debug != null ? debug : GlobalOption.Logger.DEBUG);
-        if (!isDebugEnabled) return;
-
+        if (!debugEnabled) return;
         log(color, "DEBUG", format, args);
     }
 
@@ -68,90 +70,55 @@ public class LoggerImpl implements Logger {
         log(color, "ERROR", format, args);
     }
 
-
     @Override
-    public Logger toPlayer(@NotNull Player player) {
-        this.targetPlayer = player;
-        return this;
+    public Logger to(@NotNull CommandSender sender) {
+        // 返回一个新的不可变实例，保证线程安全
+        return new LoggerImpl(this.prefix, sender);
     }
-
-    @Override
-    public Logger toPlayer(@NotNull CommandSender sender) {
-        this.targetPlayer = (Player) sender;
-        return this;
-    }
-
 
     /*
        ┌─────────────────────────────────────────────────────────────────┐
        │  私有方法 | Private Method
        └─────────────────────────────────────────────────────────────────┘
      */
-    private void log(@NotNull ChatColor defaultColor, @NotNull String level, @NotNull String format, @NotNull Object... args) {
-        message(defaultColor, level, format, args);
-    }
+    private void log(@NotNull ChatColor levelColor, @NotNull String levelName, @NotNull String format, @NotNull Object... args) {
+        String msg = formatMessage(format, args);
+        String fullMessage = String.format("%s§8[%s§l§n%s§8]§r %s%s", 
+            prefix, levelColor, levelName, levelColor, msg);
 
-    private void message(@NotNull ChatColor defaultColor, @NotNull String level, @NotNull String format, @NotNull Object... args) {
-        String msg = replacePlaceholders(format, args);
-
-        if (targetPlayer != null) {
-            String playerOutput = prefix + "§8[" + defaultColor + "§l§n" + level + "§8]§r " + defaultColor + msg;
-            targetPlayer.sendMessage(playerOutput);
-            targetPlayer = null;
+        if (target != null) {
+            target.sendMessage(fullMessage);
         } else {
-            boolean isAnsiEnabled = (ansi != null ? ansi : GlobalOption.Logger.ANSI);
-            if (isAnsiEnabled) {
-                String ansiColor = mapChatColorToAnsi(defaultColor);
-                String ansiOutput = ansiColor + "[" + level + "] " + msg + ANSI_RESET;
-                System.out.println(ansiOutput);
-            } else {
-                String bukkitOutput = prefix + "§8[" + defaultColor + "§l§n" + level + "§8]§r " + defaultColor + msg;
-                Bukkit.getConsoleSender().sendMessage(bukkitOutput);
+            // 默认发送到控制台
+            Bukkit.getConsoleSender().sendMessage(fullMessage);
+        }
+    }
+
+    /**
+     * 格式化消息，支持 {} 占位符
+     */
+    private String formatMessage(@NotNull String format, @NotNull Object... args) {
+        if (args == null || args.length == 0) {
+            return format;
+        }
+        
+        // 简单的 {} 替换实现，比正则更高效
+        StringBuilder sb = new StringBuilder(format.length() + 50);
+        int argIndex = 0;
+        int lastIndex = 0;
+        
+        while (argIndex < args.length) {
+            int placeholderIndex = format.indexOf("{}", lastIndex);
+            if (placeholderIndex == -1) {
+                break;
             }
+            
+            sb.append(format, lastIndex, placeholderIndex);
+            sb.append(args[argIndex++]);
+            lastIndex = placeholderIndex + 2;
         }
-    }
-
-    private String replacePlaceholders(@NotNull String format, @NotNull Object... args) {
-        if (args.length == 0) return format;
-        StringBuilder sb = new StringBuilder(format);
-        int argIndex = 0, placeholderIndex;
-        while ((placeholderIndex = sb.indexOf("{}")) != -1 && argIndex < args.length) {
-            String argStr = args[argIndex].toString();
-            sb.replace(placeholderIndex, placeholderIndex + 2, argStr);
-            argIndex++;
-        }
+        
+        sb.append(format.substring(lastIndex));
         return sb.toString();
-    }
-
-    // ANSI 颜色码映射
-    private static final String ANSI_RESET = "\u001B[0m";
-    private static final String ANSI_BLACK = "\u001B[30m";
-    private static final String ANSI_RED = "\u001B[31m";
-    private static final String ANSI_GREEN = "\u001B[32m";
-    private static final String ANSI_YELLOW = "\u001B[33m";
-    private static final String ANSI_BLUE = "\u001B[34m";
-    private static final String ANSI_PURPLE = "\u001B[35m";
-    private static final String ANSI_CYAN = "\u001B[36m";
-    private static final String ANSI_WHITE = "\u001B[37m";
-
-    private static String mapChatColorToAnsi(ChatColor color) {
-        switch (color) {
-            case BLACK: return ANSI_BLACK;
-            case DARK_RED: return ANSI_RED;
-            case DARK_GREEN: return ANSI_GREEN;
-            case GOLD: return ANSI_YELLOW;
-            case DARK_BLUE: return ANSI_BLUE;
-            case DARK_PURPLE: return ANSI_PURPLE;
-            case AQUA: return ANSI_CYAN;
-            case WHITE: return ANSI_WHITE;
-            case RED: return ANSI_RED;
-            case GREEN: return ANSI_GREEN;
-            case YELLOW: return ANSI_YELLOW;
-            case BLUE: return ANSI_BLUE;
-            case LIGHT_PURPLE: return ANSI_PURPLE;
-            case DARK_AQUA: return ANSI_CYAN;
-            case GRAY: return ANSI_WHITE;
-            default: return ANSI_RESET;
-        }
     }
 }

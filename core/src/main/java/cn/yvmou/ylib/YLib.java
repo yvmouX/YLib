@@ -4,7 +4,6 @@ import cn.yvmou.ylib.api.command.CommandConfig;
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
-import cn.yvmou.ylib.enums.LoggerOption;
 import cn.yvmou.ylib.enums.ServerType;
 import cn.yvmou.ylib.exception.YLibException;
 import cn.yvmou.ylib.impl.command.CommandConfigImpl;
@@ -157,16 +156,8 @@ public class YLib {
         return new LoggerImpl(PluginInfo.getPluginPrefix());
     }
 
-    public LoggerImpl createLogger(@NotNull LoggerOption option) {
-        return new LoggerImpl(PluginInfo.getPluginPrefix(), option);
-    }
-
     public LoggerImpl createLogger(@NotNull String prefix) {
         return new LoggerImpl(prefix);
-    }
-
-    public LoggerImpl createLogger(@NotNull String prefix, @NotNull LoggerOption option) {
-        return new LoggerImpl(prefix, option);
     }
 
     // ========= 插件信息 ==========
