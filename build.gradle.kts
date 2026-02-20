@@ -10,6 +10,15 @@ tasks.shadowJar {
     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
 }
 
+tasks.processResources {
+    val props = mapOf("version" to version)
+    inputs.properties(props)
+    filteringCharset = "UTF-8"
+    filesMatching("plugin.yml") {
+        expand(props)
+    }
+}
+
 allprojects {
     apply(plugin = "java-library")
 

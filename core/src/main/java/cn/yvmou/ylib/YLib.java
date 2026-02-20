@@ -18,7 +18,6 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings({"unused", "SpellCheckingInspection"})
 public class YLib {
 
-    public static YLib instance;
     // Plugin instance
     private final JavaPlugin plugin;
     private final ServerType serverType;
@@ -32,11 +31,14 @@ public class YLib {
     private static final String PAPER_SCHEDULER_CLASS = "cn.yvmou.ylib.scheduler.PaperScheduler";
     private static final String SPIGOT_SCHEDULER_CLASS = "cn.yvmou.ylib.scheduler.SpigotScheduler";
 
+    public YLib(@NotNull JavaPlugin plugin) throws YLibException {
+        this(plugin, ServerType.detectServerType());
+    }
+
     public YLib(@NotNull JavaPlugin plugin, ServerType serverType) throws YLibException {
         this.plugin = plugin;
         this.serverType = serverType;
 
-        instance = this;
         // 初始化核心服务
         initializeServices();
     }

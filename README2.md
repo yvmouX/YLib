@@ -14,7 +14,10 @@ This is a lib for my minecraft plugins to simplifies development and provides Fo
 
 ## YLib as a dependency
 
-### Gradle
+### Method 1: Shade (Recommended for stability)
+This method includes YLib inside your plugin jar.
+
+#### Gradle
 <details>
   <summary>[Click to show]</summary>
 
@@ -36,6 +39,25 @@ shadowJar {
 }
 ```
 </details>
+
+### Method 2: Plugin Dependency (Standalone)
+This method requires YLib to be installed as a separate plugin on the server.
+
+#### Gradle
+```groovy
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    compileOnly("com.github.yvmouX:YLib:VERSION")
+}
+```
+
+Add to your `plugin.yml`:
+```yaml
+depend: [YLib]
+```
 
 ### Maven
 <details>
@@ -94,7 +116,7 @@ private static YLib ylib;
 
 @Override
 public void onEnable() {
-        ylib = new YLibBuilder.create(JavaPlugin);
+        ylib = new YLib(JavaPlugin);
 }
 
 public static YLib getYLib() {
