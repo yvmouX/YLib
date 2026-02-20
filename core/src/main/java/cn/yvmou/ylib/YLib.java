@@ -28,6 +28,10 @@ public class YLib {
     private CommandManager commandManager;
     private ConfigurationManager configurationManager;
 
+    private static final String FOLIA_SCHEDULER_CLASS = "cn.yvmou.ylib.scheduler.FoliaScheduler";
+    private static final String PAPER_SCHEDULER_CLASS = "cn.yvmou.ylib.scheduler.PaperScheduler";
+    private static final String SPIGOT_SCHEDULER_CLASS = "cn.yvmou.ylib.scheduler.SpigotScheduler";
+
     public YLib(@NotNull JavaPlugin plugin, ServerType serverType) throws YLibException {
         this.plugin = plugin;
         this.serverType = serverType;
@@ -59,23 +63,24 @@ public class YLib {
     public UniversalScheduler getScheduler() {
         if (universalScheduler == null) {
             try {
+                String schedulerClassName;
                 if (serverType == ServerType.FOLIA) {
-                    Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.scheduler.FoliaScheduler");
-                    universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
-                            .newInstance(plugin);
+                    schedulerClassName = FOLIA_SCHEDULER_CLASS;
                 } else if (serverType == ServerType.PAPER) {
-                    Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.scheduler.PaperScheduler");
-                    universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
-                            .newInstance(plugin);
+                    schedulerClassName = PAPER_SCHEDULER_CLASS;
                 } else if (serverType == ServerType.SPIGOT) {
-                    Class<?> schedulerClass = Class.forName("cn.yvmou.ylib.scheduler.SpigotScheduler");
-                    universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
-                            .newInstance(plugin);
+                    schedulerClassName = SPIGOT_SCHEDULER_CLASS;
                 } else {
                     throw new YLibException("Unsupported server type: " + serverType);
                 }
+
+                Class<?> schedulerClass = Class.forName(schedulerClassName);
+                universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
+                        .newInstance(plugin);
+            } catch (ClassNotFoundException e) {
+                throw new YLibException("Scheduler implementation not found. Please ensure the platform-specific module is included.", e);
             } catch (Exception e) {
-                throw new YLibException("Failed to get scheduler", e);
+                throw new YLibException("Failed to instantiate scheduler", e);
             }
         }
         return universalScheduler;

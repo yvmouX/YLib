@@ -7,16 +7,15 @@ import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.impl.command.core.AliasCommand;
 import cn.yvmou.ylib.impl.command.core.MainCommand;
 import cn.yvmou.ylib.impl.command.core.TabComplete;
+import cn.yvmou.ylib.impl.command.core.YLibCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -157,10 +156,7 @@ public class CommandManagerImpl implements CommandManager {
                 return;
             }
 
-            Constructor<PluginCommand> commandConstructor = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
-            commandConstructor.setAccessible(true);
-            PluginCommand pluginCommand = commandConstructor.newInstance(commandName, plugin);
-
+            YLibCommand pluginCommand = new YLibCommand(commandName, plugin);
             pluginCommand.setExecutor(new MainCommand(logger, commandName, requireRegisterConfigSubCommandClassMap, commandConfig));
 
             // 注册 TabCompleter
@@ -213,13 +209,9 @@ public class CommandManagerImpl implements CommandManager {
                 return;
             }
 
-            // 获取 PluginCommand 构造器
-            Constructor<PluginCommand> constructor = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
-            constructor.setAccessible(true);
-
             // 预先收集所有需要注册的命令 和 原命令的映射 eg：/yess tp -> /tp
             // Map = 新命令 : 原命令的子命令
-            Map<PluginCommand, String> commandsToRegister = new ConcurrentHashMap<>();
+            Map<YLibCommand, String> commandsToRegister = new ConcurrentHashMap<>();
 
             // 先收集所有需要注册的命令
             for (String subCommand : requireRegisterConfigSubCommandList) {
@@ -228,7 +220,7 @@ public class CommandManagerImpl implements CommandManager {
 
                 for (String alia : alias) {
                     String a = alia.trim().toLowerCase();
-                    PluginCommand pluginCommand = constructor.newInstance(a, plugin);
+                    YLibCommand pluginCommand = new YLibCommand(a, plugin);
                     pluginCommand.setExecutor(new AliasCommand(plugin, mainCommandName, subCommand)); // 使用 AliasCommand 处理该命令
                     commandsToRegister.put(pluginCommand, subCommand);
                 }
@@ -237,7 +229,7 @@ public class CommandManagerImpl implements CommandManager {
             // 统一注册所有收集到的命令
             List<String> willInfo = new ArrayList<>();
             String willSubCommandInfo = null;
-            for (Map.Entry<PluginCommand, String> entry : commandsToRegister.entrySet()) {
+            for (Map.Entry<YLibCommand, String> entry : commandsToRegister.entrySet()) {
                 commandMap.register(PluginInfo.getPluginPrefix(), entry.getKey());
                 willInfo.add(entry.getKey().getName());
                 willSubCommandInfo = entry.getValue();
