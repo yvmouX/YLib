@@ -4,11 +4,7 @@ import cn.yvmou.ylib.api.logger.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
 import org.jetbrains.annotations.NotNull;
-
-import java.text.MessageFormat;
-import java.util.logging.Level;
 
 public class LoggerImpl implements Logger {
     private final String prefix;

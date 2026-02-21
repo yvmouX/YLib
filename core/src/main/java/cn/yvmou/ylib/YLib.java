@@ -1,12 +1,10 @@
 package cn.yvmou.ylib;
 
-import cn.yvmou.ylib.api.command.CommandConfig;
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.enums.ServerType;
 import cn.yvmou.ylib.exception.YLibException;
-import cn.yvmou.ylib.impl.command.CommandConfigImpl;
 import cn.yvmou.ylib.impl.command.CommandManagerImpl;
 import cn.yvmou.ylib.impl.config.ConfigurationManagerImpl;
 import cn.yvmou.ylib.impl.logger.LoggerImpl;
@@ -21,7 +19,6 @@ public class YLib {
     private final JavaPlugin plugin;
     private final ServerType serverType;
     // Server instance
-    private CommandConfig commandConfig;
     private UniversalScheduler universalScheduler;
     private CommandManager commandManager;
     private ConfigurationManager configurationManager;
@@ -53,10 +50,8 @@ public class YLib {
             PluginInfo.pluginVersion = plugin.getDescription().getVersion();
             // 初始化配置管理器
             this.configurationManager = new ConfigurationManagerImpl(plugin, createLogger());
-            // 初始化命令配置管理器
-            this.commandConfig = new CommandConfigImpl(plugin, createLogger());
             // 初始化命令管理器
-            this.commandManager = new CommandManagerImpl(plugin, getScheduler(), createLogger(), commandConfig);
+            this.commandManager = new CommandManagerImpl(plugin, createLogger());
             
             // Set global scheduler for UniversalRunnable
             globalScheduler = getScheduler();
@@ -78,16 +73,7 @@ public class YLib {
     public UniversalScheduler getScheduler() {
         if (universalScheduler == null) {
             try {
-                String schedulerClassName;
-                if (serverType == ServerType.FOLIA) {
-                    schedulerClassName = FOLIA_SCHEDULER_CLASS;
-                } else if (serverType == ServerType.PAPER) {
-                    schedulerClassName = PAPER_SCHEDULER_CLASS;
-                } else if (serverType == ServerType.SPIGOT) {
-                    schedulerClassName = SPIGOT_SCHEDULER_CLASS;
-                } else {
-                    throw new YLibException("Unsupported server type: " + serverType);
-                }
+                final String schedulerClassName = getSchedulerClassName();
 
                 Class<?> schedulerClass = Class.forName(schedulerClassName);
                 universalScheduler = (UniversalScheduler) schedulerClass.getConstructor(Plugin.class)
@@ -99,6 +85,20 @@ public class YLib {
             }
         }
         return universalScheduler;
+    }
+
+    private @NotNull String getSchedulerClassName() {
+        String schedulerClassName;
+        if (serverType == ServerType.FOLIA) {
+            schedulerClassName = FOLIA_SCHEDULER_CLASS;
+        } else if (serverType == ServerType.PAPER) {
+            schedulerClassName = PAPER_SCHEDULER_CLASS;
+        } else if (serverType == ServerType.SPIGOT) {
+            schedulerClassName = SPIGOT_SCHEDULER_CLASS;
+        } else {
+            throw new YLibException("Unsupported server type: " + serverType);
+        }
+        return schedulerClassName;
     }
 
     @NotNull

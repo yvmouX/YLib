@@ -5,6 +5,8 @@ plugins {
 }
 
 tasks.shadowJar {
+    // 设置输出目录
+    destinationDirectory.set(file("${project.rootDir}/测试插件/run/plugins"))
     archiveClassifier.set("")
     // 排除签名文件，避免冲突
     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
@@ -23,7 +25,7 @@ allprojects {
     apply(plugin = "java-library")
 
     group = "com.github.yvmouX"
-    version = "1.0.0-alpha.4"
+    version = "1.0.0-alpha.6"
 
     repositories {
         mavenCentral()

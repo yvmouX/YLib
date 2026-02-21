@@ -1,141 +1,41 @@
 package cn.yvmou.ylib.impl.command;
 
-import cn.yvmou.ylib.PluginInfo;
-import cn.yvmou.ylib.api.command.*;
+import cn.yvmou.ylib.api.command.CommandManager;
+import cn.yvmou.ylib.api.command.tree.CommandNode;
 import cn.yvmou.ylib.api.logger.Logger;
-import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
-import cn.yvmou.ylib.impl.command.core.AliasCommand;
-import cn.yvmou.ylib.impl.command.core.MainCommand;
-import cn.yvmou.ylib.impl.command.core.TabComplete;
-import cn.yvmou.ylib.impl.command.core.YLibCommand;
+import cn.yvmou.ylib.impl.command.core.AnnotationParser;
+import cn.yvmou.ylib.impl.command.core.CommandDispatcher;
+import cn.yvmou.ylib.impl.command.core.YLibCommandAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
-import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class CommandManagerImpl implements CommandManager {
     private final JavaPlugin plugin;
-    private final UniversalScheduler scheduler;
     private final Logger logger;
     private final CommandConfig commandConfig;
+    
+    private final AnnotationParser annotationParser;
+    private final CommandDispatcher dispatcher;
 
-    public CommandManagerImpl(JavaPlugin plugin, UniversalScheduler scheduler, Logger logger, CommandConfig commandConfig) {
+    public CommandManagerImpl(JavaPlugin plugin, Logger logger) {
         this.plugin = plugin;
-        this.scheduler = scheduler;
         this.logger = logger;
-        this.commandConfig = commandConfig;
+        this.commandConfig = new cn.yvmou.ylib.impl.command.CommandConfig(plugin, logger);
+        this.annotationParser = new AnnotationParser();
+        this.dispatcher = new CommandDispatcher();
     }
 
     @Override
-    public void registerCommands(@NotNull final String mainCommandName, @NotNull final SubCommand... subCommandClass) {
-        // 已在 命令文件 中标记为 register: true 的需要注册的 命令名称和SubCommand 之间的 MAP
-        final Map<String, SubCommand> requireRegisterConfigSubCommandClassMap = new HashMap<>();
-        // 已在 方法中使用 CommandOptions 注解声明的 命令名称和SubCommand 之间的 MAP
-        final Map<String, SubCommand> defSubCommandClassMap = new ConcurrentHashMap<>();
-
-        // 获取所有 声明 的子命令
-        for (SubCommand sc : subCommandClass) {
-            try {
-                Method method = sc.getClass().getDeclaredMethod("execute", CommandSender.class, String[].class);
-                CommandOptions co = method.getAnnotation(CommandOptions.class);
-                String commandName = co.name().trim().toLowerCase();
-
-                // 确保 子命令类 在 execute 方法上 实现 @CommandOptions 注解
-                if (!method.isAnnotationPresent(CommandOptions.class)) {
-                    logger.error(
-                            String.format("子命令类 %s 必须在其 execute 方法上使用 @CommandOptions 注解%n" +
-                                            "如果你不是开发者，请无视这条警告。",
-                                    sc.getClass().getSimpleName())
-                    );
-                    continue;
-                }
-
-                // 确保 子命令类 的 @CommandOptions 注解 中 name 属性不为空
-                if (commandName.isEmpty()) {
-                    logger.error(
-                            String.format("子命令类 %s 的 @CommandOptions 注解中的 name 属性不能为空%n" +
-                                            "如果你不是开发者，请无视这条警告。",
-                                    sc.getClass().getSimpleName())
-                    );
-                    continue;
-                }
-                defSubCommandClassMap.put(commandName, sc);
-            } catch (NoSuchMethodException e) {
-                logger.error(
-                        String.format("命令 %s 的子命令 %s 必须实现 execute(CommandSender, String[]) 方法%n" +
-                                        "如果你不是开发者，请无视这条警告，并检查commands.yml%n" + e.getMessage(),
-                                mainCommandName, sc)
-                );
-            }
-
-        }
-
-        // 加载命令配置文件到内存 (这里提前加载到内容是无误的，因为 initCommandConfigFromAnnotations 方法在写入新的配置后会自动执行 config.save() 方法)
-        commandConfig.loadCommandConfiguration();
-
-        // 初始化所有声明的子命令，写入 命令文件
-        commandConfig.initCommandConfigFromAnnotations(mainCommandName, defSubCommandClassMap);
-
-
-
-        // 重新获取 configSubCommandList，因为 initCommandConfigFromAnnotations 可能会更新配置
-        final List<String> configSubCommandList = commandConfig.getSubCommandList(mainCommandName);
-
-        if (configSubCommandList == null) {
-            logger.error("命令 {} 没有在 commands.yml 中找到需要创建的子命令", mainCommandName);
-            return;
-        }
-
-        // 从 命令文件 获取到所有的子命令的列表
-        for (String subCommandName : configSubCommandList) {
-            // 检查 命令文件下 register 是否为 true，的情况下才进行注册
-            if (commandConfig.isCommandRegister(mainCommandName, subCommandName)) {
-                SubCommand subCommand = defSubCommandClassMap.get(subCommandName);
-                if (subCommand != null) {
-                    requireRegisterConfigSubCommandClassMap.put(subCommandName, subCommand);
-                    logger.debug(
-                            String.format("正在准备注册命令: /%s %s", mainCommandName, subCommandName)
-                    );
-                }
-            } else {
-                logger.warn(
-                        String.format("正在准备移除命令: /%s %s", mainCommandName, subCommandName)
-                );
-            }
-        }
-
-        // 尝试注册主命令
-        try {
-            registerMainCommands(mainCommandName, requireRegisterConfigSubCommandClassMap);
-        } catch (Exception e) {
-            logger.error("注册命令时发生错误: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        // 注册别名命令
-        try {
-            scheduler.runTask(() -> {
-                try {
-                    registerAliasCommands(mainCommandName, configSubCommandList);
-                } catch (Exception e) {
-                    logger.error("注册别名命令时发生错误: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            });
-        } catch (Exception e) {
-            logger.error("调度别名命令注册任务时发生错误: " + e.getMessage());
-            e.printStackTrace();
+    public void register(@NotNull Object commandInstance) {
+        if (commandInstance instanceof CommandNode) {
+            registerNode((CommandNode) commandInstance);
+        } else {
+            registerClass(commandInstance);
         }
     }
 
@@ -144,126 +44,85 @@ public class CommandManagerImpl implements CommandManager {
        │  私有方法 | Private Method
        └─────────────────────────────────────────────────────────────────┘
      */
-    /**
-     * 注册命令
-     *
-     * @param commandName         命令名称
-     * @param requireRegisterConfigSubCommandClassMap 子命令类列表
-     */
-    private void registerMainCommands(@NotNull final String commandName, @NotNull final Map<String, SubCommand> requireRegisterConfigSubCommandClassMap) {
-        // 反射获取 Bukkit 内部命令管理器组件 CommandMap, 手动构建 PluginCommand 实例，并绑定命令执行器后注册命令
-        try {
-            CommandMap commandMap = getCommandMap();
-            if (commandMap == null) {
-                logger.error("getCommandMap() Failed. Please report this issue.");
-                return;
-            }
 
-            YLibCommand pluginCommand = new YLibCommand(commandName, plugin);
-            pluginCommand.setExecutor(new MainCommand(logger, commandName, requireRegisterConfigSubCommandClassMap, commandConfig));
-
-            // 注册 TabCompleter
-            Map<String, CommandComplete.Tab[]> subCommandTabs = new HashMap<>();
-            for (Map.Entry<String, SubCommand> entry : requireRegisterConfigSubCommandClassMap.entrySet()) {
-                try {
-                    Method method = getDeclaredMethod(entry.getValue().getClass(), "execute", CommandSender.class, String[].class);
-                    if (method != null && method.isAnnotationPresent(CommandComplete.class)) {
-                        CommandComplete cc = method.getAnnotation(CommandComplete.class);
-                        subCommandTabs.put(entry.getKey().toLowerCase(), cc.value());
-                    }
-                } catch (Exception ignored) {}
-            }
-
-            List<String> subCommandNames = new ArrayList<>(requireRegisterConfigSubCommandClassMap.keySet());
-            pluginCommand.setTabCompleter(new TabComplete(commandName, subCommandNames, subCommandTabs));
-
-            commandMap.register(PluginInfo.getPluginName(), pluginCommand);
-            logger.debug("Successfully registered MainCommand: " + commandName);
-        } catch (Exception e) {
-            logger.error("Error occurred while registering the MainCommand: " + commandName + " " + e.getMessage());
-            e.printStackTrace();
-        }
+    private void registerClass(@NotNull Object commandInstance) {
+        registerNode(annotationParser.parse(commandInstance));
     }
 
-    /**
-     * 注册命令别名
-     *
-     * <p>
-     *     eg:
-     *       /yLib reload 主命令是 yLib，子命令是 reload
-     *       假设所创建的命令别名为 rl
-     *       那么/rl = /yLib reload
-     * </p>
-     *
-     * @param mainCommandName 命令名称
-     */
-    private void registerAliasCommands(@NotNull final String mainCommandName, @NotNull final List<String> configSubCommandList) {
-        // 首先获取到 register: true 的项
-        final List<String> requireRegisterConfigSubCommandList = new ArrayList<>();
-        for (String subCommand : configSubCommandList) {
-            if (commandConfig.isCommandRegister(mainCommandName, subCommand)) {
-                requireRegisterConfigSubCommandList.add(subCommand);
-            }
-        }
-
+    private void registerNode(@NotNull CommandNode root) {
         try {
-            CommandMap commandMap = getCommandMap();
-            if (commandMap == null) {
-                logger.error("getCommandMap() Failed. Please report this issue.");
+            String commandName = root.getLiteral();
+            // 1. 初始化配置（仅无该命令相关配置时）
+            List<String> nodeAliases = root.getAliases();
+            commandConfig.initCommand(
+                    commandName,
+                    root.getDescription(),
+                    root.getPermission(),
+                    nodeAliases,
+                    root.getChildren()
+            );
+
+            // 2. 检查是否启用
+            if (!commandConfig.isEnabled(commandName)) {
+                logger.warn("Command " + commandName + " is disabled in commands.yml");
                 return;
             }
 
-            // 预先收集所有需要注册的命令 和 原命令的映射 eg：/yess tp -> /tp
-            // Map = 新命令 : 原命令的子命令
-            Map<YLibCommand, String> commandsToRegister = new ConcurrentHashMap<>();
+            // 3. 应用配置覆盖（别名、描述、权限）
+            List<String> configAliases = commandConfig.getAliases(commandName);
+            if (!configAliases.isEmpty()) root.aliases(configAliases);
 
-            // 先收集所有需要注册的命令
-            for (String subCommand : requireRegisterConfigSubCommandList) {
-                // 获取该 主命令的子命令 的所有别名
-                List<String> alias = commandConfig.getCommandAliases(mainCommandName, subCommand);
+            String configDesc = commandConfig.getDescription(commandName);
+            if (!configDesc.isEmpty()) root.description(configDesc);
 
-                for (String alia : alias) {
-                    String a = alia.trim().toLowerCase();
-                    YLibCommand pluginCommand = new YLibCommand(a, plugin);
-                    pluginCommand.setExecutor(new AliasCommand(plugin, mainCommandName, subCommand)); // 使用 AliasCommand 处理该命令
-                    commandsToRegister.put(pluginCommand, subCommand);
+            String configPerm = commandConfig.getPermission(commandName);
+            if (!configPerm.isEmpty()) root.permission(configPerm);
+
+            List<CommandNode> configChildren = commandConfig.getChildren(commandName);
+            if (!configChildren.isEmpty()) {
+                for (CommandNode child : configChildren) {
+                    root.then(child);
                 }
             }
 
-            // 统一注册所有收集到的命令
-            List<String> willInfo = new ArrayList<>();
-            String willSubCommandInfo = null;
-            for (Map.Entry<YLibCommand, String> entry : commandsToRegister.entrySet()) {
-                commandMap.register(PluginInfo.getPluginPrefix(), entry.getKey());
-                willInfo.add(entry.getKey().getName());
-                willSubCommandInfo = entry.getValue();
-                logger.debug("已注册命令别名：/" + entry.getKey().getName() + " -> /" + mainCommandName + " " + entry.getValue());
-            }
-            if (willSubCommandInfo != null) {
-                logger.debug(
-                        String.format("已为 /%s %s 创建别名 -> " + willInfo,
-                                mainCommandName, willSubCommandInfo)
-                );
-            }
+            // 4. 注册到 Bukkit
+            registerToBukkit(root);
+
+            logger.info("Registered command: " + commandName);
         } catch (Exception e) {
-            logger.error("Error occurred while registering the AliasCommand: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Failed to register command: " + e.getMessage(), e);
         }
     }
 
-
-
-    private @Nullable Method getDeclaredMethod(@NotNull Class<?> clazz, @NotNull String methodName, @NotNull Class<?>... parameterTypes) {
-        if (parameterTypes == null || parameterTypes.length == 0) {
-            throw new IllegalArgumentException("parameterTypes must not be null or empty");
-        }
-
+    private void registerToBukkit(CommandNode root) {
         try {
-            return clazz.getDeclaredMethod(methodName, parameterTypes);
-        } catch (NoSuchMethodException e) {
-            logger.error("Error occurred while getting the method: {} in class: {} Detail: {}", methodName, clazz.getName(), e.getMessage());
-            // No stack trace needed here as this is often expected
-            return null;
+            CommandMap commandMap = getCommandMap();
+            if (commandMap == null) return;
+            
+            // 注册主命令
+            YLibCommandAdapter command = new YLibCommandAdapter(
+                root.getLiteral(), 
+                plugin, 
+                root, 
+                dispatcher
+            );
+            commandMap.register(plugin.getName(), command);
+            
+            // 注册别名
+            List<String> aliases = commandConfig.getAliases(root.getLiteral());
+            for (String alias : aliases) {
+                YLibCommandAdapter aliasCommand = new YLibCommandAdapter(
+                    alias, 
+                    plugin, 
+                    root, 
+                    dispatcher
+                );
+                commandMap.register(plugin.getName(), aliasCommand);
+                logger.debug("Registered alias: " + alias + " -> " + root.getLiteral());
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -272,9 +131,8 @@ public class CommandManagerImpl implements CommandManager {
             Field commandMapField = Bukkit.getPluginManager().getClass().getDeclaredField("commandMap");
             commandMapField.setAccessible(true);
             return (CommandMap) commandMapField.get(Bukkit.getPluginManager());
-        } catch (Exception ex) {
-            logger.error("Error occurred while registering the CommandMap, please report this issue: " + ex.getMessage());
-            ex.printStackTrace();
+        } catch (NoSuchFieldException | IllegalAccessException ex) {
+            logger.error("Error occurred while getting CommandMap: {}", ex.getMessage(), ex);
             return null;
         }
     }
