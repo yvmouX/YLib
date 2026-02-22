@@ -1,5 +1,7 @@
 package cn.yvmou.ylib.api.command;
 
+import cn.yvmou.ylib.command.annotation.Command;
+import cn.yvmou.ylib.command.annotation.SubCommand;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,8 +32,8 @@ public interface CommandManager {
     /**
      * 注册命令
      * <p>
-     * 该方法会自动扫描类中的 {@link cn.yvmou.ylib.api.command.annotation.Command} 和 
-     * {@link cn.yvmou.ylib.api.command.annotation.SubCommand} 注解，
+     * 该方法会自动扫描类中的 {@link Command} 和
+     * {@link SubCommand} 注解，
      * 并注册相应的命令。
      * </p>
      *

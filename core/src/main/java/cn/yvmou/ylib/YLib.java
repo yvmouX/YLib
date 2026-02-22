@@ -6,9 +6,9 @@ import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.enums.ServerType;
 import cn.yvmou.ylib.exception.YLibException;
-import cn.yvmou.ylib.impl.command.CommandManagerImpl;
-import cn.yvmou.ylib.impl.config.ConfigurationManagerImpl;
-import cn.yvmou.ylib.impl.logger.LoggerImpl;
+import cn.yvmou.ylib.command.CommandManagerImpl;
+import cn.yvmou.ylib.config.ConfigurationManagerImpl;
+import cn.yvmou.ylib.logger.LoggerImpl;
 
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
