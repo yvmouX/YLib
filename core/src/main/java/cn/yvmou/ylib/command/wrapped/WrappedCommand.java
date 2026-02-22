@@ -1,8 +1,8 @@
 package cn.yvmou.ylib.command.wrapped;
 
 import cn.yvmou.ylib.YLib;
-import cn.yvmou.ylib.command.tree.CommandNode;
 import cn.yvmou.ylib.command.CommandDispatcher;
+import cn.yvmou.ylib.command.tree.CommandNode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;

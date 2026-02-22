@@ -1,8 +1,9 @@
 package cn.yvmou.ylib.command;
 
 import cn.yvmou.ylib.api.command.CommandManager;
-import cn.yvmou.ylib.command.tree.CommandNode;
 import cn.yvmou.ylib.api.logger.Logger;
+import cn.yvmou.ylib.command.annotation.AnnotationParser;
+import cn.yvmou.ylib.command.tree.CommandNode;
 import cn.yvmou.ylib.command.wrapped.WrappedCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
@@ -17,14 +18,14 @@ public class CommandManagerImpl implements CommandManager {
     private final Logger logger;
     private final CommandConfig commandConfig;
     
-    private final CommandDispatcher.AnnotationParser annotationParser;
+    private final AnnotationParser annotationParser;
     private final CommandDispatcher dispatcher;
 
     public CommandManagerImpl(JavaPlugin plugin, Logger logger) {
         this.plugin = plugin;
         this.logger = logger;
         this.commandConfig = new CommandConfig(plugin, logger);
-        this.annotationParser = new CommandDispatcher.AnnotationParser();
+        this.annotationParser = new AnnotationParser();
         this.dispatcher = new CommandDispatcher();
     }
 

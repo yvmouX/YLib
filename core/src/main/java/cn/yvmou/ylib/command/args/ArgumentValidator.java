@@ -1,7 +1,7 @@
 package cn.yvmou.ylib.command.args;
 
-import cn.yvmou.ylib.command.exception.CommandValidationException;
 import cn.yvmou.ylib.command.context.CommandContext;
+import cn.yvmou.ylib.command.exception.CommandValidationException;
 import org.jetbrains.annotations.NotNull;
 
 /**
