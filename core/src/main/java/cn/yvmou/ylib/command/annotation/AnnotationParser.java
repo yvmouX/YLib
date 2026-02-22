@@ -50,21 +50,27 @@ public class AnnotationParser {
        │  私有方法 | Private Method
        └─────────────────────────────────────────────────────────────────┘
      */
-
-
     private void parseSubCommand(CommandNode root, Object instance, Method method, SubCommand annotation) {
+        /*
+          私人笔记
+
+          trim()方法
+          移除字符串首尾的所有空白字符（包括空格、制表符、换行符等），返回处理后的新字符串；中间的空白字符会保留，原字符串因不可变不会被修改；若字符串全为空白 / 空，返回空字符串。
+          该方法常用于用户输入、命令参数等场景的容错处理，比如清理命令字符串首尾意外输入的空格，同时保留参数间的分隔空格，避免解析失败。
+         */
         String path = annotation.value().trim();
+        // 当使用SubCommand注解的方法的value为""时，parts会是空数组，便不会进入for循环，直接将当前方法作为根节点的执行器。
+        // 否则 按「一个或多个空白字符」拆分字符串为数组
         String[] parts = path.isEmpty() ? new String[0] : path.split("\\s+");
 
         CommandNode currentNode = root;
 
         // 1. 构建路径节点
         Map<String, Argument<?>> methodArguments = new HashMap<>();
-
         for (String part : parts) {
             CommandNode childNode;
             if (part.startsWith("<") && part.endsWith(">")) {
-                // 必需参数 <arg>
+                /// 必需参数 <arg>
                 String argName = part.substring(1, part.length() - 1);
                 Argument<?> argument = detectArgumentType(method, argName);
                 if (argument == null) {
@@ -74,7 +80,7 @@ public class AnnotationParser {
                 childNode = CommandNode.argument(argument);
                 methodArguments.put(argName, argument);
             } else if (part.startsWith("[") && part.endsWith("]")) {
-                // 可选参数 [arg] - 暂不支持复杂的可选参数逻辑，简化处理为 String 且 Optional
+                /// 可选参数 [arg] - 暂不支持复杂的可选参数逻辑，简化处理为 String 且 Optional
                 String argName = part.substring(1, part.length() - 1);
                 Argument<?> argument = detectArgumentType(method, argName);
                 if (argument == null) {
@@ -119,6 +125,7 @@ public class AnnotationParser {
         return null;
     }
 
+    // 推断参数类型
     private Argument<?> detectArgumentType(Method method, String argName) {
         for (Parameter parameter : method.getParameters()) {
             Arg argAnnotation = parameter.getAnnotation(Arg.class);
