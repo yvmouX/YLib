@@ -4,7 +4,6 @@ import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.command.tree.CommandNode;
 import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.impl.command.core.AnnotationParser;
-import cn.yvmou.ylib.impl.command.core.CommandDispatcher;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;

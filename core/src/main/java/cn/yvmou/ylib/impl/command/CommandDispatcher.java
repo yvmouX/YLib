@@ -1,4 +1,4 @@
-package cn.yvmou.ylib.impl.command.core;
+package cn.yvmou.ylib.impl.command;
 
 import cn.yvmou.ylib.YLib;
 import cn.yvmou.ylib.api.command.args.Argument;
@@ -71,11 +71,11 @@ public class CommandDispatcher {
 
         // 所有参数处理完毕，检查当前节点是否有 Executor
         if (currentNode.getExecutor() == null) {
-            throw new CommandParseException("命令未完成");
+            throw new CommandParseException("命令未完成"); // 这通常意味着参数不足
         }
 
         // 构建上下文
-        CommandContext context = new CommandContextImpl(sender, parsedArgs, args, label);
+        CommandContext context = new cn.yvmou.ylib.impl.command.core.CommandContext(sender, parsedArgs, args, label);
         
         // 执行验证器 (Post-parsing validation)
         validateArguments(context, parsedArguments);
@@ -84,68 +84,66 @@ public class CommandDispatcher {
         currentNode.getExecutor().execute(sender, context);
     }
 
-    // ... (execute method above) ...
-
-    public List<String> tabComplete(CommandNode root, CommandSender sender, String[] args) {
-        CommandNode currentNode = root;
-        int argIndex = 0;
-
-        // 定位到最后一个匹配的节点
-        while (argIndex < args.length - 1) {
-            String currentArg = args[argIndex];
-            boolean matched = false;
-
-            for (CommandNode child : currentNode.getChildren()) {
-                if (child.isLiteral() && child.getLiteral().equalsIgnoreCase(currentArg)) {
-                    if (hasPermission(sender, child)) {
-                        currentNode = child;
-                        matched = true;
-                        break;
-                    }
-                }
-                if (child.isArgument()) {
-                    try {
-                        child.getArgument().parse(sender, currentArg);
-                        if (hasPermission(sender, child)) {
-                            currentNode = child;
-                            matched = true;
-                            break;
-                        }
-                    } catch (CommandParseException ignored) {
-                    }
-                }
-            }
-
-            if (!matched) {
-                return Collections.emptyList();
-            }
-            argIndex++;
-        }
-
-        // 当前 args[args.length - 1] 是正在输入的参数
-        String currentInput = args[args.length - 1];
-        List<String> completions = new ArrayList<>();
-        
-        // 临时 Context，仅包含前面的参数
-        // 注意：这里无法获取完整的 parsedArgs，因为前面的参数可能没解析保存
-        // 为了简化，Tab补全时的 Context 可能不包含参数值，或者需要重构解析逻辑以支持部分解析
-        CommandContext partialContext = new CommandContextImpl(sender, Collections.emptyMap(), args, "");
-
-        for (CommandNode child : currentNode.getChildren()) {
-            if (!hasPermission(sender, child)) continue;
-
-            if (child.isLiteral()) {
-                if (child.getLiteral().toLowerCase().startsWith(currentInput.toLowerCase())) {
-                    completions.add(child.getLiteral());
-                }
-            } else if (child.isArgument()) {
-                // 参数补全
-                completions.addAll(child.getArgument().suggest(sender, partialContext, currentInput));
-            }
-        }
-
-        return completions;
-    }
+//    public List<String> tabComplete(CommandNode root, CommandSender sender, String[] args) {
+//        CommandNode currentNode = root;
+//        int argIndex = 0;
+//
+//        // 定位到最后一个匹配的节点
+//        while (argIndex < args.length - 1) {
+//            String currentArg = args[argIndex];
+//            boolean matched = false;
+//
+//            for (CommandNode child : currentNode.getChildren()) {
+//                if (child.isLiteral() && child.getLiteral().equalsIgnoreCase(currentArg)) {
+//                    if (hasPermission(sender, child)) {
+//                        currentNode = child;
+//                        matched = true;
+//                        break;
+//                    }
+//                }
+//                if (child.isArgument()) {
+//                    try {
+//                        child.getArgument().parse(sender, currentArg);
+//                        if (hasPermission(sender, child)) {
+//                            currentNode = child;
+//                            matched = true;
+//                            break;
+//                        }
+//                    } catch (CommandParseException ignored) {
+//                    }
+//                }
+//            }
+//
+//            if (!matched) {
+//                return Collections.emptyList();
+//            }
+//            argIndex++;
+//        }
+//
+//        // 当前 args[args.length - 1] 是正在输入的参数
+//        String currentInput = args[args.length - 1];
+//        List<String> completions = new ArrayList<>();
+//
+//        // 临时 Context，仅包含前面的参数
+//        // 注意：这里无法获取完整的 parsedArgs，因为前面的参数可能没解析保存
+//        // 为了简化，Tab补全时的 Context 可能不包含参数值，或者需要重构解析逻辑以支持部分解析
+//        CommandContext partialContext = new CommandContext(sender, Collections.emptyMap(), args, "");
+//
+//        for (CommandNode child : currentNode.getChildren()) {
+//            if (!hasPermission(sender, child)) continue;
+//
+//            if (child.isLiteral()) {
+//                if (child.getLiteral().toLowerCase().startsWith(currentInput.toLowerCase())) {
+//                    completions.add(child.getLiteral());
+//                }
+//            } else if (child.isArgument()) {
+//                // 参数补全
+//                completions.addAll(child.getArgument().suggest(sender, partialContext, currentInput));
+//            }
+//        }
+//
+//        return completions;
+//    }
 
     /*
        ┌─────────────────────────────────────────────────────────────────┐
