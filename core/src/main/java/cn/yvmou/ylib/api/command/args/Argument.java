@@ -1,8 +1,8 @@
 package cn.yvmou.ylib.api.command.args;
 
-import cn.yvmou.ylib.api.command.context.CommandContext;
 import cn.yvmou.ylib.api.command.exception.CommandParseException;
 import cn.yvmou.ylib.api.command.exception.CommandValidationException;
+import cn.yvmou.ylib.impl.command.core.CommandContext;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;

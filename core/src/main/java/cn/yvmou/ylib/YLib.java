@@ -48,9 +48,12 @@ public class YLib {
     protected void initializeServices() throws YLibException {
         try {
             // Plugin Info
-            PluginInfo.pluginName = plugin.getName();
+            PluginInfo.pluginName = plugin.getDescription().getName();
             PluginInfo.pluginPrefix = "§8[§b§l§n" + plugin.getDescription().getPrefix() + "§8]§r ";
             PluginInfo.pluginVersion = plugin.getDescription().getVersion();
+            PluginInfo.loggerDebug = true;
+            PluginInfo.loggerPrefix = plugin.getDescription().getName();
+
             // 初始化配置管理器
             this.configurationManager = new ConfigurationManagerImpl(plugin, getLogger());
             // 初始化命令管理器

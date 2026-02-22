@@ -1,6 +1,5 @@
 package cn.yvmou.ylib.impl.command.core;
 
-import cn.yvmou.ylib.api.command.context.CommandContext;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +27,6 @@ public class CommandContext {
     /**
      * 获取命令发送者
      */
-    @Override
     public @NotNull CommandSender sender() {
         return sender;
     }
@@ -36,7 +34,6 @@ public class CommandContext {
     /**
      * 获取已解析的参数值
      */
-    @Override
     @SuppressWarnings("unchecked")
     public @Nullable <T> T get(@NotNull String name) {
         return (T) arguments.get(name);
@@ -45,7 +42,6 @@ public class CommandContext {
     /**
      * 获取已解析的参数值，如果不存在则返回默认值
      */
-    @Override
     @SuppressWarnings("unchecked")
     public @NotNull <T> T getOrDefault(@NotNull String name, @NotNull T defaultValue) {
         Object value = arguments.get(name);
@@ -55,7 +51,6 @@ public class CommandContext {
     /**
      * 获取必需的参数值，如果不存在则抛出异常
      */
-    @Override
     @SuppressWarnings("unchecked")
     public @NotNull <T> T getRequired(@NotNull String name) {
         Object value = arguments.get(name);
@@ -68,7 +63,6 @@ public class CommandContext {
     /**
      * 获取原始参数数组
      */
-    @Override
     public @NotNull String[] rawArgs() {
         return rawArgs;
     }
@@ -76,7 +70,6 @@ public class CommandContext {
     /**
      * 获取完整命令字符串
      */
-    @Override
     public @NotNull String getCommand() {
         return command;
     }

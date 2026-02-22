@@ -1,5 +1,6 @@
 package cn.yvmou.ylib.impl.logger;
 
+import cn.yvmou.ylib.PluginInfo;
 import cn.yvmou.ylib.api.logger.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -8,8 +9,6 @@ import org.jetbrains.annotations.NotNull;
 
 public class LoggerImpl implements Logger {
     private CommandSender target;
-    public static String infoPrefix = "YLib";
-    public static boolean debugEnabled = false;
 
     public LoggerImpl() {
     }
@@ -20,24 +19,13 @@ public class LoggerImpl implements Logger {
     }
 
     @Override
-    public Logger setPrefix(String prefix) {
-        infoPrefix = prefix;
-        return this;
-    }
-    @Override
-    public Logger setDebug(boolean debug) {
-        debugEnabled = debug;
-        return this;
-    }
-
-    @Override
     public void debug(@NotNull String format, @NotNull Object... args) {
         debug(ChatColor.BLUE, format, args);
     }
 
     @Override
     public void debug(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args) {
-        if (!debugEnabled) return;
+        if (!PluginInfo.getLoggerDebug()) return;
         log(color, "DEBUG", format, args);
     }
 
@@ -84,8 +72,8 @@ public class LoggerImpl implements Logger {
      */
     private void log(@NotNull ChatColor levelColor, @NotNull String levelName, @NotNull String format, @NotNull Object... args) {
         String msg = formatMessage(format, args);
-        String fullMessage = String.format("%s§8[%s§l§n%s§8]§r %s%s", 
-            infoPrefix, levelColor, levelName, levelColor, msg);
+        String fullMessage = String.format("%s§8[%s§l§n%s§8]§r %s%s",
+            PluginInfo.getLoggerPrefix(), levelColor, levelName, levelColor, msg);
 
         if (target != null) {
             target.sendMessage(fullMessage);

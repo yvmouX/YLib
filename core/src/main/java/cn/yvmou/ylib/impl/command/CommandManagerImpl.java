@@ -4,6 +4,7 @@ import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.command.tree.CommandNode;
 import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.impl.command.core.AnnotationParser;
+import cn.yvmou.ylib.impl.command.wrapped.WrappedCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
@@ -101,52 +102,12 @@ public class CommandManagerImpl implements CommandManager {
             if (commandMap == null) return;
             
             // 注册主命令
-            commandMap.register(plugin.getName(), new Command(root.getLiteral()) {
-                @Override
-                public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
-                    try {
-                        dispatcher.execute(root, sender, args, commandLabel);
-                        return true;
-                    } catch (Exception e ) {
-                        logger.error("Error executing command: " + e.getMessage(), e);
-                        return false;
-                    }
-                }
-                @NotNull
-                @Override
-                public List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
-                    try {
-                        return dispatcher.tabComplete(root, sender, args);
-                    } catch (Exception e) {
-                        return Collections.emptyList();
-                    }
-                }
-            });
+            commandMap.register(plugin.getName(), new WrappedCommand(root.getLiteral(), root, dispatcher));
             
             // 注册别名
             List<String> aliases = commandConfig.getAliases(root.getLiteral());
             for (String alias : aliases) {
-                commandMap.register(plugin.getName(), new Command(alias) {
-                    @Override
-                    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
-                        try {
-                            dispatcher.execute(root, sender, args, commandLabel);
-                            return true;
-                        } catch (Exception e ) {
-                            logger.error("Error executing command" + "(" + root.getLiteral() +  ")" + ":" + e.getMessage(), e);
-                            return false;
-                        }
-                    }
-                    @NotNull
-                    @Override
-                    public List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
-                        try {
-                            return dispatcher.tabComplete(root, sender, args);
-                        } catch (Exception e) {
-                            return Collections.emptyList();
-                        }
-                    }
-                });
+                commandMap.register(plugin.getName(), new WrappedCommand(alias, root, dispatcher));
                 logger.debug("Registered alias: " + alias + " -> " + root.getLiteral());
             }
         } catch (Exception e) {

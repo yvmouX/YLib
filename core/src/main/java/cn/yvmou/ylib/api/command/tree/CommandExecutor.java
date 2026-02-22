@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.api.command.tree;
 
-import cn.yvmou.ylib.api.command.context.CommandContext;
+import cn.yvmou.ylib.impl.command.core.CommandContext;
 import org.bukkit.command.CommandSender;
 
 /**

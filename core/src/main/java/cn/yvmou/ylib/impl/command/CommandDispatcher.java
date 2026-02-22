@@ -2,10 +2,10 @@ package cn.yvmou.ylib.impl.command;
 
 import cn.yvmou.ylib.YLib;
 import cn.yvmou.ylib.api.command.args.Argument;
-import cn.yvmou.ylib.api.command.context.CommandContext;
 import cn.yvmou.ylib.api.command.exception.CommandParseException;
 import cn.yvmou.ylib.api.command.exception.CommandValidationException;
 import cn.yvmou.ylib.api.command.tree.CommandNode;
+import cn.yvmou.ylib.impl.command.core.CommandContext;
 import org.bukkit.command.CommandSender;
 
 import java.util.*;
