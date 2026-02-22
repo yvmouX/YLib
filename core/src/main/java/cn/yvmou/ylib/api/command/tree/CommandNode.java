@@ -77,12 +77,6 @@ public class CommandNode {
     private String description;
     
     /**
-     * 建议提供者 - 用于Tab补全
-     * 可以动态生成补全建议，如在线玩家列表、物品列表等
-     */
-    private SuggestionProvider suggestionProvider;
-    
-    /**
      * 命令别名列表 - 用于替代主命令名
      * 例如：主命令是 "home"，别名可以是 ["h", "house", "residence"]
      * 别名在注册时会被注册为独立的命令，但指向相同的执行逻辑
@@ -193,43 +187,6 @@ public class CommandNode {
         this.description = description;
         return this;
     }
-
-    /**
-     * 设置建议提供者 - 用于Tab补全
-     * 
-     * 提供动态补全建议，如：
-     * - 在线玩家：suggests((context, builder) -> suggestPlayers(builder))
-     * - 物品列表：suggests((context, builder) -> suggestItems(builder))
-     * - 自定义逻辑：suggests(MySuggestionProvider.getInstance())
-     * 
-     * @param provider 建议提供者，负责生成补全建议
-     * @return 当前节点，支持链式调用
-     */
-    public CommandNode suggests(SuggestionProvider provider) {
-        this.suggestionProvider = provider;
-        return this;
-    }
-    
-    /**
-     * 设置命令别名 - 替代主命令名
-     * 
-     * 别名在注册时会被注册为独立的命令，但共享相同的执行逻辑
-     * 例如：主命令 "home"，别名 ["h", "house"]
-     * 玩家可以使用 "/h", "/house", "/home" 达到相同效果
-     * 
-     * **注意：此方法仅对literal节点有效，argument节点不支持别名**
-     * 
-     * @param aliases 别名列表，如 Arrays.asList("h", "house")
-     * @return 当前节点，支持链式调用
-     * @throws IllegalStateException 如果是argument节点调用此方法
-     */
-    public CommandNode aliases(List<String> aliases) {
-        if (isArgument()) {
-            throw new IllegalStateException("Argument nodes do not support aliases. Only literal nodes can have aliases.");
-        }
-        this.aliases = aliases;
-        return this;
-    }
     
     /**
      * 设置命令别名 - 替代主命令名（变参版本）
@@ -332,15 +289,6 @@ public class CommandNode {
      */
     public String getDescription() {
         return description;
-    }
-
-    /**
-     * 获取建议提供者
-     * 
-     * @return Tab补全提供者，如果为null使用默认补全逻辑
-     */
-    public SuggestionProvider getSuggestionProvider() {
-        return suggestionProvider;
     }
     
     /**

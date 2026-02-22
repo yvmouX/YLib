@@ -5,13 +5,15 @@ import cn.yvmou.ylib.api.command.tree.CommandNode;
 import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.impl.command.core.AnnotationParser;
 import cn.yvmou.ylib.impl.command.core.CommandDispatcher;
-import cn.yvmou.ylib.impl.command.core.YLibCommandAdapter;
 import org.bukkit.Bukkit;
+import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
+import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.List;
 
 public class CommandManagerImpl implements CommandManager {
@@ -70,7 +72,7 @@ public class CommandManagerImpl implements CommandManager {
 
             // 3. 应用配置覆盖（别名、描述、权限）
             List<String> configAliases = commandConfig.getAliases(commandName);
-            if (!configAliases.isEmpty()) root.aliases(configAliases);
+            if (!configAliases.isEmpty()) root.aliases(String.valueOf(configAliases));
 
             String configDesc = commandConfig.getDescription(commandName);
             if (!configDesc.isEmpty()) root.description(configDesc);
@@ -100,29 +102,56 @@ public class CommandManagerImpl implements CommandManager {
             if (commandMap == null) return;
             
             // 注册主命令
-            YLibCommandAdapter command = new YLibCommandAdapter(
-                root.getLiteral(), 
-                plugin, 
-                root, 
-                dispatcher
-            );
-            commandMap.register(plugin.getName(), command);
+            commandMap.register(plugin.getName(), new Command(root.getLiteral()) {
+                @Override
+                public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+                    try {
+                        dispatcher.execute(root, sender, args, commandLabel);
+                        return true;
+                    } catch (Exception e ) {
+                        logger.error("Error executing command: " + e.getMessage(), e);
+                        return false;
+                    }
+                }
+                @NotNull
+                @Override
+                public List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
+                    try {
+                        return dispatcher.tabComplete(root, sender, args);
+                    } catch (Exception e) {
+                        return Collections.emptyList();
+                    }
+                }
+            });
             
             // 注册别名
             List<String> aliases = commandConfig.getAliases(root.getLiteral());
             for (String alias : aliases) {
-                YLibCommandAdapter aliasCommand = new YLibCommandAdapter(
-                    alias, 
-                    plugin, 
-                    root, 
-                    dispatcher
-                );
-                commandMap.register(plugin.getName(), aliasCommand);
+                commandMap.register(plugin.getName(), new Command(alias) {
+                    @Override
+                    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+                        try {
+                            dispatcher.execute(root, sender, args, commandLabel);
+                            return true;
+                        } catch (Exception e ) {
+                            logger.error("Error executing command" + "(" + root.getLiteral() +  ")" + ":" + e.getMessage(), e);
+                            return false;
+                        }
+                    }
+                    @NotNull
+                    @Override
+                    public List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
+                        try {
+                            return dispatcher.tabComplete(root, sender, args);
+                        } catch (Exception e) {
+                            return Collections.emptyList();
+                        }
+                    }
+                });
                 logger.debug("Registered alias: " + alias + " -> " + root.getLiteral());
             }
-            
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Error registering command: " + e.getMessage(), e);
         }
     }
 

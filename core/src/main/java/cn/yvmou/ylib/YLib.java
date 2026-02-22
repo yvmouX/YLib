@@ -2,12 +2,14 @@ package cn.yvmou.ylib;
 
 import cn.yvmou.ylib.api.command.CommandManager;
 import cn.yvmou.ylib.api.config.ConfigurationManager;
+import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.api.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.enums.ServerType;
 import cn.yvmou.ylib.exception.YLibException;
 import cn.yvmou.ylib.impl.command.CommandManagerImpl;
 import cn.yvmou.ylib.impl.config.ConfigurationManagerImpl;
 import cn.yvmou.ylib.impl.logger.LoggerImpl;
+
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
@@ -27,8 +29,9 @@ public class YLib {
     private static final String PAPER_SCHEDULER_CLASS = "cn.yvmou.ylib.scheduler.PaperScheduler";
     private static final String SPIGOT_SCHEDULER_CLASS = "cn.yvmou.ylib.scheduler.SpigotScheduler";
 
-    // Static Scheduler for UniversalRunnable
+    // 内部静态变量
     private static UniversalScheduler globalScheduler;
+    private static Logger logger;
 
     public YLib(@NotNull JavaPlugin plugin) throws YLibException {
         this(plugin, ServerType.detectServerType());
@@ -49,23 +52,24 @@ public class YLib {
             PluginInfo.pluginPrefix = "§8[§b§l§n" + plugin.getDescription().getPrefix() + "§8]§r ";
             PluginInfo.pluginVersion = plugin.getDescription().getVersion();
             // 初始化配置管理器
-            this.configurationManager = new ConfigurationManagerImpl(plugin, createLogger());
+            this.configurationManager = new ConfigurationManagerImpl(plugin, getLogger());
             // 初始化命令管理器
-            this.commandManager = new CommandManagerImpl(plugin, createLogger());
+            this.commandManager = new CommandManagerImpl(plugin, getLogger());
             
-            // Set global scheduler for UniversalRunnable
+            // 初始化内部静态变量
             globalScheduler = getScheduler();
+            logger = getLogger();
         } catch (Exception e) {
             throw new YLibException("核心服务初始化失败", e);
         }
     }
 
-    /**
-     * Internal method for UniversalRunnable to access the scheduler.
-     * @return UniversalScheduler instance or null if not initialized
-     */
+    // 内部方法
     public static UniversalScheduler _getGlobalScheduler() {
         return globalScheduler;
+    }
+    public static Logger _getLogger() {
+        return logger;
     }
 
     // ========== 实现方法 ==========
@@ -152,12 +156,8 @@ public class YLib {
     }
 
     // ========= 日志服务 ==========
-    public LoggerImpl createLogger() {
-        return new LoggerImpl(PluginInfo.getPluginPrefix());
-    }
-
-    public LoggerImpl createLogger(@NotNull String prefix) {
-        return new LoggerImpl(prefix);
+    public Logger getLogger() {
+        return new LoggerImpl();
     }
 
     // ========= 插件信息 ==========

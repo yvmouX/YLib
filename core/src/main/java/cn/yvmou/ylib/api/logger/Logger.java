@@ -6,6 +6,10 @@ import org.jetbrains.annotations.NotNull;
 
 public interface Logger {
 
+    Logger setPrefix(String prefix);
+
+    Logger setDebug(boolean debug);
+
     /**
      * 发送调试日志
      * @param format 格式化字符串

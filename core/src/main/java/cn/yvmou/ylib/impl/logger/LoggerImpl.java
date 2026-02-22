@@ -7,22 +7,27 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 public class LoggerImpl implements Logger {
-    private final String prefix;
-    private final CommandSender target;
-    private static boolean debugEnabled = false;
+    private CommandSender target;
+    public static String infoPrefix = "YLib";
+    public static boolean debugEnabled = false;
 
-    public LoggerImpl(String prefix) {
-        this(prefix, null);
+    public LoggerImpl() {
     }
 
     // 私有构造，用于创建临时的 Logger 实例
-    private LoggerImpl(String prefix, CommandSender target) {
-        this.prefix = prefix;
+    private LoggerImpl(CommandSender target) {
         this.target = target;
     }
 
-    public static void setDebug(boolean debug) {
+    @Override
+    public Logger setPrefix(String prefix) {
+        infoPrefix = prefix;
+        return this;
+    }
+    @Override
+    public Logger setDebug(boolean debug) {
         debugEnabled = debug;
+        return this;
     }
 
     @Override
@@ -69,7 +74,7 @@ public class LoggerImpl implements Logger {
     @Override
     public Logger to(@NotNull CommandSender sender) {
         // 返回一个新的不可变实例，保证线程安全
-        return new LoggerImpl(this.prefix, sender);
+        return new LoggerImpl(sender);
     }
 
     /*
@@ -80,7 +85,7 @@ public class LoggerImpl implements Logger {
     private void log(@NotNull ChatColor levelColor, @NotNull String levelName, @NotNull String format, @NotNull Object... args) {
         String msg = formatMessage(format, args);
         String fullMessage = String.format("%s§8[%s§l§n%s§8]§r %s%s", 
-            prefix, levelColor, levelName, levelColor, msg);
+            infoPrefix, levelColor, levelName, levelColor, msg);
 
         if (target != null) {
             target.sendMessage(fullMessage);

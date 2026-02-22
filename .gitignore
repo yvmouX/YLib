@@ -7,6 +7,7 @@
 /platform/folia/build
 /platform/paper/build
 /platform/spigot/build
+**/bin/
 /测试插件
 新的系统.md
 test_restriction_output.txt

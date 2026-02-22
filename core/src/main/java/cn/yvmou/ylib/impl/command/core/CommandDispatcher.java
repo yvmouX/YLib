@@ -1,5 +1,6 @@
 package cn.yvmou.ylib.impl.command.core;
 
+import cn.yvmou.ylib.YLib;
 import cn.yvmou.ylib.api.command.args.Argument;
 import cn.yvmou.ylib.api.command.context.CommandContext;
 import cn.yvmou.ylib.api.command.exception.CommandParseException;
@@ -10,12 +11,15 @@ import org.bukkit.command.CommandSender;
 import java.util.*;
 
 public class CommandDispatcher {
-
+    // 当前传入的 root 命令节点已应用配置(commands.yml)覆盖（别名、描述、权限）
     public void execute(CommandNode root, CommandSender sender, String[] args, String label) throws Exception {
         Map<String, Object> parsedArgs = new HashMap<>();
         List<Argument<?>> parsedArguments = new ArrayList<>(); // Track parsed arguments for validation
         CommandNode currentNode = root;
         int argIndex = 0;
+
+        // 首先对根节点命令进行权限和需求检查
+        if (!validatePermissionAndConditions(sender, root)) return;
 
         // 遍历参数
         while (argIndex < args.length) {
@@ -26,10 +30,8 @@ public class CommandDispatcher {
             for (CommandNode child : currentNode.getChildren()) {
                 // 1. 匹配 Literal
                 if (child.isLiteral() && child.getLiteral().equalsIgnoreCase(currentArg)) {
-                    // 权限检查
-                    checkPermission(sender, child);
-                    // 需求检查
-                    checkRequirement(sender, child);
+                    // 权限和需求检查
+                    if (!validatePermissionAndConditions(sender, root)) return;
                     
                     currentNode = child;
                     matched = true;
@@ -40,10 +42,8 @@ public class CommandDispatcher {
                 // 2. 匹配 Argument
                 if (child.isArgument()) {
                     try {
-                        // 权限检查
-                        checkPermission(sender, child);
-                        // 需求检查
-                        checkRequirement(sender, child);
+                        // 权限和需求检查
+                        if (!validatePermissionAndConditions(sender, root)) return;
 
                         // 解析参数
                         Argument<?> argument = child.getArgument();
@@ -61,6 +61,7 @@ public class CommandDispatcher {
                 }
             }
 
+            // 但凡有一个字面量/参数没有匹配成功，就抛出未知参数错误，退出整个循环并终止代码，而不是继续匹配。
             if (!matched) {
                 // 如果当前节点有 Executor 且参数已用尽，则执行（但这在 while 循环里通常意味着参数多余）
                 // 这里简单处理：抛出未知命令/参数错误
@@ -140,24 +141,31 @@ public class CommandDispatcher {
             } else if (child.isArgument()) {
                 // 参数补全
                 completions.addAll(child.getArgument().suggest(sender, partialContext, currentInput));
-                // 节点级补全覆盖
-                if (child.getSuggestionProvider() != null) {
-                    completions.addAll(child.getSuggestionProvider().suggest(sender, partialContext, currentInput));
-                }
             }
         }
 
         return completions;
     }
 
-    private void checkPermission(CommandSender sender, CommandNode node) throws CommandParseException {
-        if (node.getPermission() != null && !node.getPermission().isEmpty()) {
-            if (!sender.hasPermission(node.getPermission())) {
-                throw new CommandParseException("没有权限执行此命令");
-            }
+    /*
+       ┌─────────────────────────────────────────────────────────────────┐
+       │  私有方法 | Private Method
+       └─────────────────────────────────────────────────────────────────┘
+     */
+
+    private boolean validatePermissionAndConditions(CommandSender sender, CommandNode node) {
+        if (!hasPermission(sender, node)) {
+            YLib._getLogger().to(sender).error("没有权限执行此命令");
+            return false;
         }
+        if (!hasRequirement(sender, node)) {
+            YLib._getLogger().to(sender).error("没有满足命令需求");
+            return false;
+        }
+        return true;
     }
-    
+
+    // 当node中没有权限配置时，默认返回true
     private boolean hasPermission(CommandSender sender, CommandNode node) {
         if (node.getPermission() != null && !node.getPermission().isEmpty()) {
             return sender.hasPermission(node.getPermission());
@@ -165,12 +173,12 @@ public class CommandDispatcher {
         return true;
     }
 
-    private void checkRequirement(CommandSender sender, CommandNode node) throws CommandParseException {
+    // 当node中没有需求配置时，默认返回true
+    private boolean hasRequirement(CommandSender sender, CommandNode node) {
         if (node.getRequirement() != null) {
-            if (!node.getRequirement().test(sender)) {
-                throw new CommandParseException("不满足命令执行条件");
-            }
+            return node.getRequirement().test(sender);
         }
+        return true;
     }
 
     @SuppressWarnings("unchecked")
