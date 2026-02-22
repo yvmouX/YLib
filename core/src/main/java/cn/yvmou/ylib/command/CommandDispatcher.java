@@ -83,7 +83,7 @@ public class CommandDispatcher {
         }
 
         // 构建上下文
-        CommandContext context = new cn.yvmou.ylib.command.context.CommandContext(sender, parsedArgs, args, label);
+        CommandContext context = new CommandContext(sender, parsedArgs, args, label);
         
         // 执行验证器 (Post-parsing validation)
         validateArguments(context, parsedArguments);
