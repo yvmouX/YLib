@@ -2,7 +2,7 @@ package cn.yvmou.ylib.command.args;
 
 import cn.yvmou.ylib.command.exception.CommandParseException;
 import cn.yvmou.ylib.command.exception.CommandValidationException;
-import cn.yvmou.ylib.command.core.CommandContext;
+import cn.yvmou.ylib.command.context.CommandContext;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;

@@ -1,4 +1,4 @@
-package cn.yvmou.ylib.command.core;
+package cn.yvmou.ylib.command.context;
 
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;

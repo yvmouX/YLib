@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.command.args;
 
-import cn.yvmou.ylib.command.core.CommandContext;
+import cn.yvmou.ylib.command.context.CommandContext;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
