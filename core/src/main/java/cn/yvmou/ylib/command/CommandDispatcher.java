@@ -28,6 +28,9 @@ public class CommandDispatcher {
 
             // 查找匹配的子节点
             for (CommandNode child : currentNode.getChildren()) {
+                // 检查节点是否启用
+                if (!child.isEnabled()) continue;
+                
                 // 1. 匹配 Literal
                 if (child.isLiteral() && child.getLiteral().equalsIgnoreCase(currentArg)) {
                     // 权限和需求检查
@@ -131,6 +134,7 @@ public class CommandDispatcher {
 
         for (CommandNode child : currentNode.getChildren()) {
             if (!hasPermission(sender, child)) continue;
+            if (!child.isEnabled()) continue;
 
             if (child.isLiteral()) {
                 if (child.getLiteral().toLowerCase().startsWith(currentInput.toLowerCase())) {

@@ -6,10 +6,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 参数注解，用于指定参数名称
+ * 标记方法参数为可选。
+ * 如果调用时未提供该参数，将使用默认值（数字为0，对象为null，布尔为false）。
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Arg {
-    String value();
+public @interface Optional {
+    // 可以在这里增加 defaultStringValue 等属性，暂时先做最简单的默认值填充
 }

@@ -82,6 +82,12 @@ public class CommandNode {
      */
     private List<String> aliases;
 
+    /**
+     * 是否启用 - 默认为 true
+     * 如果为 false，则命令在执行和补全时会被忽略
+     */
+    private boolean enabled = true;
+
     // 私有构造，通过工厂方法创建
     private CommandNode(String literal, Argument<?> argument) {
         this.literal = literal;
@@ -207,6 +213,16 @@ public class CommandNode {
         return this;
     }
 
+    /**
+     * 设置节点是否启用
+     * @param enabled 是否启用
+     * @return 当前节点
+     */
+    public CommandNode enabled(boolean enabled) {
+        this.enabled = enabled;
+        return this;
+    }
+
     // ========== Getters ==========
 
     /**
@@ -297,5 +313,13 @@ public class CommandNode {
      */
     public List<String> getAliases() {
         return aliases;
+    }
+
+    /**
+     * 检查节点是否启用
+     * @return 如果启用返回 true
+     */
+    public boolean isEnabled() {
+        return enabled;
     }
 }

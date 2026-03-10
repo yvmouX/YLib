@@ -257,10 +257,18 @@ public class Argument<T> {
      * @return 建议列表
      */
     public List<String> suggest(CommandSender sender, CommandContext context, String currentInput) {
+        List<String> suggestions = Collections.emptyList();
         if (suggestionProvider != null) {
-            return suggestionProvider.suggest(sender, context, currentInput);
+            suggestions = suggestionProvider.suggest(sender, context, currentInput);
         }
-        return Collections.emptyList();
+        
+        if (suggestions != null && !suggestions.isEmpty()) {
+            return suggestions;
+        }
+
+        // 默认提示：显示 <参数名> 或 [参数名]
+        String hint = isOptional ? "[" + name + "]" : "<" + name + ">";
+        return Collections.singletonList(hint);
     }
 
     // ========== Getters ==========

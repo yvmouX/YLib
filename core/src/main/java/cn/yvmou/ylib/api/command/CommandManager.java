@@ -40,4 +40,13 @@ public interface CommandManager {
      * @param commandInstance 带有注解的命令实例
      */
     void register(@NotNull Object commandInstance);
+    
+    /**
+     * 重新加载所有命令配置
+     * <p>
+     * 重新读取 commands.yml 并将配置应用到所有已注册的命令上。
+     * 支持更新权限、描述、别名和启用状态。
+     * </p>
+     */
+    void reload();
 }

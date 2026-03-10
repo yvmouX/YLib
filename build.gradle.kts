@@ -6,10 +6,24 @@ plugins {
 
 tasks.shadowJar {
     // 设置输出目录
-    destinationDirectory.set(file("${project.rootDir}/测试插件/run/plugins"))
+    destinationDirectory.set(file("${project.rootDir}/example/run/plugins"))
     archiveClassifier.set("")
     // 排除签名文件，避免冲突
     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+}
+
+// 注册聚合源码的任务
+val sourcesJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("sources")
+    val sources = subprojects.map { it.sourceSets.main.get().allSource }
+    from(sources)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// 注册空的 Javadoc 任务（或聚合任务，视需求而定，这里先给一个空的以免报错）
+val javadocJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("javadoc")
+    // 如果需要聚合 Javadoc，可以在这里配置，目前留空仅作为占位符
 }
 
 tasks.processResources {
@@ -25,7 +39,7 @@ allprojects {
     apply(plugin = "java-library")
 
     group = "com.github.yvmouX"
-    version = "1.0.0-alpha.7"
+    version = "1.0.0-alpha.8"
 
     repositories {
         mavenCentral()
@@ -82,6 +96,10 @@ publishing {
             version = project.version as String
 
             artifact(tasks.shadowJar)
+            
+            // 使用上面注册的任务作为 artifact
+            artifact(sourcesJar)
+            artifact(javadocJar)
 
             pom {
                 name.set("YLib")
