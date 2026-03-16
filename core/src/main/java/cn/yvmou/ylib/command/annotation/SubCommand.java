@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * 子命令注解
  */
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SubCommand {
     /**

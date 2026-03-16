@@ -1,6 +1,7 @@
 package cn.yvmou.ylib.command.annotation;
 
 import cn.yvmou.ylib.command.args.Argument;
+import cn.yvmou.ylib.command.args.SuggestionProvider;
 import cn.yvmou.ylib.command.context.CommandContext;
 import cn.yvmou.ylib.command.exception.CommandParseException;
 import cn.yvmou.ylib.command.tree.CommandExecutor;
@@ -9,8 +10,11 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Modifier;
+import java.util.List;
 
 /**
  * 注解解析器，将 @Command 标注的类转换为 CommandNode 树
@@ -25,6 +29,8 @@ public class AnnotationParser {
         Command commandAnnotation = clazz.getAnnotation(Command.class);
 
         if (commandAnnotation == null) {
+            // 如果传入的不是主命令类（例如可能是嵌套的子命令类实例），尝试查找 SubCommand 注解
+            // 但为了兼容性，通常 parse 方法入口还是应该只接受 @Command
             throw new IllegalArgumentException("Class " + clazz.getName() + " is not annotated with @Command");
         }
 
@@ -34,18 +40,64 @@ public class AnnotationParser {
                 .description(commandAnnotation.description())
                 .permission(commandAnnotation.permission());
 
-
-        // 解析方法
-        for (Method method : clazz.getDeclaredMethods()) {
-            SubCommand subCommand = method.getAnnotation(SubCommand.class);
-            if (subCommand != null) {
-                parseSubCommand(root, commandInstance, method, subCommand);
-            }
-        }
+        // 解析类中的所有命令组件（方法和嵌套类）
+        parseClassComponents(root, commandInstance);
 
         return root;
     }
 
+    /**
+     * 递归解析类中的所有 @SubCommand 标注的组件（方法和内部类）
+     */
+    private static void parseClassComponents(CommandNode root, Object instance) {
+        Class<?> clazz = instance.getClass();
+
+        // 1. 解析嵌套类 (Nested Classes) 作为分组节点
+        for (Class<?> nestedClass : clazz.getDeclaredClasses()) {
+            SubCommand subCommand = nestedClass.getAnnotation(SubCommand.class);
+            if (subCommand != null && !Modifier.isStatic(nestedClass.getModifiers())) {
+                try {
+                    // 实例化非静态内部类需要外部类实例
+                    Constructor<?> constructor = nestedClass.getDeclaredConstructor(clazz);
+                    constructor.setAccessible(true);
+                    Object nestedInstance = constructor.newInstance(instance);
+                    
+                    // 获取或创建分组节点
+                    CommandNode groupNode = getOrCreateSubCommandNode(root, subCommand.value());
+                    configureNode(groupNode, subCommand);
+                    
+                    // 递归解析嵌套类的内容
+                    parseClassComponents(groupNode, nestedInstance);
+                } catch (Exception e) {
+                    e.printStackTrace(); // 实际生产中建议使用日志记录
+                }
+            } else if (subCommand != null && Modifier.isStatic(nestedClass.getModifiers())) {
+                 try {
+                    // 实例化静态嵌套类
+                    Constructor<?> constructor = nestedClass.getDeclaredConstructor();
+                    constructor.setAccessible(true);
+                    Object nestedInstance = constructor.newInstance();
+                    
+                    // 获取或创建分组节点
+                    CommandNode groupNode = getOrCreateSubCommandNode(root, subCommand.value());
+                    configureNode(groupNode, subCommand);
+                    
+                    // 递归解析嵌套类的内容
+                    parseClassComponents(groupNode, nestedInstance);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // 2. 解析方法 (Methods) 作为执行节点
+        for (Method method : clazz.getDeclaredMethods()) {
+            SubCommand subCommand = method.getAnnotation(SubCommand.class);
+            if (subCommand != null) {
+                parseSubCommand(root, instance, method, subCommand);
+            }
+        }
+    }
 
     /*
        ┌─────────────────────────────────────────────────────────────────┐
@@ -128,6 +180,14 @@ public class AnnotationParser {
             Argument<?> argument = detectArgumentType(method, argAnnotation.value());
             if (argument == null) {
                 argument = Argument.string(argAnnotation.value());
+            }
+
+            // 处理动态补全
+            if (!argAnnotation.suggestion().isEmpty()) {
+                SuggestionProvider provider = createSuggestionProvider(instance, argAnnotation.suggestion());
+                if (provider != null) {
+                    argument.suggests(provider);
+                }
             }
 
             // 如果参数被标记为 @Optional，同步状态到 Argument 对象
@@ -271,5 +331,42 @@ public class AnnotationParser {
                 }
             }
         };
+    }
+
+    /**
+     * 创建动态补全提供器
+     */
+    private static SuggestionProvider createSuggestionProvider(Object instance, String methodName) {
+        try {
+            Method method = instance.getClass().getDeclaredMethod(methodName, CommandSender.class, CommandContext.class, String.class);
+            method.setAccessible(true);
+            
+            return (sender, context, currentInput) -> {
+                try {
+                    return (List<String>) method.invoke(instance, sender, context, currentInput);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return java.util.Collections.emptyList();
+                }
+            };
+        } catch (NoSuchMethodException e) {
+            // 尝试查找无参方法作为备选（虽然不太标准，但有时方便）
+            try {
+                Method method = instance.getClass().getDeclaredMethod(methodName);
+                method.setAccessible(true);
+                return (sender, context, currentInput) -> {
+                    try {
+                        return (List<String>) method.invoke(instance);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        return java.util.Collections.emptyList();
+                    }
+                };
+            } catch (NoSuchMethodException ex) {
+                // 方法未找到
+                System.err.println("[YLib] Warning: Suggestion method '" + methodName + "' not found in " + instance.getClass().getName());
+                return null;
+            }
+        }
     }
 }
