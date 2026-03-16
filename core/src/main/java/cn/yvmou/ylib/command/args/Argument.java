@@ -165,11 +165,12 @@ public class Argument<T> {
      */
     public static <E extends Enum<E>> Argument<E> enumValue(String name, Class<E> enumClass) {
         return new Argument<>(name, (sender, input) -> {
-            try {
-                return Enum.valueOf(enumClass, input.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new CommandParseException("无效的选项: " + input);
+            for (E e : enumClass.getEnumConstants()) {
+                if (e.name().equalsIgnoreCase(input)) {
+                    return e;
+                }
             }
+            throw new CommandParseException("无效的选项: " + input);
         }).suggests((sender, context, current) -> {
             List<String> suggestions = new ArrayList<>();
             for (E e : enumClass.getEnumConstants()) {
