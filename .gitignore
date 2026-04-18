@@ -14,3 +14,20 @@ test_output.txt
 /example
 install.sh
 install.bat
+
+
+# Eclipse 项目配置文件
+.classpath
+.project
+.cproject
+.settings/
+.metadata/
+.recommenders/
+
+# Eclipse 运行/调试配置
+.launch
+
+# Eclipse 自动生成的文件夹
+bin/
+tmp/
+*.tmp
