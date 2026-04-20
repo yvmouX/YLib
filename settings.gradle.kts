@@ -1,10 +1,7 @@
 rootProject.name = "YLib"
 
-include("common")
+include("api")
 include("core")
-include("platform")
 include("platform:folia")
 include("platform:spigot")
 include("platform:paper")
-include("example")
-include("api")

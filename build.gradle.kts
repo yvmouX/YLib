@@ -80,9 +80,8 @@ allprojects {
 }
 
 dependencies {
-    api(project(":common"))
+    api(project(":api"))
     api(project(":core"))
-    api(project(":platform"))
     api(project(":platform:folia"))
     api(project(":platform:spigot"))
     api(project(":platform:paper"))
