@@ -1,8 +1,9 @@
 package cn.yvmou.ylib.command.config;
 
-import cn.yvmou.ylib.api.logger.Logger;
+import cn.yvmou.ylib.logger.Logger;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -12,14 +13,14 @@ import java.io.IOException;
  * 负责管理 commands.yml 文件的物理操作（创建、加载、保存）
  */
 public class CommandConfigFile {
-    private final JavaPlugin plugin;
+    private final Plugin plugin;
     private final Logger logger;
     private final File file;
     private YamlConfiguration config;
     
     private static final String FILE_NAME = "commands.yml";
 
-    public CommandConfigFile(JavaPlugin plugin, Logger logger) {
+    public CommandConfigFile(Plugin plugin, Logger logger) {
         this.plugin = plugin;
         this.logger = logger;
         this.file = new File(plugin.getDataFolder(), FILE_NAME);

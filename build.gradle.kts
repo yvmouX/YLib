@@ -6,10 +6,10 @@ plugins {
 
 tasks.shadowJar {
     // 设置输出目录
-    destinationDirectory.set(file("${project.rootDir}/example/run/plugins"))
+    //destinationDirectory.set(file("${project.rootDir}/example/run/plugins"))
     archiveClassifier.set("")
     // 排除签名文件，避免冲突
-    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+    //exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
 }
 
 // 注册聚合源码的任务

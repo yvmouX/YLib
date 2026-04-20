@@ -1,7 +1,7 @@
 /.gradle
 /.idea
 /build/
-/common/build
+/api/build
 /core/build
 /platform/build
 /platform/folia/build

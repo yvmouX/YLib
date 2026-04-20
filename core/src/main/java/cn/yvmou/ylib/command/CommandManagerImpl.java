@@ -1,7 +1,5 @@
 package cn.yvmou.ylib.command;
 
-import cn.yvmou.ylib.api.command.CommandManager;
-import cn.yvmou.ylib.api.logger.Logger;
 import cn.yvmou.ylib.command.annotation.AnnotationParser;
 import cn.yvmou.ylib.command.config.CommandConfig;
 import cn.yvmou.ylib.command.config.CommandConfigApplicator;
@@ -9,9 +7,11 @@ import cn.yvmou.ylib.command.config.CommandConfigFile;
 import cn.yvmou.ylib.command.config.CommandConfigLoader;
 import cn.yvmou.ylib.command.tree.CommandNode;
 import cn.yvmou.ylib.command.wrapped.WrappedCommand;
+import cn.yvmou.ylib.logger.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CommandManagerImpl implements CommandManager {
-    private final JavaPlugin plugin;
+    private final Plugin plugin;
     private final Logger logger;
     
     // 核心组件
@@ -34,7 +34,7 @@ public class CommandManagerImpl implements CommandManager {
     // 存储已注册的命令节点，用于热重载
     private final Map<String, CommandNode> registeredCommands = new HashMap<>();
 
-    public CommandManagerImpl(JavaPlugin plugin, Logger logger) {
+    public CommandManagerImpl(Plugin plugin, Logger logger) {
         this.plugin = plugin;
         this.logger = logger;
         

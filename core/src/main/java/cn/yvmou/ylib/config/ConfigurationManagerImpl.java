@@ -1,10 +1,6 @@
 package cn.yvmou.ylib.config;
 
-import cn.yvmou.ylib.api.config.ConfigurationManager;
-import cn.yvmou.ylib.api.config.ConfigurationValidationResult;
-import cn.yvmou.ylib.api.config.ConfigurationValidationResult.ValidationError;
-import cn.yvmou.ylib.api.logger.Logger;
-import cn.yvmou.ylib.exception.ConfigurationException;
+import cn.yvmou.ylib.logger.Logger;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -89,7 +85,7 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
         // Validate configuration
         ConfigurationValidationResult validationResult = validator.validate(instance, metadata);
         if (!validationResult.isValid()) {
-            for (ValidationError error : validationResult.getErrors()) {
+            for (ConfigurationValidationResult.ValidationError error : validationResult.getErrors()) {
                 logger.error(error.toString());
             }
             throw new ConfigurationException(configClass, "Configuration validation failed: " + validationResult.getErrorCount() + " errors found.");
@@ -142,7 +138,7 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
             ConfigurationValidationResult validationResult = validator.validate(instance, metadata);
             if (!validationResult.isValid()) {
                 logger.error("Configuration validation failed during reload for: " + configClass.getSimpleName());
-                for (ValidationError error : validationResult.getErrors()) {
+                for (ConfigurationValidationResult.ValidationError error : validationResult.getErrors()) {
                     logger.error(error.toString());
                 }
                 
@@ -221,7 +217,7 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
         
         if (instance == null || metadata == null) {
             return ConfigurationValidationResult.failure(Arrays.asList(
-                new ValidationError("", "", "Configuration not registered", null)
+                new ConfigurationValidationResult.ValidationError("", "", "Configuration not registered", null)
             ));
         }
         

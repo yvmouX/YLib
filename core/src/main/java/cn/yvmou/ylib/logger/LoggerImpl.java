@@ -1,7 +1,6 @@
 package cn.yvmou.ylib.logger;
 
 import cn.yvmou.ylib.PluginInfo;
-import cn.yvmou.ylib.api.logger.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;

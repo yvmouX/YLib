@@ -1,8 +1,8 @@
 package cn.yvmou.ylib.config;
 
-import cn.yvmou.ylib.api.config.ConfigurationValidationResult;
-import cn.yvmou.ylib.api.config.ConfigurationValidationResult.ValidationError;
-import cn.yvmou.ylib.api.config.ConfigurationValidationResult.ValidationWarning;
+import cn.yvmou.ylib.config.ConfigurationValidationResult;
+import cn.yvmou.ylib.config.ConfigurationValidationResult.ValidationError;
+import cn.yvmou.ylib.config.ConfigurationValidationResult.ValidationWarning;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;

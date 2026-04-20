@@ -3,7 +3,6 @@ package cn.yvmou.ylib.command.annotation;
 import cn.yvmou.ylib.command.args.Argument;
 import cn.yvmou.ylib.command.args.SuggestionProvider;
 import cn.yvmou.ylib.command.context.CommandContext;
-import cn.yvmou.ylib.command.exception.CommandParseException;
 import cn.yvmou.ylib.command.tree.CommandExecutor;
 import cn.yvmou.ylib.command.tree.CommandNode;
 import org.bukkit.World;

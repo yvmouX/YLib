@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.scheduler;
 
-import cn.yvmou.ylib.api.scheduler.UniversalTask;
+import cn.yvmou.ylib.scheduler.UniversalTask;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;

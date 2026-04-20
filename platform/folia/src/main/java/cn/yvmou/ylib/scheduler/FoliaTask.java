@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.scheduler;
 
-import cn.yvmou.ylib.api.scheduler.UniversalTask;
+import cn.yvmou.ylib.scheduler.UniversalTask;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.plugin.Plugin;
 

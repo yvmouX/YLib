@@ -157,11 +157,11 @@ public class CommandDispatcher {
 
     private boolean validatePermissionAndConditions(CommandSender sender, CommandNode node) {
         if (!hasPermission(sender, node)) {
-            YLib._getLogger().to(sender).error("没有权限执行此命令");
+            YLib.getyLib().getLogger().to(sender).error("没有权限执行此命令");
             return false;
         }
         if (!hasRequirement(sender, node)) {
-            YLib._getLogger().to(sender).error("没有满足命令需求");
+            YLib.getyLib().getLogger().to(sender).error("没有满足命令需求");
             return false;
         }
         return true;

@@ -1,7 +1,6 @@
 package cn.yvmou.ylib.config;
 
-import cn.yvmou.ylib.api.logger.Logger;
-import cn.yvmou.ylib.exception.ConfigurationException;
+import cn.yvmou.ylib.logger.Logger;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;

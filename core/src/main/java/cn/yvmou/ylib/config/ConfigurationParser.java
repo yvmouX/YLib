@@ -1,8 +1,5 @@
 package cn.yvmou.ylib.config;
 
-import cn.yvmou.ylib.api.config.AutoConfiguration;
-import cn.yvmou.ylib.api.config.ConfigValue;
-import cn.yvmou.ylib.exception.ConfigurationException;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
