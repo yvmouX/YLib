@@ -3,6 +3,7 @@ package cn.yvmou.ylib.config;
 import cn.yvmou.ylib.logger.Logger;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,10 +17,10 @@ import java.lang.reflect.Field;
  * Responsible for loading, saving, and generating configuration files.
  */
 public class ConfigurationLoader {
-    private final JavaPlugin plugin;
+    private final Plugin plugin;
     private final Logger logger;
 
-    public ConfigurationLoader(@NotNull JavaPlugin plugin, @NotNull Logger logger) {
+    public ConfigurationLoader(@NotNull Plugin plugin, @NotNull Logger logger) {
         this.plugin = plugin;
         this.logger = logger;
     }

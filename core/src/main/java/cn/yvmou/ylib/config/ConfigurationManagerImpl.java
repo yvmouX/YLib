@@ -1,6 +1,7 @@
 package cn.yvmou.ylib.config;
 
 import cn.yvmou.ylib.logger.Logger;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,7 +36,7 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
     // Total validations count
     private volatile int totalValidations = 0;
 
-    public ConfigurationManagerImpl(@NotNull JavaPlugin plugin, @NotNull Logger logger) {
+    public ConfigurationManagerImpl(@NotNull Plugin plugin, @NotNull Logger logger) {
         this.logger = logger;
         this.parser = new ConfigurationParser();
         this.loader = new ConfigurationLoader(plugin, logger);
