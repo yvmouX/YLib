@@ -15,9 +15,6 @@ public class MessageImpl implements Message {
     @Override
     public void msg(@NotNull String format, @NotNull Object... args) {
         String msg = LoggerUtil.formatMessage(format, args);
-        String fullMessage = String.format("%s %s",
-                PluginInfo.getLoggerPrefix(), msg);
-
-        target.sendMessage(fullMessage);
+        target.sendMessage(msg);
     }
 }
