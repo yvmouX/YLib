@@ -31,12 +31,12 @@ public class WrappedCommand extends Command {
             return true;
         } catch (CommandParseException | CommandValidationException e) {
             // 预期内的命令错误（参数错误、验证失败等），直接发给玩家，不记录堆栈
-            logger.to(sender).error(e.getMessage());
+            logger.toLog(sender).error(e.getMessage());
             return true;
         } catch (Exception e) {
             // 预期外的异常（NPE、数据库错误等），记录堆栈并通知玩家
             logger.error("Error executing command: " + e.getMessage(), e);
-            logger.to(sender).error("命令执行期间发生内部错误: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            logger.toLog(sender).error("命令执行期间发生内部错误: " + e.getClass().getSimpleName() + " - " + e.getMessage());
             return true; 
         }
     }

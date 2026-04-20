@@ -71,5 +71,7 @@ public interface Logger {
      * @param sender 接收日志的对象
      * @return 临时的 Logger 实例
      */
-    Logger to(@NotNull CommandSender sender);
+    Message to(@NotNull CommandSender sender);
+
+    Logger toLog(@NotNull CommandSender sender);
 }
