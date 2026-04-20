@@ -18,10 +18,12 @@ public class YLib {
         return instance;
     }
 
-    public static void init(@NotNull JavaPlugin plugin) throws YLibException {
+    public static YLib init(@NotNull JavaPlugin plugin) throws YLibException {
         if (instance == null) {
             instance = new YLib(plugin);
+            return instance;
         }
+        return instance;
     }
 
     // Plugin instance
