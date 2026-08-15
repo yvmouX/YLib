@@ -157,10 +157,10 @@ jobs:
           github-tag: "${{ env.VERSION }}"
           version: "${{ env.VERSION }}"
           version-type: release
-          github-prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'alpha') || contains(env.VERSION, 'rc') }}
+          github-prerelease: false
           files: build/libs/*.jar
           changelog: |
-            # 🚀 Release ${{ env.VERSION }}
+            # 🚀 Release v${{ env.VERSION }}
             **Release Date**: ${{ steps.get-date.outputs.current-date }}
             **Java Version**: 8+ (Folia/Paper 专用模块为 17+)
 
