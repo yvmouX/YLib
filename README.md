@@ -1,4 +1,4 @@
-# YLib &nbsp; &nbsp; [![GitHub Release](https://img.shields.io/github/release/yvmouX/YLib.svg?style=flat)]()
+# YLib &nbsp; &nbsp; [![GitHub Release](https://img.shields.io/github/release/yvmouX/YLib.svg?style=flat)]() &nbsp; [![](https://jitpack.io/v/yvmouX/YLib.svg)](https://jitpack.io/#yvmouX/YLib)
 
 This is a lib for my minecraft plugins to simplifies development and provides Folia support implementations
 
