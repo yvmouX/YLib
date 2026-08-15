@@ -4,7 +4,7 @@ This is a lib for my minecraft plugins to simplifies development and provides Fo
 
 ## Description
 
-**Java Version**: 17+
+**Java Version**: 8+ (Folia/Paper 专用模块为 17+)
 
 **Supported**:
 
@@ -13,6 +13,8 @@ This is a lib for my minecraft plugins to simplifies development and provides Fo
 - Spigot
 
 ## YLib as a dependency
+
+This method includes YLib inside your plugin jar.
 
 ### Gradle
 <details>
@@ -32,6 +34,8 @@ dependencies {
 }
 
 shadowJar {
+    // 合并 META-INF/services 文件，YLib 的 ServiceLoader 依赖它
+    mergeServiceFiles()
     relocate("cn.yvmou.ylib", "YOUR_PACKAGE.lib.ylib")
 }
 ```
@@ -50,7 +54,7 @@ shadowJar {
 
 <dependencies>
 <dependency>
-    <groupId>com.github.ylib</groupId>
+    <groupId>com.github.yvmouX</groupId>
     <artifactId>YLib</artifactId>
     <version>VERSION</version>
     <scope>compile</scope>
@@ -74,11 +78,15 @@ shadowJar {
         <configuration>
             <relocations>
                 <relocation>
-                    <pattern>com.github.ylib.yliib</pattern>
+                    <pattern>cn.yvmou.ylib</pattern>
                     <!-- !! Don't forget to replace -->
-                    <shadedPattern>YOUR_PACKAGE.lib.folialib</shadedPattern>
+                    <shadedPattern>YOUR_PACKAGE.lib.ylib</shadedPattern>
                 </relocation>
             </relocations>
+            <transformers>
+                <!-- 合并 META-INF/services 文件，YLib 的 ServiceLoader 依赖它 -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+            </transformers>
         </configuration>
     </plugin>
 </plugins>
@@ -86,49 +94,96 @@ shadowJar {
 ```
 </details>
 
-
 ## How to use
 
+Initialize YLib in your plugin's `onEnable`:
+
 ```java
-private static YLib ylib;
+import cn.yvmou.ylib.YLib;
+import cn.yvmou.ylib.YLibException;
+
+private YLib ylib;
 
 @Override
 public void onEnable() {
-        ylib = new YLib(this);
-}
-
-public static YLib getYLib() {
-        return ylib;
+    try {
+        ylib = YLib.init(this);
+    } catch (YLibException e) {
+        getLogger().severe("Failed to initialize YLib: " + e.getMessage());
+        getServer().getPluginManager().disablePlugin(this);
+        return;
+    }
 }
 ```
 
+### Scheduler
+
+Platform-agnostic scheduler, behaves the same on Folia / Paper / Spigot:
+
 ```java
-# 除了下面示例的两个功能，不建议使用其他的了。因为我正在重构它。
-# In addition to the two functions shown below, it is not recommended to use others. Because I am 
-# refactoring it.
-    
-# 调度器
-# Scheduler
-Main.getYLib().getScheduler().runTask(() -> {
+// 20 ticks later
+YLib.getYLib().getScheduler().runLater(() -> {
+    getLogger().info("Hello!");
+}, 20L);
+
+// Entity-scoped repeating task
+YLib.getYLib().getScheduler().runTimer(entity, () -> {
     /* Code */
-})
-# 注册命令
-# registerCommands
-getYLib().getCommandManager().registerCommands(
-                "yess",
-                new ReloadCmd(this),
-);
+}, 0L, null, 20L);
+```
 
-public class ReloadCmd implements SubCommand {
-    private final Y plugin;
-    public ReloadCmd(Y plugin) { this.plugin = plugin; }
+### Commands
 
-    @Override
-    @CommandOptions(name = "reload", permission = "yess.command.reload", onlyPlayer = true, alias = {}, register = true, usage = "/yess reload")
-    public boolean execute(CommandSender sender, String[] args) {
-        plugin.reloadConfig();
-        sender.sendMessage(ChatColor.GREEN + "成功重载插件！");
-        return true;
+```java
+import cn.yvmou.ylib.command.annotation.Command;
+import cn.yvmou.ylib.command.annotation.SubCommand;
+import org.bukkit.command.CommandSender;
+
+@Command(name = "mycmd", description = "Example command")
+public class MyCommand {
+
+    @SubCommand("test")
+    public void test(CommandSender sender) {
+        sender.sendMessage("Hello!");
     }
 }
+
+// 注册（插件 onEnable 中）
+ylib.getCommandManager().register(new MyCommand());
+```
+
+### Configuration
+
+```java
+import cn.yvmou.ylib.config.AutoConfiguration;
+import cn.yvmou.ylib.config.ConfigValue;
+
+@AutoConfiguration(value = "database", configFile = "database.yml")
+public class DatabaseConfig {
+
+    @ConfigValue("host")
+    private String host = "localhost";
+
+    @ConfigValue("port")
+    private int port = 3306;
+}
+
+// 注册（插件 onEnable 中）
+ylib.getConfigurationManager().registerConfiguration(DatabaseConfig.class);
+```
+
+更详细的文档见 [文档/](文档/Home.md)。
+
+## Project structure
+
+```
+YLib/
+├── api/                  # 对外暴露的接口 (Scheduler, Config, Command)
+├── core/                 # 核心逻辑：API 定义、具体实现 (Java 8)
+├── platform/             # 平台适配层
+│   ├── folia/            # Folia 专用实现 (Java 17)
+│   ├── paper/            # Paper 专用实现 (Java 17)
+│   └── spigot/           # Spigot 基础实现 (Java 8)
+├── 文档/                 # 中文文档
+└── build.gradle.kts      # 统一管理版本和发布逻辑
 ```

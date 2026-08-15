@@ -34,19 +34,19 @@ public class CommandDispatcher {
                 // 1. 匹配 Literal
                 if (child.isLiteral() && child.getLiteral().equalsIgnoreCase(currentArg)) {
                     // 权限和需求检查
-                    if (!validatePermissionAndConditions(sender, root)) return;
-                    
+                    if (!validatePermissionAndConditions(sender, child)) return;
+
                     currentNode = child;
                     matched = true;
                     argIndex++;
                     break;
                 }
-                
+
                 // 2. 匹配 Argument
                 if (child.isArgument()) {
                     try {
                         // 权限和需求检查
-                        if (!validatePermissionAndConditions(sender, root)) return;
+                        if (!validatePermissionAndConditions(sender, child)) return;
 
                         // 解析参数
                         Argument<?> argument = child.getArgument();
@@ -72,7 +72,15 @@ public class CommandDispatcher {
             }
         }
 
-        // 所有参数处理完毕，检查当前节点是否有 Executor
+        // 所有参数处理完毕，为未提供的可选参数填充默认值
+        for (CommandNode child : currentNode.getChildren()) {
+            if (child.isArgument() && child.getArgument().isOptional()
+                    && !parsedArgs.containsKey(child.getArgument().getName())) {
+                parsedArgs.put(child.getArgument().getName(), child.getArgument().getDefaultValue());
+            }
+        }
+
+        // 检查当前节点是否有 Executor
         if (currentNode.getExecutor() == null) {
             throw new CommandParseException("命令未完成"); // 这通常意味着参数不足
         }
@@ -88,6 +96,10 @@ public class CommandDispatcher {
     }
 
     public List<String> tabComplete(CommandNode root, CommandSender sender, String[] args) {
+        if (args == null || args.length == 0) {
+            return Collections.emptyList();
+        }
+
         CommandNode currentNode = root;
         int argIndex = 0;
 
@@ -157,11 +169,11 @@ public class CommandDispatcher {
 
     private boolean validatePermissionAndConditions(CommandSender sender, CommandNode node) {
         if (!hasPermission(sender, node)) {
-            YLib.getyLib().getLogger().toLog(sender).error("没有权限执行此命令");
+            YLib.getYLib().getLogger().toLog(sender).error("没有权限执行此命令");
             return false;
         }
         if (!hasRequirement(sender, node)) {
-            YLib.getyLib().getLogger().toLog(sender).error("没有满足命令需求");
+            YLib.getYLib().getLogger().toLog(sender).error("没有满足命令需求");
             return false;
         }
         return true;

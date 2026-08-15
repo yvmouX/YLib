@@ -8,6 +8,8 @@ tasks.shadowJar {
     // 设置输出目录
     //destinationDirectory.set(file("${project.rootDir}/example/run/plugins"))
     archiveClassifier.set("")
+    // 合并各模块的 META-INF/services 文件，保证 ServiceLoader 在聚合 jar 中正常工作
+    mergeServiceFiles()
     // 排除签名文件，避免冲突
     //exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
 }
@@ -20,26 +22,10 @@ val sourcesJar by tasks.registering(Jar::class) {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-// 注册空的 Javadoc 任务（或聚合任务，视需求而定，这里先给一个空的以免报错）
-val javadocJar by tasks.registering(Jar::class) {
-    archiveClassifier.set("javadoc")
-    // 如果需要聚合 Javadoc，可以在这里配置，目前留空仅作为占位符
-}
-
-tasks.processResources {
-    val props = mapOf("version" to version)
-    inputs.properties(props)
-    filteringCharset = "UTF-8"
-    filesMatching("plugin.yml") {
-        expand(props)
-    }
-}
-
 allprojects {
     apply(plugin = "java-library")
 
     group = "com.github.yvmouX"
-    version = "1.0.0-alpha.9"
 
     repositories {
         mavenCentral()
@@ -49,29 +35,28 @@ allprojects {
     }
 
     java {
-        // 打印调试信息，确认每个项目匹配到了什么版本
-        println("Configuring JDK for project: ${project.name} (${project.path})")
-        
         when (project.path) {
             // Folia 和 Paper 必须是 Java 17+
             ":platform:folia", ":platform:paper" -> {
-                println("  -> Target: Java 17 (Folia/Paper specific)")
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17
             }
             // 根项目作为容器，必须能容纳所有子模块，所以设为 21
             ":" -> {
-                println("  -> Target: Java 21 (Root project container)")
                 sourceCompatibility = JavaVersion.VERSION_21
                 targetCompatibility = JavaVersion.VERSION_21
             }
-            // 其他所有模块 (common, core, spigot) 默认为 Java 8，保证最大兼容性
+            // 其他所有模块默认为 Java 8，保证最大兼容性
             else -> {
-                println("  -> Target: Java 8 (Legacy/Universal)")
                 sourceCompatibility = JavaVersion.VERSION_1_8
                 targetCompatibility = JavaVersion.VERSION_1_8
             }
         }
+    }
+
+    // 保留方法参数名，供反射注入（@Arg 未显式指定参数名时回退到参数名匹配）
+    tasks.withType<JavaCompile>().configureEach {
+        options.compilerArgs.add("-parameters")
     }
 
     dependencies {
@@ -95,10 +80,8 @@ publishing {
             version = project.version as String
 
             artifact(tasks.shadowJar)
-            
-            // 使用上面注册的任务作为 artifact
+
             artifact(sourcesJar)
-            artifact(javadocJar)
 
             pom {
                 name.set("YLib")

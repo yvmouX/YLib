@@ -7,8 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Folia调度器管理器实现
@@ -42,138 +41,146 @@ public class FoliaScheduler implements UniversalScheduler {
 
     @Override
     public UniversalTask runTask(@NotNull Runnable runnable) {
-        return new FoliaTask(globalRegionScheduler.run(plugin, task -> runnable.run()));
+        return new FoliaTask(globalRegionScheduler.run(plugin, task -> runnable.run()), false);
     }
 
     @Override
     public UniversalTask runTask(Plugin plugin, @NotNull Runnable runnable) {
-        return new FoliaTask(globalRegionScheduler.run(plugin, task -> runnable.run()));
+        return new FoliaTask(globalRegionScheduler.run(plugin, task -> runnable.run()), false);
     }
 
     @Override
     public UniversalTask runTask(Location location, @NotNull Runnable runnable) {
-        return new FoliaTask(regionScheduler.run(plugin, location, task -> runnable.run()));
+        return new FoliaTask(regionScheduler.run(plugin, location, task -> runnable.run()), false);
     }
 
     @Override
     public UniversalTask runTask(Plugin plugin, Location location, @NotNull Runnable runnable) {
-        return new FoliaTask(regionScheduler.run(plugin, location, task -> runnable.run()));
+        return new FoliaTask(regionScheduler.run(plugin, location, task -> runnable.run()), false);
     }
 
     @Override
     public UniversalTask runTask(Entity entity, @NotNull Runnable runnable) {
-        return new FoliaTask(entity.getScheduler().run(plugin, task -> runnable.run(), null));
+        return new FoliaTask(entity.getScheduler().run(plugin, task -> runnable.run(), null), false);
     }
 
     @Override
     public UniversalTask runTask(Plugin plugin, Entity entity, @NotNull Runnable runnable) {
-        return new FoliaTask(entity.getScheduler().run(plugin, task -> runnable.run(), null));
+        return new FoliaTask(entity.getScheduler().run(plugin, task -> runnable.run(), null), false);
     }
 
     @Override
     public UniversalTask runLater(@NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
-        return new FoliaTask(globalRegionScheduler.runDelayed(plugin, task -> runnable.run(), delay));
+        delay = UniversalScheduler.clampDelay(delay);
+        return new FoliaTask(globalRegionScheduler.runDelayed(plugin, task -> runnable.run(), delay), false);
     }
 
     @Override
     public UniversalTask runLater(Plugin plugin, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
-        return new FoliaTask(globalRegionScheduler.runDelayed(plugin, task -> runnable.run(), delay));
+        delay = UniversalScheduler.clampDelay(delay);
+        return new FoliaTask(globalRegionScheduler.runDelayed(plugin, task -> runnable.run(), delay), false);
     }
 
     @Override
     public UniversalTask runLater(Location location, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
-        return new FoliaTask(regionScheduler.runDelayed(plugin, location, task -> runnable.run(), delay));
+        delay = UniversalScheduler.clampDelay(delay);
+        return new FoliaTask(regionScheduler.runDelayed(plugin, location, task -> runnable.run(), delay), false);
     }
 
     @Override
     public UniversalTask runLater(Plugin plugin, Location location, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
-        return new FoliaTask(regionScheduler.runDelayed(plugin, location, task -> runnable.run(), delay));
+        delay = UniversalScheduler.clampDelay(delay);
+        return new FoliaTask(regionScheduler.runDelayed(plugin, location, task -> runnable.run(), delay), false);
     }
 
     @Override
     public UniversalTask runLater(Entity entity, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
-        return new FoliaTask(entity.getScheduler().run(plugin, task -> runnable.run(), null));
+        delay = UniversalScheduler.clampDelay(delay);
+        return new FoliaTask(entity.getScheduler().runDelayed(plugin, task -> runnable.run(), null, delay), false);
     }
 
     @Override
     public UniversalTask runLater(Plugin plugin, Entity entity, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
-        return new FoliaTask(entity.getScheduler().run(plugin, task -> runnable.run(), null));
+        delay = UniversalScheduler.clampDelay(delay);
+        return new FoliaTask(entity.getScheduler().runDelayed(plugin, task -> runnable.run(), null, delay), false);
     }
 
     @Override
     public UniversalTask runTimer(@NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new FoliaTask(globalRegionScheduler.runAtFixedRate(plugin, task -> runnable.run(), delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new FoliaTask(globalRegionScheduler.runAtFixedRate(plugin, task -> runnable.run(), delay, period), false);
     }
 
     @Override
     public UniversalTask runTimer(Plugin plugin, @NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new FoliaTask(globalRegionScheduler.runAtFixedRate(plugin, task -> runnable.run(), delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new FoliaTask(globalRegionScheduler.runAtFixedRate(plugin, task -> runnable.run(), delay, period), false);
     }
 
     @Override
     public UniversalTask runTimer(Location location, @NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new FoliaTask(regionScheduler.runAtFixedRate(plugin, location, task -> runnable.run(), delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new FoliaTask(regionScheduler.runAtFixedRate(plugin, location, task -> runnable.run(), delay, period), false);
     }
 
     @Override
     public UniversalTask runTimer(Plugin plugin, Location location, @NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new FoliaTask(regionScheduler.runAtFixedRate(plugin, location, task -> runnable.run(), delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new FoliaTask(regionScheduler.runAtFixedRate(plugin, location, task -> runnable.run(), delay, period), false);
     }
 
     @Override
     public UniversalTask runTimer(Entity entity, @NotNull Runnable runnable, long delay, @Nullable Runnable retired, long period) {
-        delay = checkDelay(delay);
-        return new FoliaTask(entity.getScheduler().run(plugin, task -> runnable.run(), null));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new FoliaTask(entity.getScheduler().runAtFixedRate(plugin, task -> runnable.run(), retired, delay, period), false);
     }
 
     @Override
     public UniversalTask runTimer(Plugin plugin, Entity entity, @NotNull Runnable runnable, long delay, @Nullable Runnable retired, long period) {
-        delay = checkDelay(delay);
-        return new FoliaTask(entity.getScheduler().run(plugin, task -> runnable.run(), null));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new FoliaTask(entity.getScheduler().runAtFixedRate(plugin, task -> runnable.run(), retired, delay, period), false);
     }
 
     @Override
     public UniversalTask runAsync(@NotNull Runnable runnable) {
-        return new FoliaTask(asyncScheduler.runNow(plugin, task -> runnable.run()));
+        return new FoliaTask(asyncScheduler.runNow(plugin, task -> runnable.run()), true);
     }
 
     @Override
     public UniversalTask runAsync(Plugin plugin, @NotNull Runnable runnable) {
-        return new FoliaTask(asyncScheduler.runNow(plugin, task -> runnable.run()));
+        return new FoliaTask(asyncScheduler.runNow(plugin, task -> runnable.run()), true);
     }
 
     @Override
     public UniversalTask runLaterAsync(@NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
-        return new FoliaTask(asyncScheduler.runDelayed(plugin, task -> runnable.run(), delay * 50L, java.util.concurrent.TimeUnit.MILLISECONDS));
+        delay = UniversalScheduler.clampDelay(delay);
+        return new FoliaTask(asyncScheduler.runDelayed(plugin, task -> runnable.run(), delay * 50L, java.util.concurrent.TimeUnit.MILLISECONDS), true);
     }
 
     @Override
     public UniversalTask runLaterAsync(Plugin plugin, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
-        return new FoliaTask(asyncScheduler.runDelayed(plugin, task -> runnable.run(), delay * 50L, java.util.concurrent.TimeUnit.MILLISECONDS));
+        delay = UniversalScheduler.clampDelay(delay);
+        return new FoliaTask(asyncScheduler.runDelayed(plugin, task -> runnable.run(), delay * 50L, java.util.concurrent.TimeUnit.MILLISECONDS), true);
     }
 
     @Override
     public UniversalTask runTimerAsync(@NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new FoliaTask(asyncScheduler.runAtFixedRate(plugin, task -> runnable.run(), delay * 50L, period * 50L, java.util.concurrent.TimeUnit.MILLISECONDS));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new FoliaTask(asyncScheduler.runAtFixedRate(plugin, task -> runnable.run(), delay * 50L, period * 50L, java.util.concurrent.TimeUnit.MILLISECONDS), true);
     }
 
     @Override
     public UniversalTask runTimerAsync(Plugin plugin, @NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new FoliaTask(asyncScheduler.runAtFixedRate(plugin, task -> runnable.run(), delay * 50L, period * 50L, java.util.concurrent.TimeUnit.MILLISECONDS));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new FoliaTask(asyncScheduler.runAtFixedRate(plugin, task -> runnable.run(), delay * 50L, period * 50L, java.util.concurrent.TimeUnit.MILLISECONDS), true);
     }
 
     @Override
@@ -192,12 +199,5 @@ public class FoliaScheduler implements UniversalScheduler {
     @Override
     public void teleportAsync(Entity entity, Location location) {
         entity.teleportAsync(location);
-    }
-
-    private static long checkDelay(long delay) {
-        if (delay <= 0) {
-            return 1;
-        }
-        return delay;
     }
 }

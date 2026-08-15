@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Spigot调度器管理器实现
+ * Spigot调度器管理器实现（Paper 服务器同样基于 BukkitScheduler，可直接复用）
  *
  * @author yvmoux
  * @since 1.0.0
@@ -67,74 +67,80 @@ public class SpigotScheduler implements UniversalScheduler {
 
     @Override
     public UniversalTask runLater(@NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
+        delay = UniversalScheduler.clampDelay(delay);
         return new SpigotTask(scheduler.runTaskLater(plugin, runnable, delay));
     }
 
     @Override
     public UniversalTask runLater(Plugin plugin, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
+        delay = UniversalScheduler.clampDelay(delay);
         return new SpigotTask(scheduler.runTaskLater(plugin, runnable, delay));
     }
 
     @Override
     public UniversalTask runLater(Location location, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
+        delay = UniversalScheduler.clampDelay(delay);
         return new SpigotTask(scheduler.runTaskLater(plugin, runnable, delay));
     }
 
     @Override
     public UniversalTask runLater(Plugin plugin, Location location, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
+        delay = UniversalScheduler.clampDelay(delay);
         return new SpigotTask(scheduler.runTaskLater(plugin, runnable, delay));
     }
 
     @Override
     public UniversalTask runLater(Entity entity, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
+        delay = UniversalScheduler.clampDelay(delay);
         return new SpigotTask(scheduler.runTaskLater(plugin, runnable, delay));
     }
 
     @Override
     public UniversalTask runLater(Plugin plugin, Entity entity, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
+        delay = UniversalScheduler.clampDelay(delay);
         return new SpigotTask(scheduler.runTaskLater(plugin, runnable, delay));
     }
 
     @Override
     public UniversalTask runTimer(@NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period), true);
     }
 
     @Override
     public UniversalTask runTimer(Plugin plugin, @NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period), true);
     }
 
     @Override
     public UniversalTask runTimer(Location location, @NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period), true);
     }
 
     @Override
     public UniversalTask runTimer(Plugin plugin, Location location, @NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period), true);
     }
 
     @Override
     public UniversalTask runTimer(Entity entity, @NotNull Runnable runnable, long delay, @Nullable Runnable retired, long period) {
-        delay = checkDelay(delay);
-        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period), true);
     }
 
     @Override
     public UniversalTask runTimer(Plugin plugin, Entity entity, @NotNull Runnable runnable, long delay, @Nullable Runnable retired, long period) {
-        delay = checkDelay(delay);
-        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new SpigotTask(scheduler.runTaskTimer(plugin, runnable, delay, period), true);
     }
 
     @Override
@@ -149,26 +155,28 @@ public class SpigotScheduler implements UniversalScheduler {
 
     @Override
     public UniversalTask runLaterAsync(@NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
+        delay = UniversalScheduler.clampDelay(delay);
         return new SpigotTask(scheduler.runTaskLaterAsynchronously(plugin, runnable, delay));
     }
 
     @Override
     public UniversalTask runLaterAsync(Plugin plugin, @NotNull Runnable runnable, long delay) {
-        delay = checkDelay(delay);
+        delay = UniversalScheduler.clampDelay(delay);
         return new SpigotTask(scheduler.runTaskLaterAsynchronously(plugin, runnable, delay));
     }
 
     @Override
     public UniversalTask runTimerAsync(@NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new SpigotTask(scheduler.runTaskTimerAsynchronously(plugin, runnable, delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new SpigotTask(scheduler.runTaskTimerAsynchronously(plugin, runnable, delay, period), true);
     }
 
     @Override
     public UniversalTask runTimerAsync(Plugin plugin, @NotNull Runnable runnable, long delay, long period) {
-        delay = checkDelay(delay);
-        return new SpigotTask(scheduler.runTaskTimerAsynchronously(plugin, runnable, delay, period));
+        delay = UniversalScheduler.clampDelay(delay);
+        period = UniversalScheduler.clampDelay(period);
+        return new SpigotTask(scheduler.runTaskTimerAsynchronously(plugin, runnable, delay, period), true);
     }
 
     @Override
@@ -186,12 +194,5 @@ public class SpigotScheduler implements UniversalScheduler {
     @Override
     public void teleportAsync(Entity entity, Location location) {
         runTask(() -> entity.teleport(location));
-    }
-
-    private long checkDelay(long delay) {
-        if (delay < 0) {
-            return 0;
-        }
-        return delay;
     }
 }

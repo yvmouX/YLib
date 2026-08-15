@@ -56,6 +56,7 @@ public class LoggerImpl implements Logger {
     @Override
     public void error(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args) {
         log(color, "ERROR", format, args);
+        logThrowables(args);
     }
 
     @Override
@@ -74,6 +75,18 @@ public class LoggerImpl implements Logger {
        │  私有方法 | Private Method
        └─────────────────────────────────────────────────────────────────┘
      */
+    private void logThrowables(@NotNull Object... args) {
+        // 堆栈只输出到控制台，避免把异常细节发给玩家
+        if (target != null) {
+            return;
+        }
+        for (Object arg : args) {
+            if (arg instanceof Throwable) {
+                Bukkit.getLogger().log(java.util.logging.Level.SEVERE, "YLib error", (Throwable) arg);
+            }
+        }
+    }
+
     private void log(@NotNull ChatColor levelColor, @NotNull String levelName, @NotNull String format, @NotNull Object... args) {
         String msg = LoggerUtil.formatMessage(format, args);
         String fullMessage = String.format("%s§8[%s§l§n%s§8]§r %s%s",

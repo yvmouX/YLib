@@ -1,0 +1,3 @@
+cn.yvmou.ylib.scheduler.FoliaSchedulerProvider
+cn.yvmou.ylib.scheduler.PaperSchedulerProvider
+cn.yvmou.ylib.scheduler.SpigotSchedulerProvider

@@ -6,59 +6,18 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
 /**
- * Paper任务实现
+ * Paper任务实现（Paper 与 Spigot 的 BukkitTask 行为一致，直接复用 SpigotTask）
  *
  * @author yvmoux
  * @since 1.0.0
  */
-public class PaperTask implements UniversalTask {
+public class PaperTask extends SpigotTask {
 
-    private final BukkitTask task;
-
-    boolean isRepeating;
-
-    /**
-     * 构造函数
-     * @param task Bukkit任务
-     */
     public PaperTask(BukkitTask task) {
-        this.task = task;
+        super(task);
     }
 
     public PaperTask(BukkitTask task, boolean isRepeating) {
-        this.task = task;
-        this.isRepeating = isRepeating;
-    }
-
-    @Override
-    public Plugin getOwningPlugin() {
-        return task.getOwner();
-    }
-
-    @Override
-    public void cancel() {
-        task.cancel();
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return task.isCancelled();
-    }
-
-    @Override
-    public boolean isCurrentlyRunning() {
-        return Bukkit.getServer().getScheduler().isCurrentlyRunning(task.getTaskId()) &&
-                Bukkit.getServer().getScheduler().isQueued(task.getTaskId());
-    }
-
-    @Override
-    public TaskType getType() {
-        if (isRepeating) {
-            return TaskType.REPEATING;
-        }
-        if (task.isSync()) {
-            return TaskType.SYNC;
-        }
-        return TaskType.ASYNC;
+        super(task, isRepeating);
     }
 }

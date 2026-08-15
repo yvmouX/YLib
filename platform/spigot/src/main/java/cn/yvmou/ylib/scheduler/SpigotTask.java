@@ -14,15 +14,14 @@ import org.bukkit.scheduler.BukkitTask;
 public class SpigotTask implements UniversalTask {
 
     private final BukkitTask task;
-
-    boolean isRepeating;
+    private final boolean isRepeating;
 
     /**
      * 构造函数
      * @param task Bukkit任务
      */
     public SpigotTask(BukkitTask task) {
-        this.task = task;
+        this(task, false);
     }
 
     public SpigotTask(BukkitTask task, boolean isRepeating) {
@@ -47,8 +46,7 @@ public class SpigotTask implements UniversalTask {
 
     @Override
     public boolean isCurrentlyRunning() {
-        return Bukkit.getServer().getScheduler().isCurrentlyRunning(task.getTaskId()) &&
-                Bukkit.getServer().getScheduler().isQueued(task.getTaskId());
+        return Bukkit.getScheduler().isCurrentlyRunning(task.getTaskId());
     }
 
     @Override

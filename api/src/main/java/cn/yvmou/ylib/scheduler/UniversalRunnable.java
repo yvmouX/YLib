@@ -20,6 +20,7 @@ public class UniversalRunnable implements Runnable {
     public synchronized UniversalTask runTask(@NotNull Plugin plugin) throws IllegalArgumentException, IllegalStateException {
         checkNotYetScheduled();
         return setupTask(getScheduler().runTask(plugin, this));
+
     }
 
     @NotNull
@@ -94,7 +95,7 @@ public class UniversalRunnable implements Runnable {
     }
 
     private UniversalScheduler getScheduler() {
-        return YLib.getyLib().getScheduler();
+        return YLib.getYLib().getScheduler();
     }
 
     private void checkScheduled() {

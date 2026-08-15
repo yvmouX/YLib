@@ -13,13 +13,16 @@ import org.bukkit.plugin.Plugin;
 public class FoliaTask implements UniversalTask {
 
     private final ScheduledTask task;
+    private final boolean async;
 
     /**
      * 构造函数
      * @param task Folia调度任务
+     * @param async 是否为异步任务（由创建方明确指定，不依赖内部类名推断）
      */
-    public FoliaTask(ScheduledTask task) {
+    public FoliaTask(ScheduledTask task, boolean async) {
         this.task = task;
+        this.async = async;
     }
 
     @Override
@@ -54,23 +57,9 @@ public class FoliaTask implements UniversalTask {
         if (task.isRepeatingTask()) {
             return TaskType.REPEATING;
         }
-        if (isAsync()) {
+        if (async) {
             return TaskType.ASYNC;
         }
         return TaskType.SYNC;
-    }
-
-    /**
-     * 判断任务是否为异步任务
-     * 在Folia中，异步任务的类名中会包含"Async"字样
-     * @return boolean 如果是异步任务返回true
-     */
-    private boolean isAsync() {
-        try {
-            String className = task.getClass().getName();
-            return className.contains("Async") || className.contains("async");
-        } catch (Exception e) {
-            return false;
-        }
     }
 }

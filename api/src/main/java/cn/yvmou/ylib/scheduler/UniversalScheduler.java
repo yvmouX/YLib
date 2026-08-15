@@ -255,4 +255,13 @@ public interface UniversalScheduler {
      * @param location 目标位置
      */
     void teleportAsync(Entity entity, Location location);
+
+    /**
+     * 将非法延迟值钳制为合法值（小于等于 0 视为 1 tick）
+     * @param delay 原始延迟
+     * @return 钳制后的延迟
+     */
+    static long clampDelay(long delay) {
+        return delay <= 0 ? 1 : delay;
+    }
 }

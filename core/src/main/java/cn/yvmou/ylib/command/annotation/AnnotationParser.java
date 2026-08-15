@@ -1,5 +1,6 @@
 package cn.yvmou.ylib.command.annotation;
 
+import cn.yvmou.ylib.YLib;
 import cn.yvmou.ylib.command.args.Argument;
 import cn.yvmou.ylib.command.args.SuggestionProvider;
 import cn.yvmou.ylib.command.context.CommandContext;
@@ -68,7 +69,7 @@ public class AnnotationParser {
                     // 递归解析嵌套类的内容
                     parseClassComponents(groupNode, nestedInstance);
                 } catch (Exception e) {
-                    e.printStackTrace(); // 实际生产中建议使用日志记录
+                    logError("Failed to instantiate nested command class: " + nestedClass.getName(), e);
                 }
             } else if (subCommand != null && Modifier.isStatic(nestedClass.getModifiers())) {
                  try {
@@ -84,7 +85,7 @@ public class AnnotationParser {
                     // 递归解析嵌套类的内容
                     parseClassComponents(groupNode, nestedInstance);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logError("Failed to instantiate nested command class: " + nestedClass.getName(), e);
                 }
             }
         }
@@ -344,7 +345,7 @@ public class AnnotationParser {
                 try {
                     return (List<String>) method.invoke(instance, sender, context, currentInput);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logError("Suggestion provider '" + methodName + "' failed", e);
                     return java.util.Collections.emptyList();
                 }
             };
@@ -357,15 +358,32 @@ public class AnnotationParser {
                     try {
                         return (List<String>) method.invoke(instance);
                     } catch (Exception ex) {
-                        ex.printStackTrace();
+                        logError("Suggestion provider '" + methodName + "' failed", ex);
                         return java.util.Collections.emptyList();
                     }
                 };
             } catch (NoSuchMethodException ex) {
                 // 方法未找到
-                System.err.println("[YLib] Warning: Suggestion method '" + methodName + "' not found in " + instance.getClass().getName());
+                logWarn("Suggestion method '" + methodName + "' not found in " + instance.getClass().getName());
                 return null;
             }
+        }
+    }
+
+    private static void logError(String message, Throwable t) {
+        try {
+            YLib.getYLib().getLogger().error("{}", message, t);
+        } catch (IllegalStateException ignored) {
+            // YLib 未初始化时（命令解析阶段理论上不会发生），回退到标准错误输出
+            System.err.println("[YLib] " + message);
+        }
+    }
+
+    private static void logWarn(String message) {
+        try {
+            YLib.getYLib().getLogger().warn("{}", message);
+        } catch (IllegalStateException ignored) {
+            System.err.println("[YLib] " + message);
         }
     }
 }
