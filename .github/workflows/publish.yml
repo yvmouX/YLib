@@ -28,8 +28,8 @@ jobs:
       - name: 提取插件版本号
         id: extract_version
         run: |
-          # 从 build.gradle 中提取版本号，并写入环境变量 VERSION
-          VERSION=$(grep "^version *= *['\"]" build.gradle.kts | head -n1 | sed "s/.*version *= *['\"]\\(.*\\)['\"].*/\\1/")
+          # 从 gradle.properties 中提取版本号，并写入环境变量 VERSION
+          VERSION=$(grep "^version=" gradle.properties | head -n1 | cut -d= -f2)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: 检查版本是否已发布
@@ -38,11 +38,11 @@ jobs:
           # 检查 Git 仓库中是否已存在当前版本的标签
           # 如果存在，说明该版本已经发布过，后续步骤将跳过
           git fetch --tags --force
-          if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
-            echo "版本 v${{ env.VERSION }} 已存在，跳过发布。"
+          if git rev-parse "${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "版本 ${{ env.VERSION }} 已存在，跳过发布。"
             echo "skip=true" >> $GITHUB_OUTPUT
           else
-            echo "版本 v${{ env.VERSION }} 是新版本，继续发布。"
+            echo "版本 ${{ env.VERSION }} 是新版本，继续发布。"
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
@@ -68,7 +68,7 @@ jobs:
           # 强制获取所有远程标签
           git fetch --tags --force
           
-          current_tag="v${{ env.VERSION }}"
+          current_tag="${{ env.VERSION }}"
           
           # 获取上一个发布的标签（按时间排序，排除当前正在创建的标签）
           previous_tag=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -v "^$current_tag$" | head -n1)

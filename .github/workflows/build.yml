@@ -1,0 +1,28 @@
+name: 构建
+
+on:
+  push:
+    tags: [ '*' ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 设置 JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - name: 确保 gradlew 可执行
+        run: chmod +x ./gradlew
+
+      - name: 构建
+        run: ./gradlew build --no-daemon
+
+      # 与 JitPack 相同的发布路径，提前发现发布任务配置问题
+      - name: 验证发布到本地仓库
+        run: ./gradlew publishReleasePublicationToMavenLocal --no-daemon

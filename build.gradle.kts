@@ -14,6 +14,11 @@ tasks.shadowJar {
     //exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
 }
 
+// 根项目没有源码，其 jar 与 shadowJar 同名输出会引发发布任务的隐式依赖校验错误，直接禁用
+tasks.jar {
+    enabled = false
+}
+
 // 注册聚合源码的任务
 val sourcesJar by tasks.registering(Jar::class) {
     archiveClassifier.set("sources")
