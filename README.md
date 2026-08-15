@@ -34,7 +34,7 @@ dependencies {
 }
 
 shadowJar {
-    // 合并 META-INF/services 文件，YLib 的 ServiceLoader 依赖它
+    // 可选：合并 META-INF/services 文件（第三方服务扩展点需要，YLib 自身已不依赖）
     mergeServiceFiles()
     relocate("cn.yvmou.ylib", "YOUR_PACKAGE.lib.ylib")
 }
@@ -84,7 +84,7 @@ shadowJar {
                 </relocation>
             </relocations>
             <transformers>
-                <!-- 合并 META-INF/services 文件，YLib 的 ServiceLoader 依赖它 -->
+                <!-- 可选：合并 META-INF/services 文件（第三方服务扩展点需要，YLib 自身已不依赖） -->
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
             </transformers>
         </configuration>

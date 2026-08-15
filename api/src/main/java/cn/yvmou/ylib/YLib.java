@@ -68,22 +68,60 @@ public class YLib {
     @NotNull
     public UniversalScheduler getScheduler() {
         if (universalScheduler == null) {
-            ServiceLoader<UniversalSchedulerProvider> loader = ServiceLoader.load(UniversalSchedulerProvider.class);
-            Iterator<UniversalSchedulerProvider> it = loader.iterator();
-            while (it.hasNext()) {
-                try {
-                    UniversalSchedulerProvider provider = it.next();
-                    if (provider.getServerType() == serverType) {
-                        universalScheduler = provider.create(plugin);
-                        break;
+            String implSimpleName;
+            switch (serverType) {
+                case FOLIA:
+                    implSimpleName = "FoliaSchedulerProvider";
+                    break;
+                case PAPER:
+                    implSimpleName = "PaperSchedulerProvider";
+                    break;
+                case SPIGOT:
+                    implSimpleName = "SpigotSchedulerProvider";
+                    break;
+                default:
+                    implSimpleName = null;
+            }
+
+            Throwable failure = null;
+
+            // 1) 标准 ServiceLoader 查找
+            try {
+                ServiceLoader<UniversalSchedulerProvider> loader = ServiceLoader.load(UniversalSchedulerProvider.class);
+                Iterator<UniversalSchedulerProvider> it = loader.iterator();
+                while (it.hasNext()) {
+                    try {
+                        UniversalSchedulerProvider provider = it.next();
+                        if (provider.getServerType() == serverType) {
+                            universalScheduler = provider.create(plugin);
+                            break;
+                        }
+                    } catch (ServiceConfigurationError error) {
+                        if (failure == null) failure = error;
                     }
-                } catch (ServiceConfigurationError ignored) {
-                    // provider 类缺失（例如只打包了部分平台模块），跳过该条目继续尝试
+                }
+            } catch (Throwable throwable) {
+                if (failure == null) failure = throwable;
+            }
+
+            // 2) 重定位安全回退：接口所在包 + 实现类简单名，
+            //    使用加载接口的类加载器（插件自己的），不依赖线程上下文类加载器
+            if (universalScheduler == null && implSimpleName != null) {
+                try {
+                    Package pkg = UniversalSchedulerProvider.class.getPackage();
+                    if (pkg != null) {
+                        Class<?> impl = Class.forName(pkg.getName() + "." + implSimpleName, true, UniversalSchedulerProvider.class.getClassLoader());
+                        UniversalSchedulerProvider provider = (UniversalSchedulerProvider) impl.getDeclaredConstructor().newInstance();
+                        universalScheduler = provider.create(plugin);
+                    }
+                } catch (Throwable throwable) {
+                    if (failure == null) failure = throwable;
                 }
             }
+
             if (universalScheduler == null) {
                 throw new YLibException("Scheduler implementation not found for server type: " + serverType
-                        + ". Please ensure the platform-specific module is included.");
+                        + ". Please ensure the platform-specific module is included. Cause: " + failure, failure);
             }
         }
         return universalScheduler;
@@ -134,24 +172,7 @@ public class YLib {
     }
 
     private void initializeServices() throws YLibException {
-        YLibServices services = null;
-        try {
-            ServiceLoader<YLibServices> loader = ServiceLoader.load(YLibServices.class);
-            Iterator<YLibServices> it = loader.iterator();
-            while (it.hasNext()) {
-                try {
-                    services = it.next();
-                    break;
-                } catch (ServiceConfigurationError ignored) {
-                    // provider 类缺失，跳过该条目继续尝试
-                }
-            }
-        } catch (Exception e) {
-            throw new YLibException("Failed to locate YLib core services.", e);
-        }
-        if (services == null) {
-            throw new YLibException("YLib core services not found. Please ensure the core module is included.");
-        }
+        YLibServices services = ServiceLocator.locate(YLibServices.class, "CoreServices");
 
         this.logger = services.createLogger();
         this.configurationManager = services.createConfigurationManager(plugin, logger);
