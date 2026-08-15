@@ -1,8 +1,9 @@
-name: 发布Releases
+name: 发布
 
 on:
-#  push:
-#    branches: [ main ]
+  # 打 tag 时自动触发；也可在 Actions 页面手动触发
+  push:
+    tags: [ '*' ]
   workflow_dispatch:
 
 permissions:
@@ -25,24 +26,28 @@ jobs:
           distribution: zulu
           java-version: 21
 
-      - name: 提取插件版本号
+      - name: 提取版本号
         id: extract_version
         run: |
-          # 从 gradle.properties 中提取版本号，并写入环境变量 VERSION
-          VERSION=$(grep "^version=" gradle.properties | head -n1 | cut -d= -f2)
+          # 打 tag 触发时直接使用 tag 名；手动触发时从 gradle.properties 读取
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION=$(grep "^version=" gradle.properties | head -n1 | cut -d= -f2)
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: 检查版本是否已发布
+      - name: 检查 Release 是否已存在
         id: check_version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 检查 Git 仓库中是否已存在当前版本的标签
-          # 如果存在，说明该版本已经发布过，后续步骤将跳过
-          git fetch --tags --force
-          if git rev-parse "${{ env.VERSION }}" >/dev/null 2>&1; then
-            echo "版本 ${{ env.VERSION }} 已存在，跳过发布。"
+          # 只有 Release 尚不存在时才发布，避免重复运行覆盖已有发布
+          if gh release view "${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "Release ${{ env.VERSION }} 已存在，跳过发布。"
             echo "skip=true" >> $GITHUB_OUTPUT
           else
-            echo "版本 ${{ env.VERSION }} 是新版本，继续发布。"
+            echo "Release ${{ env.VERSION }} 不存在，继续发布。"
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
@@ -50,9 +55,13 @@ jobs:
         if: steps.check_version.outputs.skip == 'false'
         run: chmod +x ./gradlew
 
-      - name: 构建插件
+      - name: 构建
         if: steps.check_version.outputs.skip == 'false'
-        run: ./gradlew build
+        run: ./gradlew build --no-daemon
+
+      - name: 验证发布任务
+        if: steps.check_version.outputs.skip == 'false'
+        run: ./gradlew publishReleasePublicationToMavenLocal --no-daemon
 
       - name: 获取当前日期
         if: steps.check_version.outputs.skip == 'false'
@@ -67,17 +76,17 @@ jobs:
         run: |
           # 强制获取所有远程标签
           git fetch --tags --force
-          
+
           current_tag="${{ env.VERSION }}"
-          
+
           # 获取上一个发布的标签（按时间排序，排除当前正在创建的标签）
           previous_tag=$(git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | grep -v "^$current_tag$" | head -n1)
-          
+
           # 如果没有找到之前的标签，则为首次发布
           if [ -z "$previous_tag" ]; then
             previous_tag=""
           fi
-          
+
           echo "current_tag=${current_tag}" >> $GITHUB_OUTPUT
           echo "previous_tag=${previous_tag}" >> $GITHUB_OUTPUT
           echo "previous_commit=$(git rev-list -n 1 $previous_tag 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
@@ -103,26 +112,26 @@ jobs:
           repo_url="https://github.com/${{ github.repository }}"
           previous_tag="${{ steps.get_tags.outputs.previous_tag }}"
           previous_commit="${{ steps.get_tags.outputs.previous_commit }}"
-          
+
           # 确保我们获取的是真正新的提交
           if [ -n "$previous_commit" ]; then
             log_range="$previous_commit..HEAD"
           else
             log_range="HEAD" # 首次发布
           fi
-          
+
           # 获取新的提交记录（排除合并提交）
           new_commits=$(git log --pretty=format:"- [%h]($repo_url/commit/%H) %s" --no-merges "$log_range")
-          
+
           # 如果没有新提交，使用特殊消息
           if [ -z "$new_commits" ]; then
             new_commits="- 无新提交，版本标记更新"
           fi
-          
+
           # 保持原有效果：超过5条折叠
           first_five=$(echo "$new_commits" | head -n 5)
           remaining=$(echo "$new_commits" | tail -n +6)
-          
+
           if [ -z "$remaining" ]; then
             changelog="$new_commits"
           else
@@ -134,7 +143,7 @@ jobs:
           $remaining
           </details>"
           fi
-          
+
           # 输出结果
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$changelog" >> $GITHUB_OUTPUT
@@ -148,16 +157,16 @@ jobs:
           github-tag: "${{ env.VERSION }}"
           version: "${{ env.VERSION }}"
           version-type: release
-          github-prerelease: false
+          github-prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'alpha') || contains(env.VERSION, 'rc') }}
           files: build/libs/*.jar
           changelog: |
-            # 🚀 Release v${{ env.VERSION }}
+            # 🚀 Release ${{ env.VERSION }}
             **Release Date**: ${{ steps.get-date.outputs.current-date }}
-            **Java Version**: 17+
+            **Java Version**: 8+ (Folia/Paper 专用模块为 17+)
 
             ## Commit Message
             ${{ steps.generate_changelog.outputs.changelog }}
-            
+
             ${{ steps.github_release_notes.outputs.body }}
 
             ## Version History
