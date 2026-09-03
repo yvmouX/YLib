@@ -14,7 +14,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 注解解析器，将 @Command 标注的类转换为 CommandNode 树
@@ -105,104 +108,130 @@ public class AnnotationParser {
        └─────────────────────────────────────────────────────────────────┘
      */
     /**
-     * 解析 @SubCommand 注解的方法，构建命令树分支
+     * 解析 @SubCommand 注解的方法，构建命令树分支。
+     * <p>
+     * 路径支持两种写法（可混用）：
+     * </p>
+     * <ul>
+     *   <li>纯字面量：{@code @SubCommand("give")}——方法上带 {@code @Arg} 的参数按声明顺序追加为参数节点</li>
+     *   <li>带占位符：{@code @SubCommand("give <player> <item>")}——占位符段按名称绑定到方法上
+     *       对应的 {@code @Arg} 参数（类型、补全、可选性随参数）；路径中未出现的 {@code @Arg}
+     *       参数仍按声明顺序追加在路径末端</li>
+     * </ul>
      */
     private static void parseSubCommand(CommandNode root, Object instance, Method method, SubCommand annotation) {
-        // 1. 获取或创建子命令节点
-        CommandNode subCommandNode = getOrCreateSubCommandNode(root, annotation.value());
+        // 1. 沿路径获取/创建节点；<占位符> 段绑定到方法上对应的 @Arg 参数，并记录已消费的参数名
+        Set<String> consumedArgs = new HashSet<>();
+        CommandNode subCommandNode = getOrCreateSubCommandNode(root, annotation.value(), instance, method, consumedArgs);
 
-        // 2. 依次添加参数节点，并推进节点指针
-        // 如果方法参数中有 @Optional，则在对应位置也绑定执行器
-        appendArgumentNodesWithOptional(subCommandNode, instance, method);
+        // 2. 追加路径中未出现的 @Arg 参数节点，并沿节点链绑定执行器
+        bindArgumentsAndExecutor(subCommandNode, instance, method, consumedArgs);
 
         // 3. 配置权限与描述（在 subCommandNode 路径下的所有节点上生效）
         configureNode(subCommandNode, annotation);
     }
 
     /**
-     * 获取或创建子命令字面量节点 (支持嵌套路径，如 "reload config")
+     * 获取或创建子命令节点 (支持嵌套路径，如 "reload config" 与参数占位符 "give <player> <item>")
+     * <p>
+     * 此重载供嵌套类分组节点使用：路径中的 {@code <name>} 占位符段会降级为字符串参数节点
+     * （分组节点没有对应方法参数可绑定；子方法的 @Arg 参数仍可通过上下文按名取值）。
+     * </p>
      */
     private static CommandNode getOrCreateSubCommandNode(CommandNode root, String commandValue) {
+        return getOrCreateSubCommandNode(root, commandValue, null, null, null);
+    }
+
+    /**
+     * 获取或创建子命令节点，路径按空格分段：字面量段创建/复用字面量节点；
+     * {@code <name>} 占位符段创建参数节点，类型与补全取自 method 上对应的
+     * {@code @Arg} 参数（其次按参数名匹配），并把参数名记入 consumedArgs。
+     */
+    private static CommandNode getOrCreateSubCommandNode(CommandNode root, String commandValue,
+                                                         Object instance, Method method, Set<String> consumedArgs) {
         String subCommandName = commandValue.trim();
-        
+
         // 支持主命令默认执行逻辑：当 @SubCommand("") 时，直接在 root 上操作
         if (subCommandName.isEmpty()) {
             return root;
         }
-        
-        // 支持多级子命令，例如 @SubCommand("reload config")
+
+        // 支持多级子命令与参数占位符，例如 @SubCommand("reload config")、@SubCommand("give <player> <item>")
         String[] parts = subCommandName.split("\\s+");
         CommandNode currentNode = root;
-        
+
         for (String part : parts) {
-            CommandNode literalNode = CommandNode.literal(part);
-            currentNode = getOrAddChild(currentNode, literalNode);
+            if (isPlaceholder(part)) {
+                String argName = part.substring(1, part.length() - 1);
+                Argument<?> argument = null;
+                if (method != null) {
+                    argument = buildArgumentForParam(instance, method, argName);
+                    if (argument != null) {
+                        consumedArgs.add(argName);
+                    } else {
+                        logWarn("Placeholder <" + argName + "> in @SubCommand(\"" + commandValue
+                                + "\") does not match any parameter of "
+                                + method.getDeclaringClass().getSimpleName() + "#" + method.getName()
+                                + ", falling back to a string argument");
+                    }
+                }
+                if (argument == null) {
+                    argument = Argument.string(argName);
+                }
+                currentNode = getOrAddChild(currentNode, CommandNode.argument(argument));
+            } else {
+                currentNode = getOrAddChild(currentNode, CommandNode.literal(part));
+            }
         }
-        
+
         return currentNode;
     }
 
-    /**
-     * 解析并追加参数节点，同时处理 @Optional 逻辑
-     */
-    private static void appendArgumentNodesWithOptional(CommandNode startNode, Object instance, Method method) {
-        CommandNode currentNode = startNode;
-        Parameter[] parameters = method.getParameters();
-        
-        // 统计带有 @Arg 的参数（实际命令参数）
-        boolean hasArgs = false;
-        boolean firstArgIsOptional = false;
-        
-        for (Parameter param : parameters) {
-            if (param.isAnnotationPresent(Arg.class)) {
-                hasArgs = true;
-                if (param.isAnnotationPresent(Optional.class)) {
-                    firstArgIsOptional = true;
-                }
-                // 只需要检查第一个找到的 @Arg 参数即可
-                break;
-            }
-        }
-        
-        // 如果没有命令参数（只有 Sender/Context 等注入参数），或者第一个命令参数是可选的
-        // 那么 startNode 必须绑定执行器
-        if (!hasArgs || firstArgIsOptional) {
-            startNode.executes(createExecutor(instance, method));
-        }
+    private static boolean isPlaceholder(String segment) {
+        return segment.length() > 2 && segment.startsWith("<") && segment.endsWith(">");
+    }
 
-        for (int i = 0; i < parameters.length; i++) {
-            Parameter parameter = parameters[i];
-            if (!parameter.isAnnotationPresent(Arg.class)) {
+    /**
+     * 在路径节点下追加未消费的 @Arg 参数节点，并沿节点链绑定执行器。
+     * <p>
+     * 执行器绑定规则——命令必须在每个「可以到此结束」的节点上可执行：
+     * 最后一个参数节点、后继参数为可选参数的节点，以及链首参数为可选时的路径节点本身。
+     * 路径占位符已消费全部参数时，执行器绑定在路径末端节点上。
+     * </p>
+     */
+    private static void bindArgumentsAndExecutor(CommandNode startNode, Object instance, Method method, Set<String> consumedArgs) {
+        List<CommandNode> chain = new ArrayList<>();
+        CommandNode currentNode = startNode;
+
+        for (Parameter parameter : method.getParameters()) {
+            Arg argAnnotation = parameter.getAnnotation(Arg.class);
+            if (argAnnotation == null || consumedArgs.contains(argAnnotation.value())) {
                 continue;
             }
-            
-            Arg argAnnotation = parameter.getAnnotation(Arg.class);
-            Argument<?> argument = detectArgumentType(method, argAnnotation.value());
+            Argument<?> argument = buildArgumentForParam(instance, method, argAnnotation.value());
             if (argument == null) {
                 argument = Argument.string(argAnnotation.value());
             }
+            currentNode = getOrAddChild(currentNode, CommandNode.argument(argument));
+            chain.add(currentNode);
+        }
 
-            // 处理动态补全
-            if (!argAnnotation.suggestion().isEmpty()) {
-                SuggestionProvider provider = createSuggestionProvider(instance, argAnnotation.suggestion());
-                if (provider != null) {
-                    argument.suggests(provider);
-                }
-            }
+        if (chain.isEmpty()) {
+            // 无命令参数（或全部由路径占位符消费）：路径末端即可执行
+            startNode.executes(createExecutor(instance, method));
+            return;
+        }
 
-            // 如果参数被标记为 @Optional，同步状态到 Argument 对象
-            if (parameter.isAnnotationPresent(Optional.class)) {
-                argument.optional();
+        for (int i = 0; i < chain.size(); i++) {
+            boolean last = i == chain.size() - 1;
+            boolean nextOptional = !last && chain.get(i + 1).getArgument().isOptional();
+            if (last || nextOptional) {
+                chain.get(i).executes(createExecutor(instance, method));
             }
-
-            CommandNode childNode = CommandNode.argument(argument);
-            currentNode = getOrAddChild(currentNode, childNode);
-            
-            // 如果当前参数是可选的，或者它是链条的最后一个
-            // 绑定执行器：即在该节点被输入后，命令可以正常结束
-            if (i == parameters.length - 1 || (i + 1 < parameters.length && parameters[i + 1].isAnnotationPresent(Optional.class))) {
-                currentNode.executes(createExecutor(instance, method));
-            }
+        }
+        // 链首参数可选：不带任何参数也应能执行
+        if (chain.get(0).getArgument().isOptional()) {
+            startNode.executes(createExecutor(instance, method));
         }
     }
 
@@ -240,22 +269,29 @@ public class AnnotationParser {
     }
 
     /**
-     * 根据方法参数类型推断 Argument 类型
-     * 
-     * @param method 目标方法
-     * @param argName 参数名称（用于 Argument 命名）
-     * @return 对应的 Argument 对象，无法推断时返回 null
+     * 为指定参数名构建参数定义：优先匹配 {@code @Arg(value)} 参数，其次按参数名匹配
+     * （需编译时开启 -parameters）。类型取自参数类型，补全取自 {@code @Arg(suggestion)}，
+     * 可选性取自 {@code @Optional}。找不到对应参数时返回 null。
      */
-    private static Argument<?> detectArgumentType(Method method, String argName) {
+    private static Argument<?> buildArgumentForParam(Object instance, Method method, String argName) {
         for (Parameter parameter : method.getParameters()) {
             Arg argAnnotation = parameter.getAnnotation(Arg.class);
-            if (argAnnotation != null && argAnnotation.value().equals(argName)) {
-                return createArgumentForType(parameter.getType(), argName);
+            boolean byAnnotation = argAnnotation != null && argAnnotation.value().equals(argName);
+            boolean byName = argAnnotation == null && parameter.getName().equals(argName);
+            if (!byAnnotation && !byName) {
+                continue;
             }
-            // 如果参数名匹配（需要编译时开启 -parameters，这里作为备选）
-            if (parameter.getName().equals(argName)) {
-                return createArgumentForType(parameter.getType(), argName);
+            Argument<?> argument = createArgumentForType(parameter.getType(), argName);
+            if (argAnnotation != null && !argAnnotation.suggestion().isEmpty()) {
+                SuggestionProvider provider = createSuggestionProvider(instance, argAnnotation.suggestion());
+                if (provider != null) {
+                    argument.suggests(provider);
+                }
             }
+            if (parameter.isAnnotationPresent(Optional.class)) {
+                argument.optional();
+            }
+            return argument;
         }
         return null;
     }
