@@ -89,14 +89,33 @@ public class LoggerImpl implements Logger {
 
     private void log(@NotNull ChatColor levelColor, @NotNull String levelName, @NotNull String format, @NotNull Object... args) {
         String msg = LoggerUtil.formatMessage(format, args);
-        String fullMessage = String.format("%s§8[%s§l§n%s§8]§r %s%s",
-            PluginInfo.getLoggerPrefix(), levelColor, levelName, levelColor, msg);
 
         if (target != null) {
-            target.sendMessage(fullMessage);
-        } else {
-            // 默认发送到控制台
-            Bukkit.getConsoleSender().sendMessage(fullMessage);
+            // 发送给指定接收者：带上级别标签，便于玩家/管理员分辨
+            target.sendMessage(String.format("%s§8[%s§l§n%s§8]§r %s%s",
+                    PluginInfo.getLoggerPrefix(), levelColor, levelName, levelColor, msg));
+            return;
+        }
+
+        String prefix = "[" + PluginInfo.getLoggerPrefix() + "] ";
+        switch (levelName) {
+            case "WARN":
+            case "ERROR":
+                // 走标准日志级别，便于日志过滤与监控；服务器会按级别整行着色，
+                // 因此去掉消息自带的颜色代码（日志系统不翻译颜色代码）
+                Bukkit.getLogger().log("ERROR".equals(levelName)
+                                ? java.util.logging.Level.SEVERE
+                                : java.util.logging.Level.WARNING,
+                        prefix + ChatColor.stripColor(msg));
+                break;
+            case "DEBUG":
+                // 标准日志级别没有 DEBUG，保留标签以便区分
+                Bukkit.getConsoleSender().sendMessage(prefix + "§8[DEBUG]§r " + msg);
+                break;
+            default:
+                // INFO 走控制台发送，保留消息自带的颜色；
+                // 级别标签交给服务器日志输出，避免出现两个级别标签
+                Bukkit.getConsoleSender().sendMessage(prefix + msg);
         }
     }
 }
