@@ -1,3 +1,4 @@
+cn.yvmou.ylib.scheduler.CanvasSchedulerProvider
 cn.yvmou.ylib.scheduler.FoliaSchedulerProvider
 cn.yvmou.ylib.scheduler.PaperSchedulerProvider
 cn.yvmou.ylib.scheduler.SpigotSchedulerProvider

@@ -41,8 +41,8 @@ allprojects {
 
     java {
         when (project.path) {
-            // Folia 和 Paper 必须是 Java 17+
-            ":platform:folia", ":platform:paper" -> {
+            // Folia、Paper 和 Canvas 必须是 Java 17+
+            ":platform:canvas", ":platform:folia", ":platform:paper" -> {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17
             }
@@ -72,6 +72,7 @@ allprojects {
 dependencies {
     api(project(":api"))
     api(project(":core"))
+    api(project(":platform:canvas"))
     api(project(":platform:folia"))
     api(project(":platform:spigot"))
     api(project(":platform:paper"))
@@ -90,7 +91,7 @@ publishing {
 
             pom {
                 name.set("YLib")
-                description.set("A Minecraft library for Folia servers (Spigot/Paper compatible)")
+                description.set("A Minecraft library for Folia/Canvas servers (Spigot/Paper compatible)")
                 url.set("https://github.com/yvmouX/YLib")
 
                 licenses {

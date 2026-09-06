@@ -12,6 +12,13 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings({"SpellCheckingInspection", "unused"})
 public enum ServerType {
 
+    // Canvas 必须先于 FOLIA 探测：Canvas（Paper fork）同样含 RegionizedServer，
+    // 若 FOLIA 先命中会把 Canvas 误判为 Folia
+    CANVAS(
+        "Canvas",
+        "io.canvasmc.canvas.region.RegionThreadingTickManager"
+    ),
+
     FOLIA(
         "Folia",
         "io.papermc.paper.threadedregions.RegionizedServer"
@@ -68,6 +75,8 @@ public enum ServerType {
     public String toString() {
         if (this == ServerType.UNKNOWN) {
             return "Unknown Server Type";
+        } if (this == ServerType.CANVAS) {
+            return "Canvas";
         } if (this == ServerType.FOLIA) {
             return "Folia";
         } else if (this == ServerType.PAPER) {

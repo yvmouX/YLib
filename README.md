@@ -1,13 +1,14 @@
 # YLib &nbsp; &nbsp; [![GitHub Release](https://img.shields.io/github/release/yvmouX/YLib.svg?style=flat)]() &nbsp; [![](https://jitpack.io/v/yvmouX/YLib.svg)](https://jitpack.io/#yvmouX/YLib)
 
-This is a lib for my minecraft plugins to simplifies development and provides Folia support implementations
+This is a lib for my minecraft plugins to simplifies development and provides Folia/Canvas support implementations
 
 ## Description
 
-**Java Version**: 8+ (Folia/Paper 专用模块为 17+)
+**Java Version**: 8+ (Folia/Paper/Canvas 专用模块为 17+)
 
 **Supported**:
 
+- Canvas (Paper fork, Folia-compatible)
 - Folia
 - Paper
 - Spigot
@@ -118,7 +119,7 @@ public void onEnable() {
 
 ### Scheduler
 
-Platform-agnostic scheduler, behaves the same on Folia / Paper / Spigot:
+Platform-agnostic scheduler, behaves the same on Canvas / Folia / Paper / Spigot:
 
 ```java
 // 20 ticks later
@@ -181,6 +182,7 @@ YLib/
 ├── api/                  # 对外暴露的接口 (Scheduler, Config, Command)
 ├── core/                 # 核心逻辑：API 定义、具体实现 (Java 8)
 ├── platform/             # 平台适配层
+│   ├── canvas/           # Canvas 专用实现 (Java 17, 复用 Folia 调度实现)
 │   ├── folia/            # Folia 专用实现 (Java 17)
 │   ├── paper/            # Paper 专用实现 (Java 17)
 │   └── spigot/           # Spigot 基础实现 (Java 8)

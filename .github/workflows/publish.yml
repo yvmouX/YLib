@@ -162,7 +162,7 @@ jobs:
           changelog: |
             # 🚀 Release v${{ env.VERSION }}
             **Release Date**: ${{ steps.get-date.outputs.current-date }}
-            **Java Version**: 8+ (Folia/Paper 专用模块为 17+)
+            **Java Version**: 8+ (Canvas/Folia/Paper 专用模块为 17+)
 
             ## Commit Message
             ${{ steps.generate_changelog.outputs.changelog }}

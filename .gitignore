@@ -31,3 +31,4 @@ install.bat
 bin/
 tmp/
 *.tmp
+/platform/canvas/build

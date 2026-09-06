@@ -70,6 +70,9 @@ public class YLib {
         if (universalScheduler == null) {
             String implSimpleName;
             switch (serverType) {
+                case CANVAS:
+                    implSimpleName = "CanvasSchedulerProvider";
+                    break;
                 case FOLIA:
                     implSimpleName = "FoliaSchedulerProvider";
                     break;
