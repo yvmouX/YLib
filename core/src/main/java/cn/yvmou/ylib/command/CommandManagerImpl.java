@@ -245,18 +245,33 @@ public class CommandManagerImpl implements CommandManager {
     }
 
     private void collectPermissionDefaults(@NotNull CommandNode node, @NotNull Set<String> registered) {
-        String permission = node.getPermission();
         String defaultValue = node.getPermissionDefault();
-        if (permission != null && !permission.isEmpty()
-                && defaultValue != null && !defaultValue.isEmpty()
-                && registered.add(permission)) {
+        String[] children = node.getPermissionChildren();
+        boolean hasChildren = children != null && children.length > 0;
+        // 注册目标名：permissionParent 优先（不参与命令门禁），否则用节点自身 permission
+        String target = node.getPermissionParent();
+        if (target == null || target.isEmpty()) {
+            target = node.getPermission();
+        }
+        boolean hasDefault = defaultValue != null && !defaultValue.isEmpty();
+        if (target != null && !target.isEmpty() && (hasDefault || hasChildren) && registered.add(target)) {
             try {
-                PermissionDefault defaultEnum = PermissionDefault.getByName(defaultValue);
-                if (defaultEnum != null && Bukkit.getPluginManager().getPermission(permission) == null) {
-                    Bukkit.getPluginManager().addPermission(new Permission(permission, defaultEnum));
+                PermissionDefault defaultEnum = hasDefault
+                        ? PermissionDefault.getByName(defaultValue)
+                        : PermissionDefault.FALSE;
+                if (defaultEnum != null && Bukkit.getPluginManager().getPermission(target) == null) {
+                    if (hasChildren) {
+                        Map<String, Boolean> childrenMap = new HashMap<>();
+                        for (String child : children) {
+                            childrenMap.put(child, true);
+                        }
+                        Bukkit.getPluginManager().addPermission(new Permission(target, defaultEnum, childrenMap));
+                    } else {
+                        Bukkit.getPluginManager().addPermission(new Permission(target, defaultEnum));
+                    }
                 }
             } catch (Exception e) {
-                logger.debug("注册权限默认值失败 {}: {}", permission, e.getMessage());
+                logger.debug("注册权限默认值失败 {}: {}", target, e.getMessage());
             }
         }
         for (CommandNode child : node.getChildren()) {

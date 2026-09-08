@@ -42,7 +42,9 @@ public class AnnotationParser {
                 .aliases(commandAnnotation.aliases())
                 .description(commandAnnotation.description())
                 .permission(commandAnnotation.permission())
-                .permissionDefault(commandAnnotation.permissionDefault());
+                .permissionDefault(commandAnnotation.permissionDefault())
+                .permissionChildren(commandAnnotation.permissionChildren())
+                .permissionParent(commandAnnotation.permissionParent());
 
         // 解析类中的所有命令组件（方法和嵌套类）
         parseClassComponents(root, commandInstance);
@@ -266,6 +268,12 @@ public class AnnotationParser {
         }
         if (!annotation.permissionDefault().isEmpty()) {
             node.permissionDefault(annotation.permissionDefault());
+        }
+        if (annotation.permissionChildren().length > 0) {
+            node.permissionChildren(annotation.permissionChildren());
+        }
+        if (!annotation.permissionParent().isEmpty()) {
+            node.permissionParent(annotation.permissionParent());
         }
         if (!annotation.description().isEmpty()) {
             node.description(annotation.description());

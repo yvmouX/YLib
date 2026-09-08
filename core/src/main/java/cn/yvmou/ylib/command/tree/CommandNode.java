@@ -76,6 +76,17 @@ public class CommandNode {
      * 为空表示不自动注册，保持旧的"仅检查"行为。
      */
     private String permissionDefault;
+
+    /**
+     * 父权限聚合子权限名（可选）：注册一个 children 均为 true 的父权限节点
+     * （等价于 plugin.yml 的 children），授予父权限即自动拥有全部子权限。
+     */
+    private String[] permissionChildren;
+
+    /**
+     * 指定要注册的父权限名（可选）：优先级高于 permission，仅用于权限注册，不参与命令门禁。
+     */
+    private String permissionParent;
     
     /**
      * 命令描述 - 用于帮助信息或命令列表
@@ -193,6 +204,28 @@ public class CommandNode {
      */
     public CommandNode permissionDefault(String permissionDefault) {
         this.permissionDefault = permissionDefault;
+        return this;
+    }
+
+    /**
+     * 设置父权限聚合的子权限名（注册 children 均为 true 的父节点）
+     *
+     * @param permissionChildren 子权限名列表
+     * @return 当前节点，支持链式调用
+     */
+    public CommandNode permissionChildren(String... permissionChildren) {
+        this.permissionChildren = permissionChildren;
+        return this;
+    }
+
+    /**
+     * 设置要注册的父权限名（优先级高于 permission，仅用于权限注册，不参与命令门禁）
+     *
+     * @param permissionParent 父权限名
+     * @return 当前节点，支持链式调用
+     */
+    public CommandNode permissionParent(String permissionParent) {
+        this.permissionParent = permissionParent;
         return this;
     }
     
@@ -323,6 +356,24 @@ public class CommandNode {
      */
     public String getPermissionDefault() {
         return permissionDefault;
+    }
+
+    /**
+     * 获取父权限聚合的子权限名
+     *
+     * @return 子权限名数组（可能为 null）
+     */
+    public String[] getPermissionChildren() {
+        return permissionChildren;
+    }
+
+    /**
+     * 获取要注册的父权限名
+     *
+     * @return 父权限名（可能为 null）
+     */
+    public String getPermissionParent() {
+        return permissionParent;
     }
     
     /**
