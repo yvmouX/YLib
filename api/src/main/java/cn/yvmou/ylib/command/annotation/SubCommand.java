@@ -27,4 +27,10 @@ public @interface SubCommand {
     String value();
     String permission() default "";
     String description() default "";
+    /**
+     * 权限默认值（可选，等价于 plugin.yml 中 permissions 段的 default），
+     * 取值 "true"/"false"/"op"/"notop"；非空时 YLib 注册命令时自动向 Bukkit 注册该权限节点。
+     * 为空表示不自动注册。注意：若 plugin.yml 已声明同名节点则以其为准。
+     */
+    String permissionDefault() default "";
 }

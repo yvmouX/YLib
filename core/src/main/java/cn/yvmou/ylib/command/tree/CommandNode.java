@@ -70,6 +70,14 @@ public class CommandNode {
     private String permission;
     
     /**
+     * 权限默认值（可选）：如 "true"/"false"/"op"/"notop"
+     * 非空时 YLib 注册命令时自动向 Bukkit 注册该权限节点并赋予默认值
+     * （等价于在 plugin.yml 里声明 permissions 段的 default）。
+     * 为空表示不自动注册，保持旧的"仅检查"行为。
+     */
+    private String permissionDefault;
+    
+    /**
      * 命令描述 - 用于帮助信息或命令列表
      * 例如："给予玩家物品", "设置玩家等级"
      */
@@ -174,6 +182,17 @@ public class CommandNode {
      */
     public CommandNode permission(String permission) {
         this.permission = permission;
+        return this;
+    }
+
+    /**
+     * 设置权限默认值（等价于 plugin.yml 的 default）
+     *
+     * @param permissionDefault "true"/"false"/"op"/"notop"，空串表示不注册默认
+     * @return 当前节点，支持链式调用
+     */
+    public CommandNode permissionDefault(String permissionDefault) {
+        this.permissionDefault = permissionDefault;
         return this;
     }
     
@@ -295,6 +314,15 @@ public class CommandNode {
      */
     public String getPermission() {
         return permission;
+    }
+
+    /**
+     * 获取权限默认值
+     *
+     * @return 默认值字符串（可能为 null/空）
+     */
+    public String getPermissionDefault() {
+        return permissionDefault;
     }
     
     /**
