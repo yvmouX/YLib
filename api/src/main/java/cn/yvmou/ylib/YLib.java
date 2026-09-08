@@ -3,6 +3,8 @@ package cn.yvmou.ylib;
 import cn.yvmou.ylib.command.CommandManager;
 import cn.yvmou.ylib.config.ConfigurationManager;
 import cn.yvmou.ylib.logger.Logger;
+import cn.yvmou.ylib.message.MessageService;
+import cn.yvmou.ylib.message.MessageSettings;
 import cn.yvmou.ylib.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.scheduler.UniversalSchedulerProvider;
 import org.bukkit.plugin.Plugin;
@@ -56,6 +58,8 @@ public class YLib {
     private CommandManager commandManager;
     private ConfigurationManager configurationManager;
     private Logger logger;
+    private volatile MessageService messageService;
+    private YLibServices services;
 
     private YLib(@NotNull JavaPlugin plugin) throws YLibException {
         this.plugin = plugin;
@@ -140,6 +144,40 @@ public class YLib {
         return configurationManager;
     }
 
+    // ========= 多语言服务 =========
+
+    /**
+     * 创建多语言消息服务。
+     * <p>
+     * 通常一个插件只需创建一次；首个创建的实例会被缓存并可通过 {@link #getMessageService()} 获取。
+     * </p>
+     *
+     * @param settings 消息服务配置
+     * @return 新的 MessageService 实例
+     */
+    @NotNull
+    public MessageService createMessageService(@NotNull MessageSettings settings) {
+        MessageService service = services.createMessageService(plugin, logger, settings);
+        if (messageService == null) {
+            messageService = service;
+        }
+        return service;
+    }
+
+    /**
+     * 获取首个通过 {@link #createMessageService(MessageSettings)} 创建的消息服务实例。
+     *
+     * @throws IllegalStateException 尚未创建过消息服务
+     */
+    @NotNull
+    public MessageService getMessageService() {
+        MessageService service = messageService;
+        if (service == null) {
+            throw new IllegalStateException("MessageService has not been created yet. Call createMessageService(settings) first.");
+        }
+        return service;
+    }
+
     // ========= 日志服务 ==========
     public Logger getLogger() {
         return logger;
@@ -176,6 +214,7 @@ public class YLib {
 
     private void initializeServices() throws YLibException {
         YLibServices services = ServiceLocator.locate(YLibServices.class, "CoreServices");
+        this.services = services;
 
         this.logger = services.createLogger();
         this.configurationManager = services.createConfigurationManager(plugin, logger);

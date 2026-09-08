@@ -173,6 +173,24 @@ public class DatabaseConfig {
 ylib.getConfigurationManager().registerConfiguration(DatabaseConfig.class);
 ```
 
+### Messages (i18n)
+
+```java
+import cn.yvmou.ylib.message.MessageService;
+import cn.yvmou.ylib.message.MessageSettings;
+
+MessageService messages = ylib.createMessageService(MessageSettings.builder()
+        .defaultLanguage("en")
+        .availableLanguages("en", "zh_CN")
+        .filePattern("lang_%s.yml")      // 语言文件名模式
+        .languageFolder("lang")          // 语言文件目录，默认 lang/（可用 languageFolder("") 回到插件根目录）
+        .prefixKey("prefix")
+        .useClientLocale(false)
+        .build());
+
+messages.send(sender, "greeting", player.getName());
+```
+
 更详细的文档见 [文档/](文档/Home.md)。
 
 ## Project structure
