@@ -1,7 +1,12 @@
 package cn.yvmou.ylib.command.help;
 
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -163,6 +168,18 @@ public final class CommandHelp {
         return this;
     }
 
+    /**
+     * 设置页脚翻页提示与翻页按钮使用的命令标签（如 {@code "ptx"}）。
+     * <p>
+     * 自动扫描（{@code entriesFrom}）会取 {@code @Command(name)} 作为默认值，
+     * 但那通常是全名（如 {@code playertaskx}）；设置了别名时用本方法换成短名，
+     * 玩家看到和点到的都是短命令。
+     */
+    public CommandHelp commandLabel(@NotNull String commandLabel) {
+        this.commandLabel = commandLabel;
+        return this;
+    }
+
     /** 添加一条命令帮助。 */
     public CommandHelp entry(@NotNull String usage, @NotNull String description) {
         return entry(usage, description, null);
@@ -242,7 +259,7 @@ public final class CommandHelp {
         }
 
         int totalPages = totalPages();
-        int currentPage = Math.min(page, totalPages);
+        int currentPage = clampedCurrentPage();
         int from = (currentPage - 1) * pageSize;
         int to = Math.min(from + pageSize, entries.size());
 
@@ -293,9 +310,57 @@ public final class CommandHelp {
 
     /** 把帮助发送给指定接收者。 */
     public void send(@NotNull CommandSender sender) {
-        for (String line : lines()) {
-            sender.sendMessage(line);
+        List<String> all = lines();
+        boolean hasFooter = totalPages() > 1;
+        int contentEnd = hasFooter ? all.size() - 1 : all.size();
+        for (int i = 0; i < contentEnd; i++) {
+            sender.sendMessage(all.get(i));
         }
+        if (!hasFooter) {
+            return;
+        }
+        if (sender instanceof Player) {
+            // 玩家收到可点击的翻页按钮；lines() 里的纯文本页脚只服务于控制台与测试断言
+            ((Player) sender).spigot().sendMessage(footerComponents());
+        } else {
+            sender.sendMessage(all.get(all.size() - 1));
+        }
+    }
+
+    /**
+     * 渲染可点击的页脚：上一页 / 下一页按钮直接运行翻页命令。
+     * <p>
+     * 用 BungeeCord 聊天组件而不是 Adventure：spigot-api 只自带前者，
+     * 不给 api 模块引入 Paper 依赖。按钮用 {@code RUN_COMMAND}，
+     * 悬停说明目标页码；控制台没有「点击」，仍走纯文本页脚。
+     */
+    public BaseComponent[] footerComponents() {
+        int totalPages = totalPages();
+        int currentPage = clampedCurrentPage();
+        TextComponent root = new TextComponent(color("&8第 " + currentPage + '/' + totalPages + " 页"));
+        if (currentPage > 1) {
+            root.addExtra(pageButton(currentPage - 1, " &8· &e« 上一页", "回到第 " + (currentPage - 1) + " 页"));
+        }
+        if (currentPage < totalPages) {
+            root.addExtra(pageButton(currentPage + 1, " &8· &e下一页 »", "翻到第 " + (currentPage + 1) + " 页"));
+        }
+        return new BaseComponent[]{root};
+    }
+
+    /** 一个翻页按钮：点击执行翻页命令，悬停显示目标页码。 */
+    private TextComponent pageButton(int targetPage, String text, String hover) {
+        TextComponent component = new TextComponent(color(text));
+        // commandLabel 是 @Command(name) 或 commandLabel(...) 的裸名，执行命令要带前导斜杠
+        component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                "/" + (commandLabel == null ? "help" : commandLabel) + " help " + targetPage));
+        component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                new BaseComponent[]{new TextComponent(color("&7" + hover))}));
+        return component;
+    }
+
+    /** 当前页码夹到有效范围后的值；正文与页脚共用，避免两处各算一遍。 */
+    private int clampedCurrentPage() {
+        return Math.min(page, totalPages());
     }
 
     /** 第 index 个条目之前（不含）有多少条命令，用于把条目下标换算成命令序号。 */
