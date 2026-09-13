@@ -1,7 +1,7 @@
 package cn.yvmou.ylib.message;
 
 import cn.yvmou.ylib.logger.Logger;
-import org.bukkit.ChatColor;
+import cn.yvmou.ylib.text.TextRenderer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -365,7 +365,10 @@ public class MessageServiceImpl implements MessageService {
 
     @NotNull
     private String colorize(@NotNull String message) {
-        return ChatColor.translateAlternateColorCodes('&', message);
+        // 交给 TextRenderer：MiniMessage 标签、& 码、§ 码都能处理，输出统一的 § 色码。
+        // 以前这里只有 ChatColor.translateAlternateColorCodes，语言文件里写 <gray> 会被原样
+        // 发给玩家显示成标签文本——那是所有消费方都要各自包一层的原因。
+        return TextRenderer.render(message);
     }
 
     /**

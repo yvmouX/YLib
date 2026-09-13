@@ -191,6 +191,17 @@ MessageService messages = ylib.createMessageService(MessageSettings.builder()
 messages.send(sender, "greeting", player.getName());
 ```
 
+Text is rendered by MiniMessage with legacy color codes still supported, so `<green>`,
+`&a` and `§a` all work (and may be mixed) in language files and code. The message service
+returns already-rendered `§` strings; render arbitrary text with `TextRenderer`:
+
+```java
+import cn.yvmou.ylib.text.TextRenderer;
+
+String line = TextRenderer.render("<yellow>Mining</yellow> &8| &f50%");
+String plain = TextRenderer.strip("<yellow>Mining</yellow>");
+```
+
 更详细的文档见 [文档/](文档/Home.md)。
 
 ## Project structure
@@ -198,7 +209,7 @@ messages.send(sender, "greeting", player.getName());
 ```
 YLib/
 ├── api/                  # 对外暴露的接口 (Scheduler, Config, Command)
-├── core/                 # 核心逻辑：API 定义、具体实现 (Java 8)
+├── core/                 # 核心逻辑：API 定义、具体实现、文本渲染 (Java 8)
 ├── platform/             # 平台适配层
 │   ├── canvas/           # Canvas 专用实现 (Java 17, 复用 Folia 调度实现)
 │   ├── folia/            # Folia 专用实现 (Java 17)
@@ -207,3 +218,6 @@ YLib/
 ├── 文档/                 # 中文文档
 └── build.gradle.kts      # 统一管理版本和发布逻辑
 ```
+
+`core` 与 `api` 停留在 Java 8：文本渲染所用的 Adventure **4.x** 全线是 Java 8 字节码，
+因此不需要为了 MiniMessage 抬升消费方的 Java 门槛（5.x 才需要 Java 21）。
