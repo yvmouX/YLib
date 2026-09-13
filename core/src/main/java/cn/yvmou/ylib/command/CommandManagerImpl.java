@@ -11,14 +11,20 @@ import cn.yvmou.ylib.logger.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class CommandManagerImpl implements CommandManager {
     private final Plugin plugin;
@@ -134,6 +140,9 @@ public class CommandManagerImpl implements CommandManager {
             // 5. 注册到 Bukkit
             registerToBukkit(root);
 
+            // 6. 注册权限默认值（@Command/@SubCommand 的 permissionDefault）
+            registerPermissionDefaults(root);
+
             logger.info("Registered command: " + commandName);
         } catch (Exception e) {
             logger.error("Failed to register command: " + e.getMessage(), e);
@@ -209,6 +218,64 @@ public class CommandManagerImpl implements CommandManager {
         } catch (NoSuchFieldException | IllegalAccessException ex) {
             logger.error("Error occurred while getting CommandMap: {}", ex.getMessage(), ex);
             return null;
+        }
+    }
+
+    /**
+     * 遍历命令树，把声明了 permissionDefault 的权限节点注册到 Bukkit 并赋予默认值。
+     * <p>
+     * 等价于在 plugin.yml 的 permissions 段声明 default，但由 YLib 在运行期完成，
+     * 插件无需再维护 plugin.yml 权限段。若同名权限已被声明（如 plugin.yml 里已写），
+     * 则以已有的为准（跳过），避免覆盖插件显式配置。
+     * </p>
+     */
+    private void registerPermissionDefaults(@NotNull CommandNode root) {
+        Set<String> registered = new HashSet<>();
+        collectPermissionDefaults(root, registered);
+        if (registered.isEmpty()) {
+            return;
+        }
+        // 让在线玩家立即感知新注册的默认值
+        Collection<? extends Player> online = Bukkit.getOnlinePlayers();
+        if (!online.isEmpty()) {
+            for (Player player : online) {
+                player.recalculatePermissions();
+            }
+        }
+    }
+
+    private void collectPermissionDefaults(@NotNull CommandNode node, @NotNull Set<String> registered) {
+        String defaultValue = node.getPermissionDefault();
+        String[] children = node.getPermissionChildren();
+        boolean hasChildren = children != null && children.length > 0;
+        // 注册目标名：permissionParent 优先（不参与命令门禁），否则用节点自身 permission
+        String target = node.getPermissionParent();
+        if (target == null || target.isEmpty()) {
+            target = node.getPermission();
+        }
+        boolean hasDefault = defaultValue != null && !defaultValue.isEmpty();
+        if (target != null && !target.isEmpty() && (hasDefault || hasChildren) && registered.add(target)) {
+            try {
+                PermissionDefault defaultEnum = hasDefault
+                        ? PermissionDefault.getByName(defaultValue)
+                        : PermissionDefault.FALSE;
+                if (defaultEnum != null && Bukkit.getPluginManager().getPermission(target) == null) {
+                    if (hasChildren) {
+                        Map<String, Boolean> childrenMap = new HashMap<>();
+                        for (String child : children) {
+                            childrenMap.put(child, true);
+                        }
+                        Bukkit.getPluginManager().addPermission(new Permission(target, defaultEnum, childrenMap));
+                    } else {
+                        Bukkit.getPluginManager().addPermission(new Permission(target, defaultEnum));
+                    }
+                }
+            } catch (Exception e) {
+                logger.debug("注册权限默认值失败 {}: {}", target, e.getMessage());
+            }
+        }
+        for (CommandNode child : node.getChildren()) {
+            collectPermissionDefaults(child, registered);
         }
     }
 }

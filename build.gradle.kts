@@ -19,6 +19,14 @@ tasks.jar {
     enabled = false
 }
 
+// 对外暴露的构件是 shadowJar（聚合 jar），必须把它挂到 api 配置上，
+// 否则消费方从 Gradle 模块元数据解析到的是已禁用的 jar 任务，
+// 在 includeBuild 复合构建 / 项目依赖场景下会报 "Cannot expand ZIP '.../YLib-<version>.jar' as it does not exist"。
+// 发布场景（artifact(tasks.shadowJar)）本来就发送这个产物，此处只是让项目依赖保持一致。
+configurations.named("api") {
+    outgoing.artifact(tasks.shadowJar)
+}
+
 // 注册聚合源码的任务
 val sourcesJar by tasks.registering(Jar::class) {
     archiveClassifier.set("sources")
