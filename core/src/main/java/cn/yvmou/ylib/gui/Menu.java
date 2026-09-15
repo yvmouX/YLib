@@ -219,9 +219,19 @@ public abstract class Menu {
      */
     protected final String text(String key, Object... args) {
         if (messages == null) {
-            return TextRenderer.render(format(key, args));
+            return literal(key, args);
         }
         return TextRenderer.render(messages.raw(viewer, key, args));
+    }
+
+    /** 渲染一段成品文本并替换占位符（不走语言文件）：库自带的默认文案用它，宿主想覆盖时重写对应方法即可。 */
+    protected final String literal(String template, Object... args) {
+        return TextRenderer.render(format(template, args));
+    }
+
+    /** 宿主有没有定义这个语言键（库自带的默认文案靠它决定「用宿主的文案还是用自己的兜底」）。 */
+    protected final boolean hasKey(String key) {
+        return messages != null && messages.has(key);
     }
 
     /** 没接语言服务时的占位符替换；未提供的占位符静默移除。 */
