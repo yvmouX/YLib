@@ -202,14 +202,34 @@ String line = TextRenderer.render("<yellow>Mining</yellow> &8| &f50%");
 String plain = TextRenderer.strip("<yellow>Mining</yellow>");
 ```
 
-更详细的文档见 [文档/](文档/Home.md)。
+### Menus (chest GUI)
+
+「布局即文本图」的箱子菜单框架：一行一串字符、一个字符一格，`#` 或 `` `名字` `` 就是槽位名；
+一个名字可以占多格——静态槽位 `set(名字, 物品)` 整组同一物品，动态槽位 `fill(名字, 一串物品)` 按序填（列表就这么填）；
+分页交给 `PagedMenu`，条目切片与页码夹紧由 `Paging` 算。宿主启用时调一次 `MenuListener.init(plugin)` 即可。
+
+```java
+public final class ShopMenu extends PagedMenu<Goods> {
+
+    private static final String[] SHAPE = {
+            "#########",
+            "`prev` `pages` `next`",
+    };
+
+    @Override protected String[] shape()  { return SHAPE; }
+    @Override protected List<Goods> items() { return goods; }
+    @Override protected MenuItem render(Goods goods, int index) { return card(goods); }
+}
+```
+
+更详细的文档见 [文档/](文档/Home.md)，菜单的完整用法见 [文档/菜单.md](文档/菜单.md)。
 
 ## Project structure
 
 ```
 YLib/
 ├── api/                  # 对外暴露的接口 (Scheduler, Config, Command)
-├── core/                 # 核心逻辑：API 定义、具体实现、文本渲染 (Java 8)
+├── core/                 # 核心逻辑：API 定义、具体实现、文本渲染、菜单框架 (Java 8)
 ├── platform/             # 平台适配层
 │   ├── canvas/           # Canvas 专用实现 (Java 17, 复用 Folia 调度实现)
 │   ├── folia/            # Folia 专用实现 (Java 17)

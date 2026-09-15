@@ -214,8 +214,7 @@ public abstract class Menu {
     /**
      * 渲染语言键文本（占位符按 {0}、{1}… 顺序替换）。
      * <p>
-     * 接了语言服务时按玩家客户端语言解析（与聊天提示保持同一语言）；没接时键本身就是要显示的字，
-     * 只做 {@code &} / MiniMessage 渲染。
+     * 接了语言服务时按玩家客户端语言解析（与聊天提示保持同一语言）；没接时键本身就是要显示的字。
      */
     protected final String text(String key, Object... args) {
         if (messages == null) {
@@ -224,19 +223,21 @@ public abstract class Menu {
         return TextRenderer.render(messages.raw(viewer, key, args));
     }
 
-    /** 渲染一段成品文本并替换占位符（不走语言文件）：库自带的默认文案用它，宿主想覆盖时重写对应方法即可。 */
-    protected final String literal(String template, Object... args) {
+    /**
+     * 有语言键就用它，没有就用自带文案——库自带的默认文案（翻页按钮这类）用它：
+     * 宿主定义了自己的键就自动生效，没定义也不会在界面上显示「Missing message: ...」。
+     */
+    protected final String textOr(String key, String fallback, Object... args) {
+        return messages != null && messages.has(key) ? text(key, args) : literal(fallback, args);
+    }
+
+    /** 渲染一段成品文本并替换占位符（不走语言文件）。 */
+    private static String literal(String template, Object... args) {
         return TextRenderer.render(format(template, args));
     }
 
-    /** 宿主有没有定义这个语言键（库自带的默认文案靠它决定「用宿主的文案还是用自己的兜底」）。 */
-    protected final boolean hasKey(String key) {
-        return messages != null && messages.has(key);
-    }
-
     /** 没接语言服务时的占位符替换；未提供的占位符静默移除。 */
-    private static String format(String template, Object... args) {
-        if (template == null || args == null || args.length == 0) {
+    private static String format(String template, Object... args) {        if (template == null || args == null || args.length == 0) {
             return template;
         }
         String result = template;

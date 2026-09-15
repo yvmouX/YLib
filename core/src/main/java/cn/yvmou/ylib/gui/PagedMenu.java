@@ -80,10 +80,9 @@ public abstract class PagedMenu<T> extends Menu {
 
     /** 页码（第几页 / 共几页）。 */
     protected MenuItem pageInfo(int current, int totalPages) {
-        String label = hasKey("gui.page-info")
-                ? text("gui.page-info", current + 1, totalPages)
-                : literal("&7{0}/{1}", current + 1, totalPages);
-        return MenuItem.display(Material.PAPER, label, Collections.<String>emptyList());
+        return MenuItem.display(Material.PAPER,
+                textOr("gui.page-info", "&7{0}/{1}", current + 1, totalPages),
+                Collections.<String>emptyList());
     }
 
     // ---------- 页码状态 ----------
@@ -132,7 +131,7 @@ public abstract class PagedMenu<T> extends Menu {
     }
 
     /** 翻到指定页并重建；页码越界由 {@link Paging#clampPage} 兜住。 */
-    protected final void goToPage(int page) {
+    private void goToPage(int page) {
         this.page = Math.max(0, page);
         refresh();
     }
@@ -140,7 +139,7 @@ public abstract class PagedMenu<T> extends Menu {
     // ---------- 内部 ----------
 
     private MenuItem pagerButton(boolean enabled, Material material, String key, String fallback) {
-        String label = hasKey(key) ? text(key) : literal(fallback);
+        String label = textOr(key, fallback);
         if (!enabled) {
             return MenuItem.display(Material.GRAY_DYE, label, Collections.<String>emptyList());
         }
