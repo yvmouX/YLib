@@ -206,19 +206,31 @@ String plain = TextRenderer.strip("<yellow>Mining</yellow>");
 
 「布局即文本图」的箱子菜单框架：一行一串字符、一个字符一格，`#` 或 `` `名字` `` 就是槽位名；
 一个名字可以占多格——静态槽位 `set(名字, 物品)` 整组同一物品，动态槽位 `fill(名字, 一串物品)` 按序填（列表就这么填）；
-分页交给 `PagedMenu`，条目切片与页码夹紧由 `Paging` 算。宿主启用时调一次 `MenuListener.init(plugin)` 即可。
+列表翻页用 `Paging` 的纯函数自己拼（切片与页码夹紧有单测），库里不塞基类，页面长什么样完全由你写。
+宿主启用时调一次 `MenuListener.init(plugin)` 即可。
 
 ```java
-public final class ShopMenu extends PagedMenu<Goods> {
+public final class ShopMenu extends Menu {
 
     private static final String[] SHAPE = {
+            "#########",
             "#########",
             "`prev` `pages` `next`",
     };
 
-    @Override protected String[] shape()  { return SHAPE; }
-    @Override protected List<Goods> items() { return goods; }
-    @Override protected MenuItem render(Goods goods, int index) { return card(goods); }
+    private int page;
+
+    @Override
+    protected void build() {
+        layout(SHAPE);
+        List<Goods> all = goods();                       // 整份列表只取一次
+        int pageSize = slots("#").size();                // 每页几条 = 布局图里 # 的格数
+        page = Paging.clampPage(page, all.size(), pageSize);
+        fill("#", Paging.slice(all, page, pageSize).stream().map(this::card).toList());
+        int totalPages = Paging.totalPages(all.size(), pageSize);
+        set("pages", MenuItem.display(Material.PAPER, literal("&7{0}/{1}", page + 1, totalPages), List.of()));
+        // prev / next 同理：到头了换成 MenuItem.display(GRAY_DYE, ...)
+    }
 }
 ```
 

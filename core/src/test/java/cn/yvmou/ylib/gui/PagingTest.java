@@ -3,7 +3,13 @@ package cn.yvmou.ylib.gui;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 分页算术测试：翻页差一位在游戏里只表现为「某一页少一条」，是最难靠肉眼发现的一类 bug，
@@ -47,5 +53,24 @@ class PagingTest {
         assertEquals(45, Paging.totalPages(45, 0));
         assertEquals(0, Paging.fromIndex(0, 0));
         assertEquals(1, Paging.toIndex(0, -5, 45));
+    }
+
+    @Test
+    @DisplayName("切片：最后一页只到条目总数，页码越界自动夹回，空列表给空表")
+    void sliceOfPage() {
+        List<Integer> items = new ArrayList<Integer>();
+        for (int index = 0; index < 100; index++) {
+            items.add(index);
+        }
+
+        assertEquals(Arrays.asList(0, 1, 2), Paging.slice(items, 0, 3));
+        assertEquals(Arrays.asList(9, 10, 11), Paging.slice(items, 3, 3));
+        List<Integer> last = Paging.slice(items, 99, 45);
+        assertEquals(10, last.size(), "页码越界夹回最后一页：100 条按 45 一页，最后一页是 90~99");
+        assertEquals(90, last.get(0).intValue());
+        assertEquals(99, last.get(9).intValue());
+        assertEquals(100, Paging.slice(items, 0, 1000).size());
+        assertTrue(Paging.slice(Collections.<Integer>emptyList(), 0, 45).isEmpty());
+        assertTrue(Paging.slice(null, 0, 45).isEmpty(), "null 当空列表，不能炸");
     }
 }
