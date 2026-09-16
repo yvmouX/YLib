@@ -9,6 +9,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,12 +17,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-/**
- * 菜单项：一个图标 + 一条点击动作。
- * <p>
- * 图标在构造里克隆，多个槽位共用同一份时不会串味；动作允许缺省（{@code null} 当空动作），
- * 因此背景板这类「只展示」的物品不必特意写一个空 lambda。
- */
 public final class MenuItem {
 
     /** 点击上下文：动作只需要知道「谁点的」与「怎么点的」。 */
@@ -89,29 +84,26 @@ public final class MenuItem {
 
     // ---------- 静态工厂 ----------
 
-    /** 图标材质为 {@code null} 或非法时回退 {@link Material#PAPER}；描述行与点击动作可为 {@code null}。 */
-    public static MenuItem of(Material material, String name, List<String> lore, Consumer<ClickContext> action) {
-        return new MenuItem(icon(material, name, lore), action);
+    /** 完整创建 */
+    public static MenuItem of(Material material, String name, Consumer<List<String>> lore, Consumer<ClickContext> action) {
+        return new MenuItem(renderIcon(material, name, lore), action);
     }
 
     /** 只展示、不响应点击的物品（头部信息、禁用态的分页按钮）。 */
-    public static MenuItem display(Material material, String name, List<String> lore) {
+    public static MenuItem display(Material material, String name, Consumer<List<String>> lore) {
         return of(material, name, lore, null);
     }
 
     /**
      * 背景填充物：灰色玻璃板 + 一个空格名字。
-     * <p>
-     * 名字用空格而不是空串或材质默认名：「空串」在部分客户端版本下会回退显示材质名，
-     * 「空格」则稳定地什么都不显示。
      */
     public static MenuItem filler() {
         return filler(Material.GRAY_STAINED_GLASS_PANE);
     }
 
-    /** 自定义材质的背景填充物（每个服的界面配色不同，别把灰玻璃写死在使用方）。 */
+    /** 自定义材质的背景填充物 */
     public static MenuItem filler(Material material) {
-        return of(material, " ", Collections.<String>emptyList(), null);
+        return of(material, " ", lore -> {}, null);
     }
 
     /**
@@ -165,26 +157,28 @@ public final class MenuItem {
     }
 
     // ---------- 内部实现 ----------
-
-    /** 构建带名字与描述的图标；名字与描述都按菜单的统一规则渲染成 {@code §} 形式。 */
-    private static ItemStack icon(Material material, String name, List<String> lore) {
+    // 接受回调并渲染图标
+    private static ItemStack renderIcon(Material material, String name, Consumer<List<String>> lore) {
         ItemStack stack = new ItemStack(material == null ? Material.PAPER : material);
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
-            // 理论上不会发生；真发生了也只用原始材质，不让界面开不出来
             return stack;
         }
         if (name != null) {
             meta.setDisplayName(TextRenderer.render(name));
         }
-        if (lore != null && !lore.isEmpty()) {
-            List<String> lines = new ArrayList<String>(lore.size());
-            for (String line : lore) {
-                if (line != null) {
-                    lines.add(TextRenderer.render(line));
+        List<String> loreLines = new ArrayList<>();
+        if (lore != null) {
+            lore.accept(loreLines);
+        }
+        if (!loreLines.isEmpty()) {
+            List<String> renderedLore = new ArrayList<>();
+            for (String line : loreLines) {
+                if (line != null && line.trim().isEmpty()) {
+                    renderedLore.add(TextRenderer.render(line));
                 }
             }
-            meta.setLore(lines);
+            meta.setLore(renderedLore);
         }
         stack.setItemMeta(meta);
         return stack;
