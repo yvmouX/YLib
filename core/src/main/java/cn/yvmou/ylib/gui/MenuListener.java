@@ -17,7 +17,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 /**
- * 菜单事件监听器：把容器上的点击翻译成菜单项的 action。
+ * 菜单事件监听器：把容器上的点击翻译成菜单项的 action，把拖入「接收物品」那一格的物品交给它。
  * <p>
  * 判归属只能看视图的上层容器（玩家点自己背包时 clickedInventory 是背包）；必须先无条件取消事件再执行动作，
  * 否则动作抛异常就会漏掉取消；派发期间用 {@link #dispatching} 防重入。
@@ -71,10 +71,15 @@ public final class MenuListener implements Listener {
 
         dispatching = true;
         try {
-            // 手上拿着物品时优先算「投放」（顶掉这个格子的动作）：包里那格接收物品时，
-            // 空手动作（例如「右键恢复默认图标」）不该被顺手一起触发
-            if (item.acceptsItems() && notEmpty(event.getCursor())) {
-                item.onItem().accept(event.getCursor().clone());
+            // 这一格接收物品时优先算「投放」（顶掉这个格子的动作），两种手势都认：
+            // ① 先把物品抓到光标上再点（getCursor）② 快捷栏选中那一格直接点（主手）——
+            // 菜单把点击取消了，物品不会被抓到光标上，只认 getCursor 的话第二种手势永远没反应
+            ItemStack dropped = event.getCursor();
+            if (item.acceptsItems() && !notEmpty(dropped)) {
+                dropped = menu.viewer().getInventory().getItemInMainHand();
+            }
+            if (item.acceptsItems() && notEmpty(dropped)) {
+                item.onItem().accept(dropped.clone());
             } else {
                 // 统一用菜单的 viewer 而不是 event.getWhoClicked()：菜单是为某一个玩家构建的视图，
                 // 标题、进度、按钮语义都绑定在该玩家身上，动作里的 player 必须与之一致。
@@ -123,22 +128,23 @@ public final class MenuListener implements Listener {
         }
     }
 
-    /** 这一批槽位全部是「接收物品」的菜单格时返回其中第一个，否则 {@code null}（有一格说不接收就整体拒绝）。 */
+    /**
+     * 这一批槽位里第一个「接收物品」的菜单格；一个都没有时返回 {@code null}。
+     * <p>
+     * 不要求每一格都接收：拖拽通常从玩家背包起手（背包格既不接收、也不在菜单区），
+     * 要求「全都接收」等于这个手势永远用不了——反正事件一律取消、物品不会真的落地。
+     */
     private static MenuItem itemTarget(Menu menu, Set<Integer> rawSlots) {
-        MenuItem first = null;
         for (int rawSlot : rawSlots) {
             if (rawSlot < 0 || rawSlot >= menu.size()) {
-                return null;
+                continue;
             }
             MenuItem item = menu.itemAt(rawSlot);
-            if (item == null || !item.acceptsItems()) {
-                return null;
-            }
-            if (first == null) {
-                first = item;
+            if (item != null && item.acceptsItems()) {
+                return item;
             }
         }
-        return first;
+        return null;
     }
 
     /** 光标上是否真的拿着东西：空手时可能是空气，也可能是 null。 */
