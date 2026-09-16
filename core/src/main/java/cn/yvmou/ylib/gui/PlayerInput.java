@@ -10,7 +10,7 @@ import org.bukkit.plugin.Plugin;
 import java.util.function.Consumer;
 
 /**
- * 聊天栏取值：一问一答，值回传到主线程。
+ * 聊天栏取值：一问一答，提交 / 取消 / 超时的回调**一律回主线程**（取消也一样——它从异步聊天事件里进来）。
  * <p>
  * 输入「取消」/cancel、超时、退服都算放弃。拦截聊天由 {@link InputListener} 完成，
  * 宿主只调一次 {@link MenuListener#init(Plugin)} 两样都注册好。
@@ -70,7 +70,12 @@ public final class PlayerInput {
                 if (player.isOnline()) {
                     player.sendMessage(TextRenderer.render("&c输入超时，已放弃「" + pending.label() + "」"));
                 }
-                pending.callback().cancel();
+                dispatch(player, new Runnable() {
+                    @Override
+                    public void run() {
+                        pending.callback().cancel();
+                    }
+                });
             }
         }, TIMEOUT_SECONDS * 20L));
     }
@@ -94,8 +99,7 @@ public final class PlayerInput {
             return true;
         }
         final String text = raw == null ? "" : raw.trim();
-        // 聊天事件是异步的，回调必须回主线程
-        onMain(player, new Runnable() {
+        dispatch(player, new Runnable() {
             @Override
             public void run() {
                 pending.callback().value(text);
@@ -104,12 +108,18 @@ public final class PlayerInput {
         return true;
     }
 
-    /** 放弃这次输入并执行 onCancel。 */
+    /** 放弃这次输入并执行 onCancel（回调同样回主线程，理由见 {@link #dispatch}）。 */
     public static void cancel(Player player) {
-        Inputs.Pending pending = player == null ? null : Inputs.take(player.getUniqueId());
-        if (pending != null) {
-            Inputs.abandon(pending);
+        final Inputs.Pending pending = player == null ? null : Inputs.take(player.getUniqueId());
+        if (pending == null) {
+            return;
         }
+        dispatch(player, new Runnable() {
+            @Override
+            public void run() {
+                Inputs.abandon(pending);
+            }
+        });
     }
 
     /** 丢弃状态且不执行任何回调（退服时用）。 */
@@ -122,12 +132,17 @@ public final class PlayerInput {
     // ---------- 内部实现 ----------
 
     /**
-     * 回主线程执行；优先用 YLib 调度器，其次 Bukkit 调度器，都没有就同步执行。
+     * 所有回调的唯一出口：切回主线程再跑。
+     * <p>
+     * 聊天事件是异步的，而宿主的回调多半要开箱子界面（{@code onCancel} 的典型实现就是「重开刚才那个菜单」），
+     * 在异步线程里 {@code openInventory} 会被服务端当场拦下（Canvas：{@code Thread failed main thread check:
+     * Cannot init menu async}；Paper 亦然）。因此**每一个** {@code callback()} 调用点都必须包在这里，
+     * 包括取消与超时——只有提交那一支记得切线程正是这里踩过的坑。
      * <p>
      * 三级回退是为了「拿不到调度器」这件事本身不算失败：单元测试里没有服务端，
      * 退服清场时 Bukkit 可能已经关掉——这些情况下让回调照常发生，好过静默丢掉或抛 NPE。
      */
-    private static void onMain(Player player, Runnable task) {
+    private static void dispatch(Player player, Runnable task) {
         UniversalScheduler scheduler = scheduler();
         if (scheduler != null) {
             scheduler.runLater(player, task, 1L);

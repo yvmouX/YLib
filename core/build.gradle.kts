@@ -17,6 +17,8 @@ dependencies {
     // 「MiniMessage 遇到 § 会整串放弃解析」「& 与 § 混排」这类事实一旦回归，
     // 所有消费方都会以不同形式踩到，放在消费方测试里只能各测各的。
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    // 假一个调度器来钉住「回调一律回主线程」这条契约（单测里装不上真调度器）；测试期依赖，不落进产物
+    testImplementation("org.mockito:mockito-core:5.8.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
