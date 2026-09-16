@@ -49,6 +49,12 @@ public final class MenuListener implements Listener {
         if (menu == null) {
             return;
         }
+        // 玩家自己背包里的普通点击交给原版：他得先能把物品拿起来，才谈得上「放到接收物品的格子上」。
+        // 例外是 shift 点击——那会把物品直接塞进我们的容器，菜单里不该留东西，仍然拦下。
+        Inventory clicked = event.getClickedInventory();
+        if (clicked != null && clicked != event.getView().getTopInventory() && !event.isShiftClick()) {
+            return;
+        }
         // 先记下「是否已被别的插件取消」，再补上我们自己的取消：
         // 顺序反了就无从区分，会被自己的 setCancelled 掩盖掉。
         boolean cancelledByOther = event.isCancelled();
@@ -95,15 +101,25 @@ public final class MenuListener implements Listener {
     }
 
     /**
-     * 拖拽：一律取消（物品不落地），唯一例外是整段拖拽都落在「接收物品」的格子上——那是一次投放。
+     * 拖拽：只在菜单区取消（菜单里没有一格允许放东西）；一次拖拽只要碰到「接收物品」的格子就算一次投放。
      * <p>
-     * 一次拖拽可能同时覆盖菜单槽与背包槽，也可能扫过不接收物品的格子：这些情况逐槽处理会让
-     * 「这堆物品到底算给谁」说不清，整体拒绝最简单也最安全（菜单里本来没有一格允许放东西）。
+     * 整段都落在玩家背包里的拖拽交给原版——他得先把物品拖起来，才能拖到接收物品的格子上。
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     public void onDrag(InventoryDragEvent event) {
         Menu menu = menuOf(event.getView());
         if (menu == null) {
+            return;
+        }
+        boolean touchesMenu = false;
+        for (int rawSlot : event.getRawSlots()) {
+            if (rawSlot >= 0 && rawSlot < menu.size()) {
+                touchesMenu = true;
+                break;
+            }
+        }
+        if (!touchesMenu) {
+            // 玩家在自己背包里拖动：不拦（否则连物品都拖不起来）
             return;
         }
         event.setCancelled(true);
