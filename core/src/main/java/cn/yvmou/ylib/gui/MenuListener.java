@@ -9,9 +9,11 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -69,9 +71,15 @@ public final class MenuListener implements Listener {
 
         dispatching = true;
         try {
-            // 统一用菜单的 viewer 而不是 event.getWhoClicked()：菜单是为某一个玩家构建的视图，
-            // 标题、进度、按钮语义都绑定在该玩家身上，动作里的 player 必须与之一致。
-            item.action().accept(new MenuItem.ClickContext(menu.viewer(), event.getClick()));
+            // 手上拿着物品时优先算「投放」（顶掉这个格子的动作）：包里那格接收物品时，
+            // 空手动作（例如「右键恢复默认图标」）不该被顺手一起触发
+            if (item.acceptsItems() && notEmpty(event.getCursor())) {
+                item.onItem().accept(event.getCursor().clone());
+            } else {
+                // 统一用菜单的 viewer 而不是 event.getWhoClicked()：菜单是为某一个玩家构建的视图，
+                // 标题、进度、按钮语义都绑定在该玩家身上，动作里的 player 必须与之一致。
+                item.action().accept(new MenuItem.ClickContext(menu.viewer(), event.getClick()));
+            }
         } catch (RuntimeException e) {
             // 单个动作失败不能连累后续交互，但必须留下日志：否则玩家只会看到「点了没反应」
             plugin.getLogger().log(Level.SEVERE,
@@ -82,17 +90,60 @@ public final class MenuListener implements Listener {
     }
 
     /**
-     * 拖拽一律取消。
+     * 拖拽：一律取消（物品不落地），唯一例外是整段拖拽都落在「接收物品」的格子上——那是一次投放。
      * <p>
-     * 一次拖拽可能同时覆盖菜单槽与背包槽，逐槽判断既复杂又没有意义
-     * （菜单里没有一个槽位是允许放东西的），整体拒绝最简单也最安全。
+     * 一次拖拽可能同时覆盖菜单槽与背包槽，也可能扫过不接收物品的格子：这些情况逐槽处理会让
+     * 「这堆物品到底算给谁」说不清，整体拒绝最简单也最安全（菜单里本来没有一格允许放东西）。
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     public void onDrag(InventoryDragEvent event) {
-        if (menuOf(event.getView()) == null) {
+        Menu menu = menuOf(event.getView());
+        if (menu == null) {
             return;
         }
         event.setCancelled(true);
+
+        ItemStack dragged = event.getOldCursor();
+        if (!notEmpty(dragged)) {
+            return;
+        }
+        MenuItem target = itemTarget(menu, event.getRawSlots());
+        if (target == null) {
+            return;
+        }
+        dispatching = true;
+        try {
+            target.onItem().accept(dragged.clone());
+        } catch (RuntimeException e) {
+            // 与点击同一条原则：回调失败只记日志，不能把服务端的事件处理带崩
+            plugin.getLogger().log(Level.SEVERE,
+                    "菜单接收物品失败: " + menu.getClass().getSimpleName() + " slots=" + event.getRawSlots(), e);
+        } finally {
+            dispatching = false;
+        }
+    }
+
+    /** 这一批槽位全部是「接收物品」的菜单格时返回其中第一个，否则 {@code null}（有一格说不接收就整体拒绝）。 */
+    private static MenuItem itemTarget(Menu menu, Set<Integer> rawSlots) {
+        MenuItem first = null;
+        for (int rawSlot : rawSlots) {
+            if (rawSlot < 0 || rawSlot >= menu.size()) {
+                return null;
+            }
+            MenuItem item = menu.itemAt(rawSlot);
+            if (item == null || !item.acceptsItems()) {
+                return null;
+            }
+            if (first == null) {
+                first = item;
+            }
+        }
+        return first;
+    }
+
+    /** 光标上是否真的拿着东西：空手时可能是空气，也可能是 null。 */
+    private static boolean notEmpty(ItemStack stack) {
+        return stack != null && !stack.getType().isAir();
     }
 
     /**

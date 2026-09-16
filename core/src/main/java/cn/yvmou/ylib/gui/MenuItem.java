@@ -9,10 +9,8 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -62,11 +60,21 @@ public final class MenuItem {
 
     private final ItemStack icon;
     private final Consumer<ClickContext> action;
+    /** 这一格是否接收玩家手上的物品（只有 {@link #acceptItem} 造出来的才是）。 */
+    private final boolean acceptsItems;
+    /** 收到物品时的回调；不接收物品时为 {@code null}。 */
+    private final Consumer<ItemStack> onItem;
 
     public MenuItem(ItemStack icon, Consumer<ClickContext> action) {
+        this(icon, action, false, null);
+    }
+
+    private MenuItem(ItemStack icon, Consumer<ClickContext> action, boolean acceptsItems, Consumer<ItemStack> onItem) {
         this.icon = (icon == null ? new ItemStack(Material.PAPER) : icon).clone();
         // 空动作而不是 null：调用方（含背景板）不必再判空，避免每次都写 context -> { }
         this.action = action == null ? emptyAction() : action;
+        this.acceptsItems = acceptsItems;
+        this.onItem = onItem;
     }
 
     private static Consumer<ClickContext> emptyAction() {
@@ -85,6 +93,16 @@ public final class MenuItem {
     /** 点击动作；没设过动作时是空动作。 */
     public Consumer<ClickContext> action() {
         return action;
+    }
+
+    /** 是否接收玩家拖入 / 拿在手上的物品；只给同包的 {@link MenuListener} 用。 */
+    boolean acceptsItems() {
+        return acceptsItems;
+    }
+
+    /** 收到物品时的回调；{@link #acceptsItems()} 为 false 时是 {@code null}。 */
+    Consumer<ItemStack> onItem() {
+        return onItem;
     }
 
     // ---------- 静态工厂 ----------
@@ -115,6 +133,17 @@ public final class MenuItem {
                 PlayerInput.ask(context.player(), name, hint, now, onValue, null);
             }
         });
+    }
+
+    /**
+     * 接收玩家拖入（或拿在手上点击）的物品：图标与名字照旧，onItem 收到那份 ItemStack 的克隆。
+     * 物品不会被消耗、也不会真的放进菜单：事件仍然取消，拖拽会被中止、物品回到玩家手里。
+     * <p>
+     * 空手点击照常走 {@code action}（例如右键恢复默认图标）；手上拿着物品时优先算投放，不触发它。
+     */
+    public static MenuItem acceptItem(Material icon, String name, Consumer<List<String>> lore,
+                                      Consumer<ItemStack> onItem, Consumer<ClickContext> action) {
+        return new MenuItem(renderIcon(icon, name, lore), action, true, onItem);
     }
 
     /**
@@ -154,7 +183,7 @@ public final class MenuItem {
     public MenuItem withAmount(int amount) {
         ItemStack copy = icon.clone();
         copy.setAmount(Math.max(1, Math.min(amount, Math.max(1, copy.getMaxStackSize()))));
-        return new MenuItem(copy, action);
+        return new MenuItem(copy, action, acceptsItems, onItem);
     }
 
     /**
@@ -168,7 +197,7 @@ public final class MenuItem {
         ItemStack copy = icon.clone();
         ItemMeta meta = copy.getItemMeta();
         if (meta == null) {
-            return new MenuItem(copy, action);
+            return new MenuItem(copy, action, acceptsItems, onItem);
         }
         Enchantment enchantment = Enchantment.getByKey(NamespacedKey.minecraft("unbreaking"));
         if (enchantment != null) {
@@ -176,7 +205,7 @@ public final class MenuItem {
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         }
         copy.setItemMeta(meta);
-        return new MenuItem(copy, action);
+        return new MenuItem(copy, action, acceptsItems, onItem);
     }
 
     // ---------- 内部实现 ----------
