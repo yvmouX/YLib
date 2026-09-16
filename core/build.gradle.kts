@@ -2,6 +2,8 @@ dependencies {
     implementation(project(":api"))
 
     compileOnly("org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT")
+    // 单测需要在类路径上看见 Bukkit 类型才能调 PlayerInput 的公开方法（只有编译期才会去读 Server 实现）
+    testImplementation("org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT")
 
     // 文本渲染：MiniMessage 为主，兼容传统 & / § 颜色码。
     // Adventure 4.x 全线是 Java 8 字节码（5.x 才需要 Java 21），因此本模块可以继续停留在 Java 8。

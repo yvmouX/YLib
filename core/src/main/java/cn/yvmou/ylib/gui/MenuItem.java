@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public final class MenuItem {
 
@@ -65,11 +66,15 @@ public final class MenuItem {
     public MenuItem(ItemStack icon, Consumer<ClickContext> action) {
         this.icon = (icon == null ? new ItemStack(Material.PAPER) : icon).clone();
         // 空动作而不是 null：调用方（含背景板）不必再判空，避免每次都写 context -> { }
-        this.action = action == null ? new Consumer<ClickContext>() {
+        this.action = action == null ? emptyAction() : action;
+    }
+
+    private static Consumer<ClickContext> emptyAction() {
+        return new Consumer<ClickContext>() {
             @Override
             public void accept(ClickContext context) {
             }
-        } : action;
+        };
     }
 
     /** 图标（已克隆，改它不影响菜单里那一份）。 */
@@ -92,6 +97,24 @@ public final class MenuItem {
     /** 只展示、不响应点击的物品（头部信息、禁用态的分页按钮）。 */
     public static MenuItem display(Material material, String name, Consumer<List<String>> lore) {
         return of(material, name, lore, null);
+    }
+
+    /**
+     * 点一下就在聊天栏问值：左键右键都算，提交后把文本交给 {@code onValue}。
+     * <p>
+     * {@code onValue} 里要自己 {@link Menu#refresh()} 或重开界面：库里不知道该刷新哪个菜单，
+     * 而玩家进聊天栏时界面已经关了。{@code current} 为 {@code null} 表示没有当前值。
+     */
+    public static MenuItem input(final Material icon, final String name, Consumer<List<String>> lore,
+                                 final String hint, final Supplier<String> current,
+                                 final Consumer<String> onValue) {
+        return of(icon, name, lore, new Consumer<ClickContext>() {
+            @Override
+            public void accept(ClickContext context) {
+                String now = current == null ? null : current.get();
+                PlayerInput.ask(context.player(), name, hint, now, onValue, null);
+            }
+        });
     }
 
     /**
@@ -174,7 +197,8 @@ public final class MenuItem {
         if (!loreLines.isEmpty()) {
             List<String> renderedLore = new ArrayList<>();
             for (String line : loreLines) {
-                if (line != null && line.trim().isEmpty()) {
+                // 空串是「空行间隔」，要留着（调用方常 lore.add("") 分段），只滤掉 null
+                if (line != null) {
                     renderedLore.add(TextRenderer.render(line));
                 }
             }

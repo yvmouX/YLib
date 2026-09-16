@@ -10,6 +10,7 @@ import cn.yvmou.ylib.scheduler.UniversalSchedulerProvider;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
 import java.util.ServiceConfigurationError;
@@ -23,6 +24,17 @@ public class YLib {
         if (instance == null) {
             throw new IllegalStateException("YLib has not been initialized yet");
         }
+        return instance;
+    }
+
+    /**
+     * 已初始化的 YLib；没有则返回 {@code null}。
+     * <p>
+     * 给库内部的尽力而为能力用（例如聊天取值的超时兜底）：拿不到只说明「没有服务端」，
+     * 不该像 {@link #getYLib()} 那样抛出去打断调用方。
+     */
+    @Nullable
+    public static YLib instance() {
         return instance;
     }
 
@@ -184,6 +196,12 @@ public class YLib {
     }
 
     // ========= 插件信息 ==========
+    /** 初始化 YLib 的那个插件（服务、命令、任务都挂在它名下）。 */
+    @NotNull
+    public Plugin getPlugin() {
+        return plugin;
+    }
+
     public String getPluginName() {
         return PluginInfo.getPluginName();
     }

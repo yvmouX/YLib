@@ -33,8 +33,10 @@ public final class MenuListener implements Listener {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
     }
 
-    /** 注册点击分发：宿主插件启用时调用一次即可（界面能打开但点击没反应，多半是忘了这一步）。 */
+    /** 注册点击分发与聊天输入拦截：宿主插件启用时调用一次即可（界面能打开但点击没反应，多半是忘了这一步）。 */
     public static void init(Plugin plugin) {
+        // 菜单里「点一下 → 聊天栏填值」要用到它；宿主只调这一个方法就该两样都能用
+        InputListener.init(plugin);
         Bukkit.getPluginManager().registerEvents(new MenuListener(plugin), plugin);
     }
 

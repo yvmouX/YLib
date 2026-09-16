@@ -207,7 +207,7 @@ String plain = TextRenderer.strip("<yellow>Mining</yellow>");
 「布局即文本图」的箱子菜单框架：一行一串字符、一个字符一格，`#` 或 `` `名字` `` 就是槽位名；
 一个名字可以占多格——静态槽位 `set(名字, 物品)` 整组同一物品，动态槽位 `fill(名字, 一串物品)` 按序填（列表就这么填）；
 列表翻页用 `Paging` 的纯函数自己拼（切片与页码夹紧有单测），库里不塞基类，页面长什么样完全由你写。
-宿主启用时调一次 `MenuListener.init(plugin)` 即可。
+宿主启用时调一次 `MenuListener.init(plugin)` 即可——它也顺带注册了聊天输入监听器，所以 `MenuItem.input(...)` 不用再单独注册。
 
 ```java
 public final class ShopMenu extends Menu {
@@ -232,6 +232,18 @@ public final class ShopMenu extends Menu {
         // prev / next 同理：到头了换成 MenuItem.display(GRAY_DYE, ...)
     }
 }
+```
+
+想在聊天栏问一个值（改任务 id 这类），一个工厂方法就够；输入 `取消`/`cancel`、超时、退服都会放弃：
+
+```java
+set("id", MenuItem.input(Material.NAME_TAG, "&f任务 id", List.of("&7左键编辑"),
+        "只能用小写字母、数字与下划线",          // 输入提示
+        () -> quest.id(),                       // 当前值；没有就给 null
+        text -> {                               // 提交后自己 refresh() 或重开界面
+            quest.id(text);
+            refresh();
+        }));
 ```
 
 更详细的文档见 [文档/](文档/Home.md)，菜单的完整用法见 [文档/菜单.md](文档/菜单.md)。
