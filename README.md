@@ -228,7 +228,7 @@ public final class ShopMenu extends Menu {
         page = Paging.clampPage(page, all.size(), pageSize);
         fill("#", Paging.slice(all, page, pageSize).stream().map(this::card).toList());
         int totalPages = Paging.totalPages(all.size(), pageSize);
-        set("pages", MenuItem.display(Material.PAPER, literal("&7{0}/{1}", page + 1, totalPages), List.of()));
+        set("pages", MenuItem.display(Material.PAPER, "&7" + (page + 1) + "/" + totalPages, List.of()));
         // prev / next 同理：到头了换成 MenuItem.display(GRAY_DYE, ...)
     }
 }
