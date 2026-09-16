@@ -95,7 +95,12 @@ public final class PlayerInput {
             return false;
         }
         if (Inputs.Decision.of(raw) == Inputs.Decision.CANCEL) {
-            Inputs.abandon(pending);
+            dispatch(player, new Runnable() {
+                @Override
+                public void run() {
+                    Inputs.abandon(pending);
+                }
+            });
             return true;
         }
         final String text = raw == null ? "" : raw.trim();
