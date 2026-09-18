@@ -76,8 +76,13 @@ public interface Logger {
     Message to(@NotNull CommandSender sender);
 
     /**
-     * 创建一个定向到指定对象的 Logger：带级别标签（{@code 插件名[INFO] 消息}），
-     * 同样只发给它、不写控制台。返回的实例可以反复使用。
+     * 创建一个定向到指定对象的 Logger：带级别标签，同样只发给它、不写控制台。
+     * 返回的实例可以反复使用。
+     * <p>
+     * 实际发出的形状是 {@code 插件前缀§8[<级别色>§l§n级别§8]§r 消息}：级别名加粗下划线，
+     * 两侧方括号都是深灰色，级别色取该条日志的颜色（{@code info} 默认绿、{@code warn} 默认黄、
+     * {@code error} 默认红、{@code debug} 默认蓝）。例如默认色的 {@code info("操作成功")} 发出去是
+     * {@code MyPlugin§8[§a§l§nINFO§8]§r 操作成功}。
      *
      * @param sender 接收日志的对象
      * @return 定向 Logger 实例

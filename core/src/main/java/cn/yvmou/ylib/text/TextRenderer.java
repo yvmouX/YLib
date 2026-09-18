@@ -109,7 +109,13 @@ public final class TextRenderer {
         return PLAIN.serialize(parse(raw));
     }
 
-    /** 文本是否为空（含仅含空白）。 */
+    /**
+     * 文本是否为空或全为空白。
+     * <p>
+     * 空白按 {@link String#trim()} 的口径判断（{@code '\u0020'} 及以下），与
+     * {@link StringUtil#isBlank(String)} 一致；因此全角空格 {@code '\u3000'}、
+     * 不换行空格 {@code '\u00A0'} 这类字符<b>不算</b>空白。
+     */
     public static boolean isBlank(String raw) {
         // 用 StringUtil 而不是 String#isBlank()：后者是 Java 11 API，
         // 而 core 按 Java 8 编译与运行（-source/-target 不会拦住这种越界调用，只有运行时才炸）

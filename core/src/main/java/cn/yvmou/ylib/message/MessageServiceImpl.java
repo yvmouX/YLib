@@ -335,7 +335,7 @@ public class MessageServiceImpl implements MessageService {
         }
         // 先渲染模板、再插入参数：参数按字面插入（MessageService 的契约），
         // 顺序反了的话，参数里的 <red> 这类标签会被 MiniMessage 当成标签解析掉
-        return format(colorize(message), args);
+        return MessageFormatter.format(colorize(message), args);
     }
 
     /**
@@ -348,21 +348,6 @@ public class MessageServiceImpl implements MessageService {
             message = lookup(settings.getDefaultLanguage(), key);
         }
         return message != null ? colorize(message) : "";
-    }
-
-    /**
-     * 替换 {0}、{1}… 数字占位符；未提供的占位符静默移除。
-     */
-    @NotNull
-    private String format(@NotNull String message, @NotNull Object... args) {
-        if (args.length == 0) {
-            return message;
-        }
-        String result = message;
-        for (int i = 0; i < args.length; i++) {
-            result = result.replace("{" + i + "}", String.valueOf(args[i]));
-        }
-        return result.replaceAll("\\{\\d+}", "");
     }
 
     @NotNull
