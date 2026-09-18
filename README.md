@@ -100,6 +100,21 @@ shadowJar {
 > `YLibException: YLib has already been initialized by another plugin: ...`。
 > 重定位之后每个插件各有一份互不干扰的副本。
 
+### 公共 API 与内部实现
+
+YLib 的源码分成两层，**这是有意的边界，不是目录洁癖**：
+
+| 模块 | 内容 | 你能依赖吗 |
+| --- | --- | --- |
+| `api` | 你 import 的一切：`YLib`、`CommandManager`、`Menu`/`MenuItem`、`TextRenderer`、`Argument`/`CommandNode`、`ConfigurationManager`、`Logger`、`MessageService`… | **能** —— 这些在语义化版本承诺范围内 |
+| `core` | `*Impl`、`CommandDispatcher`、`ConfigurationLoader`、`LoggerUtil`… | **不能** —— 内部实现，随时会变 |
+
+这不是口头约定：**`core` 根本不在你的编译类路径上**（根项目的 `core` 是 `implementation`
+依赖）。你在 IDE 里补全不到它，误 import 会直接编译失败，而不是等到运行时才炸。
+
+> 需要什么就去 `api` 里找；找不到说明那是内部件，不该用。
+> 想加功能时也请加在 `api` 模块——`api` 编译时看不见 `core`，这个约束由构建系统强制。
+
 ## How to use
 
 Initialize YLib in your plugin's `onEnable`:
@@ -272,8 +287,12 @@ set("id", MenuItem.input(Material.NAME_TAG, "&f任务 id", lore -> lore.add("&7�
 
 ```
 YLib/
-├── api/                  # 对外暴露的接口 (Scheduler, Config, Command)
-├── core/                 # 核心逻辑：API 定义、具体实现、文本渲染、菜单框架 (Java 8)
+├── api/                  # 对外暴露的一切：契约 + 框架 + 公共工具（Java 8）
+│                         #   scheduler/config/command/logger/message 的接口与注解，
+│                         #   gui 菜单框架、TextRenderer、Argument/CommandNode
+│                         #   注意：本模块编译期看不见 core，边界由构建强制
+├── core/                 # 只放内部实现（Java 8）：*Impl / Dispatcher / Loader / Parser / Validator
+│                         #   对消费方编译期不可见（根项目里是 implementation 依赖）
 ├── platform/             # 平台适配层
 │   ├── canvas/           # Canvas 专用实现 (Java 17, 复用 Folia 调度实现)
 │   ├── folia/            # Folia 专用实现 (Java 17)

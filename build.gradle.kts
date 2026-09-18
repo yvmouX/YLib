@@ -79,7 +79,12 @@ allprojects {
 
 dependencies {
     api(project(":api"))
-    api(project(":core"))
+    // core 刻意用 implementation 而不是 api：
+    // 它是内部实现（*Impl / Dispatcher / Loader / Parser），不该出现在消费方的编译类路径上——
+    // 否则 IDE 补全里会混进 LoggerImpl、CommandDispatcher 这类东西。
+    // 它仍然会被打进下面的 shadowJar，运行时一个类都不少。
+    // 公开 API 一律住在 api 模块，依赖方向永远是从 core 指向 api。
+    implementation(project(":core"))
     api(project(":platform:canvas"))
     api(project(":platform:folia"))
     api(project(":platform:spigot"))

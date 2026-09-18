@@ -60,7 +60,13 @@ public class CommandManagerImpl implements CommandManager {
             registerClass(commandInstance);
         }
     }
-    
+
+    @Override
+    public void register(@NotNull CommandNode root) {
+        // 与 register(Object) 的 instanceof 分支同一个落点，区别只在于编译期就能确认类型
+        registerNode(root);
+    }
+
     @Override
     public void reload() {
         logger.info("Reloading command configurations...");

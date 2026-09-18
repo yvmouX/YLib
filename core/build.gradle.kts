@@ -1,5 +1,7 @@
 dependencies {
-    implementation(project(":api"))
+    // 实现的公开签名里会出现 api 的契约类型（CommandManager 等），消费方要能解析出这些名字。
+    // 与 api 模块相反，这里允许（也必须）看得见 api —— 依赖方向只能是从 core 指向 api。
+    api(project(":api"))
 
     compileOnly("org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT")
     // 单测需要在类路径上看见 Bukkit 类型才能调 PlayerInput 的公开方法（只有编译期才会去读 Server 实现）
@@ -7,8 +9,8 @@ dependencies {
 
     // 文本渲染：MiniMessage 为主，兼容传统 & / § 颜色码。
     // Adventure 4.x 全线是 Java 8 字节码（5.x 才需要 Java 21），因此本模块可以继续停留在 Java 8。
-    // 用 api 而非 implementation：聚合 jar 里已包含它们，消费方需要能解析出这两个类型名，
-    // 否则消费方编译期看不到 MiniMessage，二次渲染时会出现版本/类加载错位。
+    // 这里重新声明是因为 :api 用的是 api(...)：库的使用者若在编译期直接写 MiniMessage，
+    // 必须能从本模块解析出这两个类型名，否则会出现版本/类加载错位。
     api("net.kyori:adventure-text-minimessage:4.26.1")
     api("net.kyori:adventure-text-serializer-legacy:4.26.1")
     api("net.kyori:adventure-text-serializer-plain:4.26.1")
