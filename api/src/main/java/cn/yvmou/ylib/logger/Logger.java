@@ -67,11 +67,20 @@ public interface Logger {
     void error(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args);
 
     /**
-     * 创建一个临时的 Logger，将下一条日志发送给指定对象
+     * 创建一个定向到指定对象的 {@link Message}：消息只发给它，不写控制台，也不带级别标签。
+     * 返回的实例可以反复使用。
+     *
      * @param sender 接收日志的对象
-     * @return 临时的 Logger 实例
+     * @return 定向消息实例
      */
     Message to(@NotNull CommandSender sender);
 
+    /**
+     * 创建一个定向到指定对象的 Logger：带级别标签（{@code 插件名[INFO] 消息}），
+     * 同样只发给它、不写控制台。返回的实例可以反复使用。
+     *
+     * @param sender 接收日志的对象
+     * @return 定向 Logger 实例
+     */
     Logger toLog(@NotNull CommandSender sender);
 }

@@ -333,7 +333,9 @@ public class MessageServiceImpl implements MessageService {
             logger.warn("缺少语言键: {}", key);
             return "Missing message: " + key;
         }
-        return colorize(format(message, args));
+        // 先渲染模板、再插入参数：参数按字面插入（MessageService 的契约），
+        // 顺序反了的话，参数里的 <red> 这类标签会被 MiniMessage 当成标签解析掉
+        return format(colorize(message), args);
     }
 
     /**

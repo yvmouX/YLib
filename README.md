@@ -35,7 +35,7 @@ dependencies {
 }
 
 shadowJar {
-    // 可选：合并 META-INF/services 文件（第三方服务扩展点需要，YLib 自身已不依赖）
+    // 建议保留：YLib 优先用 ServiceLoader 找平台实现，这一步顺带把 META-INF/services 里的类名一起重定位
     mergeServiceFiles()
     relocate("cn.yvmou.ylib", "YOUR_PACKAGE.lib.ylib")
 }
@@ -85,7 +85,7 @@ shadowJar {
                 </relocation>
             </relocations>
             <transformers>
-                <!-- 可选：合并 META-INF/services 文件（第三方服务扩展点需要，YLib 自身已不依赖） -->
+                <!-- 建议保留：YLib 优先用 ServiceLoader 找平台实现，这一步顺带把 META-INF/services 里的类名一起重定位 -->
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
             </transformers>
         </configuration>
@@ -94,6 +94,11 @@ shadowJar {
 </build>
 ```
 </details>
+
+> **`relocate` 不要省。** YLib 是进程级单例，服务、命令、配置、任务全都绑定在**第一个**初始化它的插件上。
+> 两个插件各打包一份没重定位的 YLib，第二个插件调 `YLib.init(this)` 时会直接抛
+> `YLibException: YLib has already been initialized by another plugin: ...`。
+> 重定位之后每个插件各有一份互不干扰的副本。
 
 ## How to use
 
@@ -228,7 +233,7 @@ public final class ShopMenu extends Menu {
         page = Paging.clampPage(page, all.size(), pageSize);
         fill("#", Paging.slice(all, page, pageSize).stream().map(this::card).toList());
         int totalPages = Paging.totalPages(all.size(), pageSize);
-        set("pages", MenuItem.display(Material.PAPER, "&7" + (page + 1) + "/" + totalPages, List.of()));
+        set("pages", MenuItem.display(Material.PAPER, "&7" + (page + 1) + "/" + totalPages, lore -> { }));
         // prev / next 同理：到头了换成 MenuItem.display(GRAY_DYE, ...)
     }
 }
@@ -237,7 +242,7 @@ public final class ShopMenu extends Menu {
 想在聊天栏问一个值（改任务 id 这类），一个工厂方法就够；输入 `取消`/`cancel`、超时、退服都会放弃：
 
 ```java
-set("id", MenuItem.input(Material.NAME_TAG, "&f任务 id", List.of("&7左键编辑"),
+set("id", MenuItem.input(Material.NAME_TAG, "&f任务 id", lore -> lore.add("&7左键编辑"),
         "只能用小写字母、数字与下划线",          // 输入提示
         () -> quest.id(),                       // 当前值；没有就给 null
         text -> {                               // 提交后自己 refresh() 或重开界面
@@ -246,7 +251,22 @@ set("id", MenuItem.input(Material.NAME_TAG, "&f任务 id", List.of("&7左键编�
         }));
 ```
 
-更详细的文档见 [文档/](文档/Home.md)，菜单的完整用法见 [文档/菜单.md](文档/菜单.md)。
+> 上面所有 `MenuItem` 工厂方法的 lore 参数都是 `Consumer<List<String>>`，要自己 `add`——
+> 传 `List.of(...)` 编译不过，不想要 lore 就传 `lore -> { }`。
+
+更详细的文档见 [文档/](文档/Home.md)：
+
+| 文档 | 内容 |
+|---|---|
+| [命令系统](文档/命令系统.md) | 注解命令、参数类型、权限、`commands.yml`、Builder 模式 |
+| [命令帮助](文档/命令帮助.md) | 统一格式的 help 输出 |
+| [配置](文档/配置.md) | 注解配置、类型映射、验证规则、版本迁移 |
+| [多语言](文档/多语言.md) | 语言文件、占位符、`TextRenderer` |
+| [菜单](文档/菜单.md) | 箱子界面框架（布局即文本图） |
+| [调度器](文档/调度器.md) | Spigot / Paper / Folia / Canvas 统一调度器 |
+| [日志](文档/日志.md) | 日志级别、占位符、定向输出 |
+
+版本变更见 [GitHub Releases](https://github.com/yvmouX/YLib/releases)（由工作流按提交自动生成）。
 
 ## Project structure
 

@@ -5,6 +5,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import cn.yvmou.ylib.utils.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -110,7 +111,9 @@ public final class TextRenderer {
 
     /** 文本是否为空（含仅含空白）。 */
     public static boolean isBlank(String raw) {
-        return raw == null || raw.isBlank();
+        // 用 StringUtil 而不是 String#isBlank()：后者是 Java 11 API，
+        // 而 core 按 Java 8 编译与运行（-source/-target 不会拦住这种越界调用，只有运行时才炸）
+        return StringUtil.isBlank(raw);
     }
 
     /**
