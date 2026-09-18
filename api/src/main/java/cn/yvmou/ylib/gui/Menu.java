@@ -58,7 +58,9 @@ public abstract class Menu {
     }
 
     /**
-     * 标题走语言键与占位符参数（{@code {0}}、{@code {1}}…），其余文案也可用 {@link #text(String, Object...)}。
+     * 标题走「语言键优先，取不到就当字面量」：有同名语言键就按玩家语言解析，没有就把传入的字符串本身渲染出来
+     * （配置文件里读来的整串标题因此可以直接传，不会显示 {@code Missing message}）；占位符按 {@code {0}}、{@code {1}}… 顺序替换，
+     * 其余文案也可用 {@link #text(String, Object...)}。
      *
      * @param messages 语言服务；传 {@code null} 表示不做翻译，键本身就是要显示的文本
      */
@@ -68,7 +70,7 @@ public abstract class Menu {
         this.size = normalizeSize(size);
         this.holder = new MenuHolder();
         // holder 先于 inventory 赋值：createInventory 需要 holder，而 holder.getInventory() 读的正是下面这个字段
-        this.inventory = Bukkit.createInventory(holder, this.size, text(title, titleArgs));
+        this.inventory = Bukkit.createInventory(holder, this.size, textOr(title, title, titleArgs));
     }
 
     // ---------- 基本访问 ----------
