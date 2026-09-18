@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -29,6 +30,8 @@ import java.util.Map;
  * <ul>
  *     <li>标量：String / 基本类型及包装类 / 枚举（大小写不敏感）</li>
  *     <li>{@code List<T>}：元素按目标泛型转换</li>
+ *     <li>数组（{@code String[]}、{@code int[]}…）：文件里照旧写成 YAML 列表，按组件类型转换后装成数组；
+ *         写默认值时也序列化成列表，不会写出 {@code [Ljava.lang.String;@…}</li>
  *     <li>{@code Map<String, V>}（动态键名 section）：V 可为标量、List 或配置 POJO
  *         （POJO 内字段用 {@code @ConfigValue} 声明相对路径，支持再嵌套 Map/POJO）</li>
  * </ul>
@@ -349,13 +352,19 @@ public class ConfigurationLoader {
     }
 
     /**
-     * 非 Map 字段的赋值：List 元素转换 / 直接赋值 / 标量转换。
+     * 非 Map 字段的赋值：数组 / List 元素转换、直接赋值、标量转换。
      */
     private void setPlainValue(@NotNull Field field, @NotNull Object instance, @Nullable Object value) throws IllegalAccessException {
         Class<?> fieldType = field.getType();
 
         if (value == null) {
             field.set(instance, null);
+            return;
+        }
+
+        // 数组：YAML 只能给出 List，按组件类型逐个转换后装成数组（String[] 这类字段因此可以直接声明）
+        if (fieldType.isArray() && value instanceof List) {
+            field.set(instance, convertArray((List<?>) value, fieldType.getComponentType()));
             return;
         }
 
@@ -423,6 +432,21 @@ public class ConfigurationLoader {
             result.add(elementType == String.class ? String.valueOf(element) : convertValue(element, elementType));
         }
         return result;
+    }
+
+    /**
+     * List → 数组：组件类型是确定的（不像 List 要靠泛型擦除后的签名去猜），因此逐个转换即可。
+     * 元素转换规则与 {@link #convertList} 一致；组件类型为基本类型时由 {@link Array} 负责装箱。
+     */
+    @NotNull
+    private Object convertArray(@NotNull List<?> raw, @NotNull Class<?> componentType) {
+        Object array = Array.newInstance(componentType, raw.size());
+        for (int index = 0; index < raw.size(); index++) {
+            Object element = raw.get(index);
+            Array.set(array, index, componentType == String.class
+                    ? String.valueOf(element) : convertValue(element, componentType));
+        }
+        return array;
     }
 
     /*
@@ -559,7 +583,7 @@ public class ConfigurationLoader {
 
     /**
      * 将字段值转换为可写回 YAML 的结构：
-     * 枚举转字符串、配置 POJO 转 Map、Map 递归处理、List 处理元素。
+     * 枚举转字符串、配置 POJO 转 Map、Map 递归处理、数组与 List 处理元素。
      */
     @Nullable
     private Object serializeFieldValue(@Nullable Object value) {
@@ -581,6 +605,15 @@ public class ConfigurationLoader {
         }
         if (isConfigPojo(value.getClass())) {
             return serializePojo(value);
+        }
+        // 数组写成 YAML 列表：直接交给 YAML 会得到 [Ljava.lang.String;@1b6d3586 这种东西
+        if (value.getClass().isArray()) {
+            int length = Array.getLength(value);
+            List<Object> result = new ArrayList<>(length);
+            for (int index = 0; index < length; index++) {
+                result.add(serializeFieldValue(Array.get(value, index)));
+            }
+            return result;
         }
         if (value instanceof List) {
             List<Object> result = new ArrayList<>();
