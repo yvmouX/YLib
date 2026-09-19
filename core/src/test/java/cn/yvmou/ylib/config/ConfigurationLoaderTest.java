@@ -9,7 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -39,6 +41,54 @@ class ConfigurationLoaderTest {
 
         @ConfigValue("names")
         private List<String> names = Arrays.asList("x");
+    }
+
+    /** 用来验证 description 里的 {@code \n} 会真的写成多行注释。 */
+    @AutoConfiguration(configFile = "multi-line-comment.yml", version = "1.0.0")
+    static class CommentedConfig {
+
+        @ConfigValue(value = "plain", description = "单行说明")
+        private String plain = "p";
+
+        @ConfigValue(value = "multi", description = "第一行\n第二行\n第三行")
+        private String multi = "m";
+    }
+
+    @Test
+    @DisplayName("description 里的 \\n 写成多行注释，每行都有 # 前缀")
+    void descriptionNewlinesBecomeSeparateCommentLines(@TempDir Path dataFolder) throws Exception {
+        Plugin plugin = mock(Plugin.class);
+        when(plugin.getDataFolder()).thenReturn(dataFolder.toFile());
+        CommentedConfig instance = new CommentedConfig();
+        new ConfigurationLoader(plugin, mock(Logger.class))
+                .generateDefault(instance, new ConfigurationParser().parse(CommentedConfig.class));
+
+        List<String> lines = Files.readAllLines(
+                new File(dataFolder.toFile(), "multi-line-comment.yml").toPath());
+
+        // Bukkit 的 setComments 只给第一个元素加前缀，所以这里必须逐行核对——
+        // 整段塞进去的话只有第一行是注释，其余会变成裸文本。
+        assertEquals(List.of("# 第一行", "# 第二行", "# 第三行"), beforeKey(lines, "multi"));
+        assertEquals(List.of("# 单行说明"), beforeKey(lines, "plain"));
+    }
+
+    /** 取某个键上方紧邻的连续注释行。 */
+    private static List<String> beforeKey(List<String> lines, String key) {
+        int index = -1;
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).startsWith(key + ":")) {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0) {
+            throw new AssertionError("生成的文件里找不到键: " + key + " → " + lines);
+        }
+        List<String> comments = new ArrayList<>();
+        for (int i = index - 1; i >= 0 && lines.get(i).startsWith("#"); i--) {
+            comments.add(0, lines.get(i));
+        }
+        return comments;
     }
 
     @Test

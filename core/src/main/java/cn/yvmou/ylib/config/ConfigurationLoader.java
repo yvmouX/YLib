@@ -686,15 +686,28 @@ public class ConfigurationLoader {
        └─────────────────────────────────────────────────────────────────┘
      */
 
+    /**
+     * 给某个配置键写注释。
+     * <p>
+     *     description 里用 {@code \n} 分段，必须在这里先拆成多行再交给 Bukkit：Bukkit 的
+     *     {@code setComments} 只给列表的<b>第一个</b>元素加 {@code # } 前缀，其余元素原样拼接，
+     *     整段交给它的话除了首行以外都会变成裸文本（SnakeYAML 再折叠回一行，等于没换行）。
+     * </p>
+     */
     private void setComments(@NotNull FileConfiguration config, @NotNull String path, @Nullable String description) {
         if (description == null || description.isEmpty()) {
             return;
+        }
+        // 按行拆分，并去掉 \r（Windows 风格的换行会让行尾多一个控制字符）
+        List<String> lines = new ArrayList<>();
+        for (String line : description.split("\n")) {
+            lines.add(line.endsWith("\r") ? line.substring(0, line.length() - 1) : line);
         }
         // TODO: Find a way to support comments on older Spigot versions
         // Try to set comments using reflection to support newer Spigot API (1.18.1+)
         try {
             java.lang.reflect.Method setCommentsMethod = config.getClass().getMethod("setComments", String.class, List.class);
-            setCommentsMethod.invoke(config, path, new ArrayList<>(Arrays.asList(description.split("\n"))));
+            setCommentsMethod.invoke(config, path, lines);
         } catch (Exception ignored) {
             logger.debug("Comments not supported on this server version for field: " + path);
         }
