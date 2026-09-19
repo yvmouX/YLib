@@ -136,6 +136,10 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
             // Create a copy of the old configuration instance (for change notification)
             Object oldInstance = cloneConfiguration(instance, metadata);
             
+            // 补齐缺失的键并刷新注释，与首次加载一致——否则 refreshComment 只在启动时生效，
+            // 「每次加载都刷新注释」在 /reload 这条路上就不成立
+            loader.mergeMissingKeys(instance, metadata);
+            
             // Reload configuration values
             loader.load(instance, metadata);
             

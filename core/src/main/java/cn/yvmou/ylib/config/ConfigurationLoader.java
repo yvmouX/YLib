@@ -211,7 +211,7 @@ public class ConfigurationLoader {
                 }
 
                 // 已存在：注释按 refreshComment 刷新，Map 字段还要按默认实例逐 key 深度补齐
-                modified |= refreshComment(config, fieldMeta);
+                modified |= refreshCommentIfNeeded(config, fieldMeta);
                 if (Map.class.isAssignableFrom(fieldMeta.field.getType())) {
                     modified |= mergeMapEntries(config, fieldMeta, instance);
                 }
@@ -692,103 +692,77 @@ public class ConfigurationLoader {
      */
 
     /**
-     * 给某个配置键写注释。
+     * 给某个配置键写注释（description 为空则不动）。
      * <p>
-     *     description 里用 {@code \n} 分段，必须在这里先拆成多行再交给 Bukkit：Bukkit 的
-     *     {@code setComments} 只给列表的<b>第一个</b>元素加 {@code # } 前缀，其余元素原样拼接，
-     *     整段交给它的话除了首行以外都会变成裸文本（SnakeYAML 再折叠回一行，等于没换行）。
+     *     两个 Bukkit 怪癖都在这里兜住：它只给列表的<b>第一个</b>元素加 {@code # } 前缀
+     *     （所以 {@code \n} 必须由我们先拆成多行，整段交给它除了首行以外都会变成裸文本、
+     *     再被 SnakeYAML 折叠回一行）；注释 API 是反射调的，Spigot 1.18.1 以下静默跳过。
      * </p>
      */
-    private void setComments(@NotNull FileConfiguration config, @NotNull String path, @Nullable String description) {
+    private boolean setComments(@NotNull FileConfiguration config, @NotNull String path, @Nullable String description) {
         if (description == null || description.isEmpty()) {
-            return;
+            return false;
         }
-        invokeSetComments(config, path, descriptionToLines(description));
-    }
-
-    /**
-     * 把 description 拆成注释行：按 {@code \n} 分段，并去掉行尾的 {@code \r}。
-     * <p>
-     * 只用 {@code \n} 分段，因此写 {@code \r\n} 时 {@code \r} 会留在行尾（它在 YAML 里是个控制字符，
-     * 不报错但很难查），统一在这里裁掉。
-     */
-    private static List<String> descriptionToLines(@NotNull String description) {
         List<String> lines = new ArrayList<>();
         for (String line : description.split("\n")) {
+            // 只用 \n 分段，\r\n 的 \r 会留在行尾（YAML 里是控制字符，不报错但查不出来）
             lines.add(line.endsWith("\r") ? line.substring(0, line.length() - 1) : line);
         }
-        return lines;
-    }
-
-    /** 反射调 {@code setComments}（Spigot 1.18.1+ 才有；老版本静默跳过，连日志都只在 debug 级出现）。 */
-    private void invokeSetComments(@NotNull FileConfiguration config, @NotNull String path, @NotNull List<String> lines) {
         // TODO: Find a way to support comments on older Spigot versions
         try {
             java.lang.reflect.Method setCommentsMethod = config.getClass().getMethod("setComments", String.class, List.class);
             setCommentsMethod.invoke(config, path, lines);
+            return true;
         } catch (Exception ignored) {
             logger.debug("Comments not supported on this server version for field: " + path);
-        }
-    }
-
-    /** 读某个键现有的注释；不支持注释的服务端上返回空表（与写入同样静默）。 */
-    private List<String> readComments(@NotNull FileConfiguration config, @NotNull String path) {
-        try {
-            java.lang.reflect.Method getCommentsMethod = config.getClass().getMethod("getComments", String.class);
-            Object result = getCommentsMethod.invoke(config, path);
-            if (!(result instanceof List)) {
-                return new ArrayList<>();
-            }
-            // 读回来的是「剥掉 # 前缀」的原文（写入时才由 Bukkit 加上 # ），
-            // 而且首元素是 null 占位（Bukkit 的注释列表留了一个空位），统一在这里清掉
-            List<String> cleaned = new ArrayList<>();
-            for (Object line : (List<?>) result) {
-                if (line != null) {
-                    cleaned.add(String.valueOf(line));
-                }
-            }
-            return cleaned;
-        } catch (Exception ignored) {
-            return new ArrayList<>();
+            return false;
         }
     }
 
     /**
-     * 注释是否命中「保留标记」：某一行含 {@code @keep}。
+     * 刷新某个键的注释（只有 {@code refreshComment = true} 的字段走这里），返回是否真的改了。
      * <p>
-     * 命中时整块注释都不刷新——服主写「本服特有约定」这类代码里没有的说明时，
-     * 不然每次启动都会被 description 覆盖掉，等于没有地方可写。
-     * <p>
-     * 注意**不能判 {@code #} 开头**：{@link #readComments} 拿到的已经是剥掉前缀的原文。
+     *     两种情况跳过：注释里有 {@code @keep}（服主写「本服特有约定」的唯一去处），
+     *     或现有注释已经与 description 一致——后者让「一致时不写盘」成立，
+     *     否则每次启动都重写文件，mtime 一直变，用户会以为配置被动了。
+     * </p>
      */
-    private static boolean isKeptComment(@NotNull List<String> lines) {
-        for (String line : lines) {
-            if (line.contains("@keep")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * 刷新单个键的注释（{@code refreshComment = true} 的字段走这里）。
-     * <p>
-     * 只在「现有注释与 description 不一致、且没写 {@code @keep}」时才写，返回是否真的改了——
-     * 否则每次启动都会无意义地重写文件（mtime 一直变，用户会以为配置被动了）。
-     */
-    private boolean refreshComment(@NotNull FileConfiguration config, @NotNull ConfigurationMetadata.FieldMetadata fieldMeta) {
+    private boolean refreshCommentIfNeeded(@NotNull FileConfiguration config, @NotNull ConfigurationMetadata.FieldMetadata fieldMeta) {
         if (!fieldMeta.refreshComment || fieldMeta.description.isEmpty()) {
             return false;
         }
-        List<String> current = readComments(config, fieldMeta.configPath);
-        if (isKeptComment(current)) {
-            return false;
+        List<String> current;
+        try {
+            java.lang.reflect.Method getCommentsMethod = config.getClass().getMethod("getComments", String.class);
+            Object result = getCommentsMethod.invoke(config, fieldMeta.configPath);
+            // 读回来的是「剥掉 # 前缀」的原文、且首元素是 null 占位（Bukkit 的注释列表留了个空位）
+            current = new ArrayList<>();
+            if (result instanceof List) {
+                for (Object line : (List<?>) result) {
+                    if (line != null) {
+                        current.add(String.valueOf(line));
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            return false; // 这个服务端不支持读注释，写入同样不会生效
         }
-        List<String> expected = descriptionToLines(fieldMeta.description);
+        for (String line : current) {
+            if (line.contains("@keep")) {
+                return false;
+            }
+        }
+        List<String> expected = Arrays.asList(fieldMeta.description.split("\n"));
+        // \r 要在拼出期望值时就裁掉，否则与读回来的值比不相等（见 setComments 里的说明）
+        for (int i = 0; i < expected.size(); i++) {
+            String line = expected.get(i);
+            if (line.endsWith("\r")) {
+                expected.set(i, line.substring(0, line.length() - 1));
+            }
+        }
         if (current.equals(expected)) {
             return false;
         }
-        invokeSetComments(config, fieldMeta.configPath, expected);
-        return true;
+        return setComments(config, fieldMeta.configPath, fieldMeta.description);
     }
 }
