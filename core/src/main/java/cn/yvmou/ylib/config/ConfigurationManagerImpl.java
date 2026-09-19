@@ -73,16 +73,20 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
         // Check version and migrate if needed
         loader.checkVersionAndMigrate(instance, metadata);
 
-        // Load configuration values
-        // if the config file doesn't exist, this method does nothing
-        loader.load(instance, metadata);
-        
         // Generate default config file if autoCreate is enabled
         // And if the config already exists, this method does nothing
         if (metadata.autoCreate) {
             loader.generateDefault(instance, metadata);
         }
-        
+
+        // Merge missing declared keys into an existing file (upgrade-friendly,
+        // matches the old "checkAndUpdateConfig" behaviour of plugins)
+        loader.mergeMissingKeys(instance, metadata);
+
+        // Load configuration values
+        // if the config file doesn't exist, this method does nothing
+        loader.load(instance, metadata);
+
         // Validate configuration
         ConfigurationValidationResult validationResult = validator.validate(instance, metadata);
         if (!validationResult.isValid()) {
@@ -131,6 +135,10 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
             
             // Create a copy of the old configuration instance (for change notification)
             Object oldInstance = cloneConfiguration(instance, metadata);
+            
+            // 补齐缺失的键并刷新注释，与首次加载一致——否则 refreshComment 只在启动时生效，
+            // 「每次加载都刷新注释」在 /reload 这条路上就不成立
+            loader.mergeMissingKeys(instance, metadata);
             
             // Reload configuration values
             loader.load(instance, metadata);

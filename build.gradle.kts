@@ -19,6 +19,14 @@ tasks.jar {
     enabled = false
 }
 
+// 对外暴露的构件是 shadowJar（聚合 jar），必须把它挂到 api 配置上，
+// 否则消费方从 Gradle 模块元数据解析到的是已禁用的 jar 任务，
+// 在 includeBuild 复合构建 / 项目依赖场景下会报 "Cannot expand ZIP '.../YLib-<version>.jar' as it does not exist"。
+// 发布场景（artifact(tasks.shadowJar)）本来就发送这个产物，此处只是让项目依赖保持一致。
+configurations.named("api") {
+    outgoing.artifact(tasks.shadowJar)
+}
+
 // 注册聚合源码的任务
 val sourcesJar by tasks.registering(Jar::class) {
     archiveClassifier.set("sources")
@@ -71,7 +79,12 @@ allprojects {
 
 dependencies {
     api(project(":api"))
-    api(project(":core"))
+    // core 刻意用 implementation 而不是 api：
+    // 它是内部实现（*Impl / Dispatcher / Loader / Parser），不该出现在消费方的编译类路径上——
+    // 否则 IDE 补全里会混进 LoggerImpl、CommandDispatcher 这类东西。
+    // 它仍然会被打进下面的 shadowJar，运行时一个类都不少。
+    // 公开 API 一律住在 api 模块，依赖方向永远是从 core 指向 api。
+    implementation(project(":core"))
     api(project(":platform:canvas"))
     api(project(":platform:folia"))
     api(project(":platform:spigot"))

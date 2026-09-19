@@ -3,11 +3,14 @@ package cn.yvmou.ylib;
 import cn.yvmou.ylib.command.CommandManager;
 import cn.yvmou.ylib.config.ConfigurationManager;
 import cn.yvmou.ylib.logger.Logger;
+import cn.yvmou.ylib.message.MessageService;
+import cn.yvmou.ylib.message.MessageSettings;
 import cn.yvmou.ylib.scheduler.UniversalScheduler;
 import cn.yvmou.ylib.scheduler.UniversalSchedulerProvider;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
 import java.util.ServiceConfigurationError;
@@ -21,6 +24,17 @@ public class YLib {
         if (instance == null) {
             throw new IllegalStateException("YLib has not been initialized yet");
         }
+        return instance;
+    }
+
+    /**
+     * 已初始化的 YLib；没有则返回 {@code null}。
+     * <p>
+     * 给库内部的尽力而为能力用（例如聊天取值的超时兜底）：拿不到只说明「没有服务端」，
+     * 不该像 {@link #getYLib()} 那样抛出去打断调用方。
+     */
+    @Nullable
+    public static YLib instance() {
         return instance;
     }
 
@@ -56,6 +70,8 @@ public class YLib {
     private CommandManager commandManager;
     private ConfigurationManager configurationManager;
     private Logger logger;
+    private volatile MessageService messageService;
+    private YLibServices services;
 
     private YLib(@NotNull JavaPlugin plugin) throws YLibException {
         this.plugin = plugin;
@@ -140,12 +156,52 @@ public class YLib {
         return configurationManager;
     }
 
+    // ========= 多语言服务 =========
+
+    /**
+     * 创建多语言消息服务。
+     * <p>
+     * 通常一个插件只需创建一次；首个创建的实例会被缓存并可通过 {@link #getMessageService()} 获取。
+     * </p>
+     *
+     * @param settings 消息服务配置
+     * @return 新的 MessageService 实例
+     */
+    @NotNull
+    public MessageService createMessageService(@NotNull MessageSettings settings) {
+        MessageService service = services.createMessageService(plugin, logger, settings);
+        if (messageService == null) {
+            messageService = service;
+        }
+        return service;
+    }
+
+    /**
+     * 获取首个通过 {@link #createMessageService(MessageSettings)} 创建的消息服务实例。
+     *
+     * @throws IllegalStateException 尚未创建过消息服务
+     */
+    @NotNull
+    public MessageService getMessageService() {
+        MessageService service = messageService;
+        if (service == null) {
+            throw new IllegalStateException("MessageService has not been created yet. Call createMessageService(settings) first.");
+        }
+        return service;
+    }
+
     // ========= 日志服务 ==========
     public Logger getLogger() {
         return logger;
     }
 
     // ========= 插件信息 ==========
+    /** 初始化 YLib 的那个插件（服务、命令、任务都挂在它名下）。 */
+    @NotNull
+    public Plugin getPlugin() {
+        return plugin;
+    }
+
     public String getPluginName() {
         return PluginInfo.getPluginName();
     }
@@ -176,6 +232,7 @@ public class YLib {
 
     private void initializeServices() throws YLibException {
         YLibServices services = ServiceLocator.locate(YLibServices.class, "CoreServices");
+        this.services = services;
 
         this.logger = services.createLogger();
         this.configurationManager = services.createConfigurationManager(plugin, logger);
