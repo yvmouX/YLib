@@ -227,8 +227,12 @@ public final class MenuItem {
             List<String> renderedLore = new ArrayList<>();
             for (String line : loreLines) {
                 // 空串是「空行间隔」，要留着（调用方常 lore.add("") 分段），只滤掉 null
-                if (line != null) {
-                    renderedLore.add(TextRenderer.render(line));
+                if (line == null) {
+                    continue;
+                }
+                // 一条字符串里的 \n 也算换行（text block 写多行说明用得上）；先拆再渲染，因此标签不能跨行
+                for (String sub : line.split("\n")) {
+                    renderedLore.add(TextRenderer.render(sub));
                 }
             }
             meta.setLore(renderedLore);
