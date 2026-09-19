@@ -30,7 +30,8 @@ public class ConfigurationParser {
                     configValue.value(),
                     configValue.description(),
                     configValue.required(),
-                    configValue.validation()
+                    configValue.validation(),
+                    configValue.refreshComment()
                 ));
             }
         }

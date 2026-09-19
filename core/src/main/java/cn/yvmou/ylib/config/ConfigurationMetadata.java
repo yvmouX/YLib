@@ -82,23 +82,27 @@ public class ConfigurationMetadata {
         public final String description;
         public final boolean required;
         public final String validation;
-        
+        /** 每次加载是否按 {@link #description} 重写该键上方的注释（写 @keep 的那几行除外）。 */
+        public final boolean refreshComment;
+
         /**
          * 构造函数
-         * 
+         *
          * @param field 字段
          * @param configPath 配置路径
          * @param description 描述
          * @param required 是否必需
          * @param validation 验证规则
+         * @param refreshComment 是否每次加载都刷新注释
          */
         public FieldMetadata(@NotNull Field field, @NotNull String configPath, @NotNull String description,
-                           boolean required, @NotNull String validation) {
+                           boolean required, @NotNull String validation, boolean refreshComment) {
             this.field = field;
             this.configPath = configPath;
             this.description = description;
             this.required = required;
             this.validation = validation;
+            this.refreshComment = refreshComment;
         }
     }
 }

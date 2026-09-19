@@ -169,11 +169,13 @@ public class ConfigurationLoader {
     }
 
     /**
-     * 为文件中缺失的声明键补齐默认值（不覆盖用户已有值与注释）。
+     * 为文件中缺失的声明键补齐默认值（不覆盖用户已有值与注释），并刷新标了
+     * {@code refreshComment = true} 的键的注释。
      * <ul>
      *     <li>标量/List 字段：整键缺失时补默认值 + description 注释</li>
      *     <li>Map 字段：按默认实例的 key 集逐 key 补齐（用户已删除/修改的已有 key 不受影响）</li>
      *     <li>required 字段不自动补齐，缺失仍由 {@link #load} 报错</li>
+     *     <li>{@code refreshComment} 字段：注释与 description 不一致时重写（写了 {@code @keep} 的整块跳过）</li>
      * </ul>
      * 典型场景：插件升级后新增配置键，老用户的文件自动获得新键。
      *
@@ -208,12 +210,15 @@ public class ConfigurationLoader {
                     continue;
                 }
 
-                // 已存在：Map 字段按默认实例逐 key 深度补齐
+                // 已存在：注释按 refreshComment 刷新，Map 字段还要按默认实例逐 key 深度补齐
+                modified |= refreshComment(config, fieldMeta);
                 if (Map.class.isAssignableFrom(fieldMeta.field.getType())) {
                     modified |= mergeMapEntries(config, fieldMeta, instance);
                 }
             }
 
+            // 只有真的改了才写盘：注释刷新也计入 modified，否则改完 description 重启也看不到效果；
+            // 反之（内容一致时）不写，免得每次启动 mtime 都变、用户以为配置被动了
             if (modified) {
                 config.save(configFile);
                 logger.info("Merged missing keys into configuration file: " + metadata.configFile);
@@ -698,18 +703,92 @@ public class ConfigurationLoader {
         if (description == null || description.isEmpty()) {
             return;
         }
-        // 按行拆分，并去掉 \r（Windows 风格的换行会让行尾多一个控制字符）
+        invokeSetComments(config, path, descriptionToLines(description));
+    }
+
+    /**
+     * 把 description 拆成注释行：按 {@code \n} 分段，并去掉行尾的 {@code \r}。
+     * <p>
+     * 只用 {@code \n} 分段，因此写 {@code \r\n} 时 {@code \r} 会留在行尾（它在 YAML 里是个控制字符，
+     * 不报错但很难查），统一在这里裁掉。
+     */
+    private static List<String> descriptionToLines(@NotNull String description) {
         List<String> lines = new ArrayList<>();
         for (String line : description.split("\n")) {
             lines.add(line.endsWith("\r") ? line.substring(0, line.length() - 1) : line);
         }
+        return lines;
+    }
+
+    /** 反射调 {@code setComments}（Spigot 1.18.1+ 才有；老版本静默跳过，连日志都只在 debug 级出现）。 */
+    private void invokeSetComments(@NotNull FileConfiguration config, @NotNull String path, @NotNull List<String> lines) {
         // TODO: Find a way to support comments on older Spigot versions
-        // Try to set comments using reflection to support newer Spigot API (1.18.1+)
         try {
             java.lang.reflect.Method setCommentsMethod = config.getClass().getMethod("setComments", String.class, List.class);
             setCommentsMethod.invoke(config, path, lines);
         } catch (Exception ignored) {
             logger.debug("Comments not supported on this server version for field: " + path);
         }
+    }
+
+    /** 读某个键现有的注释；不支持注释的服务端上返回空表（与写入同样静默）。 */
+    private List<String> readComments(@NotNull FileConfiguration config, @NotNull String path) {
+        try {
+            java.lang.reflect.Method getCommentsMethod = config.getClass().getMethod("getComments", String.class);
+            Object result = getCommentsMethod.invoke(config, path);
+            if (!(result instanceof List)) {
+                return new ArrayList<>();
+            }
+            // 读回来的是「剥掉 # 前缀」的原文（写入时才由 Bukkit 加上 # ），
+            // 而且首元素是 null 占位（Bukkit 的注释列表留了一个空位），统一在这里清掉
+            List<String> cleaned = new ArrayList<>();
+            for (Object line : (List<?>) result) {
+                if (line != null) {
+                    cleaned.add(String.valueOf(line));
+                }
+            }
+            return cleaned;
+        } catch (Exception ignored) {
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 注释是否命中「保留标记」：某一行含 {@code @keep}。
+     * <p>
+     * 命中时整块注释都不刷新——服主写「本服特有约定」这类代码里没有的说明时，
+     * 不然每次启动都会被 description 覆盖掉，等于没有地方可写。
+     * <p>
+     * 注意**不能判 {@code #} 开头**：{@link #readComments} 拿到的已经是剥掉前缀的原文。
+     */
+    private static boolean isKeptComment(@NotNull List<String> lines) {
+        for (String line : lines) {
+            if (line.contains("@keep")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 刷新单个键的注释（{@code refreshComment = true} 的字段走这里）。
+     * <p>
+     * 只在「现有注释与 description 不一致、且没写 {@code @keep}」时才写，返回是否真的改了——
+     * 否则每次启动都会无意义地重写文件（mtime 一直变，用户会以为配置被动了）。
+     */
+    private boolean refreshComment(@NotNull FileConfiguration config, @NotNull ConfigurationMetadata.FieldMetadata fieldMeta) {
+        if (!fieldMeta.refreshComment || fieldMeta.description.isEmpty()) {
+            return false;
+        }
+        List<String> current = readComments(config, fieldMeta.configPath);
+        if (isKeptComment(current)) {
+            return false;
+        }
+        List<String> expected = descriptionToLines(fieldMeta.description);
+        if (current.equals(expected)) {
+            return false;
+        }
+        invokeSetComments(config, fieldMeta.configPath, expected);
+        return true;
     }
 }
