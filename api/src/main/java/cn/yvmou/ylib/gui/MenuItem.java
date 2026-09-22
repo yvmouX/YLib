@@ -159,16 +159,32 @@ public final class MenuItem {
     }
 
     /**
+     * 材质名 → 材质；认不出来（含空值）返回 {@code null}。
+     * <p>
+     * 它是唯一的解析实现，{@link #material(String)} 与配置校验（{@code MenuAppearances}）都走它：
+     * 两边各写一套的话，「校验说认得出来、渲染却退回纸」这种错迟早出现。
+     * 名字大小写不敏感（配置里写 {@code diamond_sword} 也行），因为管理员手写时不会总记得全大写。
+     */
+    public static Material resolveMaterial(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Material.matchMaterial(name.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            // matchMaterial 对畸形名字会抛，一并按「认不出来」处理：这不值得把界面打断
+            return null;
+        }
+    }
+
+    /**
      * 材质名 → 材质，解析失败回退 {@link Material#PAPER}。
      * <p>
      * 配置里把材质名写错（或写了新版本才有的方块）不该让整个界面开不出来，
      * 显示成纸反而能让管理员一眼看出「这条配置的图标有问题」。
      */
     public static Material material(String name) {
-        if (name == null || name.trim().isEmpty()) {
-            return Material.PAPER;
-        }
-        Material material = Material.matchMaterial(name.trim().toUpperCase(Locale.ROOT));
+        Material material = resolveMaterial(name);
         return material == null ? Material.PAPER : material;
     }
 

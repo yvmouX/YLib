@@ -1,11 +1,17 @@
 package cn.yvmou.ylib.gui;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
@@ -17,10 +23,18 @@ import java.util.Set;
 import java.util.logging.Level;
 
 /**
- * 菜单事件监听器：把容器上的点击翻译成菜单项的 action，把拖入「接收物品」那一格的物品交给它。
+ * 菜单事件监听器：把容器上的点击翻译成菜单项的 action，把拖入「接收物品」那一格的物品交给它，
+ * 并在菜单打开期间按需锁住主手。归属判定、取消、防重入都收在这里，宿主不必自己写监听器。
  * <p>
- * 判归属只能看视图的上层容器（玩家点自己背包时 clickedInventory 是背包）；必须先无条件取消事件再执行动作，
- * 否则动作抛异常就会漏掉取消；派发期间用 {@link #dispatching} 防重入。
+ * 几处刻意的取舍：
+ * <ul>
+ *   <li>判归属只能看视图的上层容器（玩家点自己背包时 clickedInventory 是背包）；判定用
+ *       {@link InventoryHolder} 身份而不是标题——标题会随语言变、也可能与别的插件撞名；</li>
+ *   <li>必须先无条件取消事件再执行动作，否则动作抛异常就会漏掉取消；派发期间用 {@link #dispatching} 防重入；</li>
+ *   <li>单个动作抛异常只记日志：玩家看到的「点了没反应」如果没有日志就无从排查，但也不能把服务端带崩；</li>
+ *   <li>主手锁定默认关闭（{@link Menu#handLockedByDefault()}），打开后管的是「丢弃物品 / 换手 / 切快捷栏」这三种
+ *       不经过容器的动作——它们不会触发点击事件，因此必须各拦一道。</li>
+ * </ul>
  * 宿主插件启用时调用一次 {@link #init(Plugin)} 即可，不必自己注册。
  */
 public final class MenuListener implements Listener {
@@ -35,17 +49,70 @@ public final class MenuListener implements Listener {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
     }
 
-    /** 注册点击分发与聊天输入拦截：宿主插件启用时调用一次即可（界面能打开但点击没反应，多半是忘了这一步）。 */
+    /** 注册点击分发、生命周期通知与聊天输入拦截：宿主插件启用时调用一次即可（界面能打开但点击没反应，多半是忘了这一步）。 */
     public static void init(Plugin plugin) {
-        // 菜单里「点一下 → 聊天栏填值」要用到它；宿主只调这一个方法就该两样都能用
+        // 菜单里「点一下 → 聊天栏填值」要用到它；宿主只调这一个方法就该几样都能用
         InputListener.init(plugin);
         Bukkit.getPluginManager().registerEvents(new MenuListener(plugin), plugin);
+    }
+
+    /**
+     * 打开通知：{@link Menu#onOpen} 在这里触发。
+     * <p>
+     * 用 {@code MONITOR} 优先级：这件事不改事件本身，只表示「玩家看到了这个界面」，放在最后跑才不会
+     * 被别的插件的取消（打开事件被取消时界面其实没开）骗到。
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onOpen(InventoryOpenEvent event) {
+        Menu<?> menu = menuOf(event.getView());
+        if (menu != null && event.getPlayer() instanceof Player) {
+            menu.notifyOpen((Player) event.getPlayer());
+        }
+    }
+
+    /** 关闭通知：{@link Menu#onClose} 在这里触发（由库保证每次打开只触发一次）。 */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onClose(InventoryCloseEvent event) {
+        Menu<?> menu = menuOf(event.getView());
+        if (menu != null && event.getPlayer() instanceof Player) {
+            menu.notifyClose((Player) event.getPlayer());
+        }
+    }
+
+    /** 丢弃物品：菜单锁着主手时拦下（这条不经过容器，因此不会触发点击事件）。 */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onDropItem(PlayerDropItemEvent event) {
+        if (locksHand(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** 切换快捷栏：菜单锁着主手时拦下——否则玩家可以借切槽把菜单里的物品「切」出来。 */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onItemHeld(PlayerItemHeldEvent event) {
+        if (locksHand(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** 主副手交换：同上。 */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onSwapHandItems(PlayerSwapHandItemsEvent event) {
+        if (locksHand(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** 玩家当前开着的是不是我们的菜单，且那个菜单锁了主手。 */
+    private static boolean locksHand(Player player) {
+        Menu<?> menu = menuOf(player.getOpenInventory());
+        return menu != null && menu.lockedHand();
     }
 
     /** 点击派发：显式 {@code ignoreCancelled = false}——别的插件取消了也要取消事件本身（否则物品能被拖走），但不再执行动作。 */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     public void onClick(InventoryClickEvent event) {
-        Menu menu = menuOf(event.getView());
+        Menu<?> menu = menuOf(event.getView());
         if (menu == null) {
             return;
         }
@@ -107,7 +174,7 @@ public final class MenuListener implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     public void onDrag(InventoryDragEvent event) {
-        Menu menu = menuOf(event.getView());
+        Menu<?> menu = menuOf(event.getView());
         if (menu == null) {
             return;
         }
@@ -150,7 +217,7 @@ public final class MenuListener implements Listener {
      * 不要求每一格都接收：拖拽通常从玩家背包起手（背包格既不接收、也不在菜单区），
      * 要求「全都接收」等于这个手势永远用不了——反正事件一律取消、物品不会真的落地。
      */
-    private static MenuItem itemTarget(Menu menu, Set<Integer> rawSlots) {
+    private static MenuItem itemTarget(Menu<?> menu, Set<Integer> rawSlots) {
         for (int rawSlot : rawSlots) {
             if (rawSlot < 0 || rawSlot >= menu.size()) {
                 continue;
@@ -174,7 +241,7 @@ public final class MenuListener implements Listener {
      * 归属判定只看 {@code InventoryHolder} 的类型，不看标题：标题会随语言文件变化、
      * 可能与其它插件的容器重名，属于展示层数据，不能当身份用。
      */
-    private static Menu menuOf(InventoryView view) {
+    private static Menu<?> menuOf(InventoryView view) {
         if (view == null) {
             return null;
         }

@@ -102,4 +102,31 @@ class SlotLayoutTest {
 
         assertEquals(Arrays.asList(0, 1), layout.slots("#"));
     }
+
+    @Test
+    @DisplayName("行数决定容器大小：一行 9 格，最多 6 行——调用方不必再手算 rows.length * 9")
+    void sizeFollowsRows() {
+        assertEquals(9, SlotLayout.sizeOf(new String[]{"#########"}));
+        assertEquals(27, SlotLayout.sizeOf(new String[]{"#########", "#########", "#########"}));
+        assertEquals(54, SlotLayout.sizeOf(new String[]{"#", "#", "#", "#", "#", "#"}),
+                "超出的行数按容量夹住，真正的错误由 parse 报（它手里有行数与容器大小两个数）");
+        assertEquals(54, SlotLayout.sizeOf(new String[]{"#", "#", "#", "#", "#", "#", "#"}));
+
+        IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
+                () -> SlotLayout.sizeOf(new String[0]));
+        assertTrue(failure.getMessage().contains("空"), failure.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> SlotLayout.sizeOf(null));
+    }
+
+    @Test
+    @DisplayName("sizeOf 与 parse 一起用不会自相矛盾：推出来的大小一定能容纳这些行")
+    void sizeOfFeedsParse() {
+        String[] rows = {"#########", "#########", "`save`   ", "#########"};
+
+        assertEquals(4 * 9, SlotLayout.sizeOf(rows));
+        SlotLayout layout = SlotLayout.parse(SlotLayout.sizeOf(rows), rows);
+        assertEquals(Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                27, 28, 29, 30, 31, 32, 33, 34, 35), layout.slots("#"));
+        assertEquals(Arrays.asList(18), layout.slots("save"));
+    }
 }

@@ -20,11 +20,31 @@ public final class SlotLayout {
     /** 一行的格数：与箱子界面一致。 */
     private static final int COLUMNS = 9;
 
+    /** 箱子界面最多 6 行。 */
+    private static final int MAX_ROWS = 6;
+
     /** 名字 → 它占的格子下标（阅读顺序：先上后下、先左后右）。 */
     private final Map<String, List<Integer>> slots;
 
     private SlotLayout(Map<String, List<Integer>> slots) {
         this.slots = Collections.unmodifiableMap(slots);
+    }
+
+    /**
+     * 布局行数 → 容器大小：一行 9 格，最多 6 行（54 格）。
+     * <p>
+     * 布局表既然已经写明了有几行，容器大小就是它的函数——让调用方再手算一遍 {@code rows.length * 9}
+     * 只是多一个能算错的地方（而且这两处一旦不一致，错的是「摆到界面外面去」这种最难查的表现）。
+     * {@code Menu} 的构造走的就是这里（它按外观的布局行数算出容器大小）。
+     * <p>
+     * 超过 6 行时返回 54（而不是抛）：真正的错误交给 {@link #parse} 报——它手里有行数与容器大小两个数，
+     * 能把「写了 7 行、容器只放得下 6 行」说得更清楚。
+     */
+    public static int sizeOf(String[] rows) {
+        if (rows == null || rows.length == 0) {
+            throw new IllegalArgumentException("布局表是空的：至少要有一行（配置里的 layout 不能为空）");
+        }
+        return Math.min(MAX_ROWS, rows.length) * COLUMNS;
     }
 
     /**

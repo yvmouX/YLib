@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SubCommand {
     /**
-     * 子命令路径，空格分隔，支持多级字面量（如 "reload config"）与参数占位符（如 "give <player> <item>"）
+     * 子命令路径，空格分隔，支持多级字面量（如 "reload config"）与参数占位符（如 {@code "give <player> <item>"}）
      */
     String value();
     String permission() default "";

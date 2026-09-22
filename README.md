@@ -224,35 +224,66 @@ String plain = TextRenderer.strip("<yellow>Mining</yellow>");
 
 ### Menus (chest GUI)
 
-「布局即文本图」的箱子菜单框架：一行一串字符、一个字符一格，`#` 或 `` `名字` `` 就是槽位名；
-一个名字可以占多格——静态槽位 `set(名字, 物品)` 整组同一物品，动态槽位 `fill(名字, 一串物品)` 按序填（列表就这么填）；
-列表翻页用 `Paging` 的纯函数自己拼（切片与页码夹紧有单测），库里不塞基类，页面长什么样完全由你写。
+「一个界面 = 一份外观 + 一段填充逻辑」：外观（`MenuAppearance`）决定标题、容器大小、布局表与每一格长什么样，
+代码只写「摆哪个物品、点了做什么、取哪些数据」。外观两种来源，机制完全一样——**代码里直接造**
+（`MenuAppearances.create`），或**代码定义默认值、文件交给 YLib 生成与读取**（`MenuAppearances.file`：
+缺文件按默认值生成、文件里写了的以文件为准、缺的键回落默认值、写坏的只回退那一项）。
+布局就是一张文本图：一行一串字符、一个字符一格，`#` 或 `` `名字` `` 就是槽位名；一个名字可以占多格——
+静态槽位 `set(名字, 物品)` 整组同一物品，动态槽位 `fill(名字, 一串物品)` 按序填（列表就这么填）。
 宿主启用时调一次 `MenuListener.init(plugin)` 即可——它也顺带注册了聊天输入监听器，所以 `MenuItem.input(...)` 不用再单独注册。
 
 ```java
-public final class ShopMenu extends Menu {
+public final class ShopMenu extends Menu<Services> {
 
-    private static final String[] SHAPE = {
-            "#########",
-            "#########",
-            "`prev` `pages` `next`",
-    };
+    // 默认外观住在菜单自己的类里；装配处再交给 MenuAppearances.file(plugin, "gui/shop", DEFAULTS) 生成 / 读取文件
+    public static final MenuAppearance DEFAULTS = MenuAppearances.create("&e商店")
+            .path("shop.main")                                   // 语言键前缀 gui.shop.main.…
+            .layout("#########",
+                    "#########",
+                    "`prev` `pages` `next`")
+            .item("pages", "PAPER", "&7第 {page}/{total} 页")
+            .item("prev", "ARROW", "&e上一页")
+            .item("next", "ARROW", "&e下一页")
+            .item(MenuAppearance.FILLER, "GRAY_STAINED_GLASS_PANE", " ")
+            .build();
 
     private int page;
 
+    public ShopMenu(Player viewer, Services services) {
+        super(viewer, services.messages(), services.menus().shop(), services);
+    }
+
     @Override
-    protected void build() {
-        layout(SHAPE);
-        List<Goods> all = goods();                       // 整份列表只取一次
-        int pageSize = slots("#").size();                // 每页几条 = 布局图里 # 的格数
-        page = Paging.clampPage(page, all.size(), pageSize);
-        fill("#", Paging.slice(all, page, pageSize).stream().map(this::card).toList());
-        int totalPages = Paging.totalPages(all.size(), pageSize);
-        set("pages", MenuItem.display(Material.PAPER, "&7" + (page + 1) + "/" + totalPages, lore -> { }));
-        // prev / next 同理：到头了换成 MenuItem.display(GRAY_DYE, ...)
+    protected void fill() {
+        // 夹紧页码 → 取这一页 → 逐条生成 → 填进 "#" → 一条都没有时在首格摆 items.empty
+        Pager pager = pagedList(page, "#", context().shop().items(), this::card, "empty");
+        page = pager.page();                        // 夹紧后的页码：按钮上的动作要用它，别用外面那个原始值
+
+        Map<String, String> vars = Placeholders.vars("page", pager.pageNumber(), "total", pager.totalPages());
+        item("pages", vars, null);                  // 只展示，不响应点击
+        if (pager.hasPrevious()) {
+            item("prev", vars, click -> goToPage(pager.page() - 1));
+        } else {
+            set("prev", MenuItem.display(Material.GRAY_DYE, "&7上一页", lore -> { }));   // 到头了变灰，位置固定
+        }
+        if (pager.hasNext()) {
+            item("next", vars, click -> goToPage(pager.page() + 1));
+        } else {
+            set("next", MenuItem.display(Material.GRAY_DYE, "&7下一页", lore -> { }));
+        }
+        background();
+    }
+
+    private void goToPage(int page) {
+        this.page = page;
+        refresh();                                  // 只改数据 + 重建
     }
 }
 ```
+
+`build()` 是 final 的：基类先按外观声明布局、再调 `fill()`，所以子类写不出「还没声明布局就按名字取槽位」这种
+顺序错误，容器大小也由布局行数算（不必自己写 `行数 × 9`）。分页用 `Pager`：每页几条 = 该区域在布局图里占几格，
+不必自己算；`pager.page()` / `pageNumber()` / `totalPages()` / `hasPrevious()` / `hasNext()` 就是全部要看的。
 
 想在聊天栏问一个值（改任务 id 这类），一个工厂方法就够；输入 `取消`/`cancel`、超时、退服都会放弃：
 

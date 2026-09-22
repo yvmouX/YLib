@@ -25,7 +25,7 @@ import java.util.function.Predicate;
  *                 // 执行逻辑
  *                 return 1;
  *             })))
- * }
+ * }</pre>
  */
 public class CommandNode {
     /**
@@ -131,7 +131,7 @@ public class CommandNode {
      * 添加子节点 - 构建命令树的关键方法
      *
      * 用于构建多级命令结构，支持任意深度的嵌套
-     * 例如：/give <player> <item> <amount>
+     * 例如：{@code /give <player> <item> <amount>}
      *
      * 示例：
      * literal("give").then(argument(player("target")).then(argument(item("item"))))

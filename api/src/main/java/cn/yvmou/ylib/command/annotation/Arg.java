@@ -19,7 +19,7 @@ public @interface Arg {
     /**
      * 动态补全提供器名称
      * <p>
-     * 对应于注册在命令实例中的方法名，该方法必须返回 List<String>
+     * 对应于注册在命令实例中的方法名，该方法必须返回 {@code List<String>}
      * 且接受 (CommandSender, CommandContext, String) 参数
      * </p>
      */

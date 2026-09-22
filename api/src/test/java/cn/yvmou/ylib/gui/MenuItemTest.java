@@ -76,4 +76,21 @@ class MenuItemTest {
         assertTrue(item.glow().acceptsItems());
         assertSame(item.onItem(), item.withAmount(3).onItem());
     }
+
+    @Test
+    @DisplayName("材质解析只有一份实现：resolveMaterial 说「认不出来」的，material 才退回纸")
+    void materialResolutionIsOneImplementation() {
+        assertEquals(Material.DIAMOND_SWORD, MenuItem.resolveMaterial("DIAMOND_SWORD"));
+        assertEquals(Material.DIAMOND_SWORD, MenuItem.resolveMaterial("diamond_sword"), "大小写不敏感（管理员手写不会总记得大写）");
+        assertEquals(Material.DIAMOND_SWORD, MenuItem.resolveMaterial("  DIAMOND_SWORD  "));
+
+        assertNull(MenuItem.resolveMaterial("NOT_A_MATERIAL"), "认不出来要给 null：配置校验据此报错");
+        assertNull(MenuItem.resolveMaterial(""));
+        assertNull(MenuItem.resolveMaterial("   "));
+        assertNull(MenuItem.resolveMaterial(null));
+        assertNull(MenuItem.resolveMaterial("*"), "布局里的占位符不该被当成材质名");
+
+        assertEquals(Material.PAPER, MenuItem.material("NOT_A_MATERIAL"), "渲染时退回纸，界面能开出来");
+        assertEquals(Material.DIAMOND_SWORD, MenuItem.material("diamond_sword"));
+    }
 }
