@@ -1,0 +1,131 @@
+package cn.yvmou.ylib.menu;
+
+import cn.yvmou.ylib.menu.internal.MenuActionsHolder;
+import cn.yvmou.ylib.menu.internal.MenuConfigLoader;
+import cn.yvmou.ylib.menu.internal.MenuLog;
+import cn.yvmou.ylib.menu.internal.MenuRegistry;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 菜单的入口：**注册**（把模板解析成不可变定义）与**打开**。
+ *
+ * <pre>{@code
+ * // onEnable：先注册，再使用
+ * Menus.init(this);                                // 注册事件派发（不调则界面能开、点击没反应）
+ * Menus.register(this, new AdminMenu(questService));   // 解析 + 校验 + 读 yml，失败即抛
+ *
+ * // 使用
+ * Menus.open(adminMenu, player);
+ * adminMenu.open(player);                          // 同一个动作的便捷写法
+ * }</pre>
+ *
+ * <h2>为什么注册是独立的一步</h2>
+ * 「解析失败必须在启动期炸，而不是玩家点开菜单时炸」是这套 API 最核心的一条保证。把注册做成
+ * 显式的一步，启动期就有唯一的入口去跑完所有校验（布局、符号、perPage、材质名、yml 版本），
+ * 而不是把风险留到第一次打开。{@link MenuTemplate#open} 因此要求模板**已被注册过**。
+ */
+public final class Menus {
+
+    private Menus() {
+    }
+
+    // ---------- 注册与派发 ----------
+
+    /**
+     * 注册事件派发。宿主插件启用时调一次即可。
+     * <p>
+     * 不调也能打开界面，但点击不会有任何反应——这是本库最容易踩的坑，因此文档里把它写在第一行。
+     */
+    public static void init(Plugin plugin) {
+        MenuRegistry.init(plugin);
+    }
+
+    /**
+     * 扫描 {@code @MenuConfig}、执行 {@code layout()} / {@code declare()}、读并叠加 yml，
+     * 得到一个不可变的 {@link MenuDefinition} 并缓存。
+     * <p>
+     * <b>任何一条校验不过都会抛 {@link MenuConfigException}，中止插件启用</b>——这是刻意的：
+     * 带着一个坏菜单上线，问题只会在玩家那里以「界面打不开」的形式出现，而那时手上没有行号与列号。
+     *
+     * @return 这个模板的定义；重复注册同一模板类返回第一次注册的那一份
+     */
+    public static MenuDefinition register(Plugin plugin, MenuTemplate template) {
+        return MenuRegistry.register(plugin, template);
+    }
+
+    // ---------- 打开 / 关闭 / 刷新 ----------
+
+    /** 给某个玩家打开这个菜单；模板必须已经注册过。 */
+    public static MenuSession open(MenuTemplate template, Player viewer) {
+        return MenuRegistry.open(template, viewer, Collections.<String, String>emptyMap());
+    }
+
+    /** 给某个玩家打开这个菜单，并给标题的 {@code {占位符}} 提供取值。 */
+    public static MenuSession open(MenuTemplate template, Player viewer, Map<String, String> titleVars) {
+        return MenuRegistry.open(template, viewer, titleVars);
+    }
+
+    /** 内部用：按已解析的定义打开（{@code MenuControl.open} 走它）。 */
+    public static MenuSession open(MenuDefinition definition, Player viewer) {
+        return MenuRegistry.open(definition, viewer);
+    }
+
+    /** 关掉某个玩家正开着的这个菜单；没开着就什么都不做。 */
+    public static void close(MenuTemplate template, Player viewer) {
+        MenuRegistry.close(template, viewer);
+    }
+
+    /** 原地重渲染某个玩家正开着的这个菜单；没开着就什么都不做。 */
+    public static void refresh(MenuTemplate template, Player viewer) {
+        MenuRegistry.refresh(template, viewer);
+    }
+
+    /** 清空某个玩家在这个菜单上的持久状态（页码、筛选条件）。 */
+    public static void resetSession(MenuTemplate template, Player viewer) {
+        MenuRegistry.resetSession(template, viewer);
+    }
+
+    // ---------- 查询 ----------
+
+    /** 某个模板的定义；没注册过返回 {@code null}。 */
+    public static MenuDefinition definitionOf(MenuTemplate template) {
+        return MenuRegistry.definitionOf(template);
+    }
+
+    /** 全部已注册的定义，按注册顺序；校验与「列出所有菜单」这类管理命令用它。 */
+    public static List<MenuDefinition> definitions() {
+        return MenuRegistry.definitions();
+    }
+
+    /** 这个玩家此刻开着的菜单；没开着返回 {@code null}。 */
+    public static MenuDefinition openingOf(Player viewer) {
+        return MenuRegistry.openingOf(viewer);
+    }
+
+    /** 卸载：清掉全部注册与 session（插件停用时调，避免静态表把旧插件的玩家数据留着）。 */
+    public static void shutdown() {
+        MenuRegistry.shutdown();
+    }
+
+    // ---------- 日志与声明式动作 ----------
+
+    /** 接管菜单框架的警告出口（配置脏数据这类）；不接管就打控制台。 */
+    public static void logger(java.util.function.Consumer<String> sink) {
+        MenuLog.sink(sink);
+    }
+
+    /**
+     * 登记 yml 里 {@code actions} 的宿主实现（发消息 / 执行命令 / 开另一个菜单）。
+     * <p>
+     * 只用了 message / close / refresh / next_page / prev_page 这类内置动作的宿主可以不登记，
+     * 但那时 yml 里配了需要宿主的动作只会记一条警告。
+     */
+    public static void actions(MenuActions implementation) {
+        MenuActionsHolder.set(implementation);
+    }
+}

@@ -4,7 +4,7 @@ dependencies {
     api(project(":api"))
 
     compileOnly("org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT")
-    // 单测需要在类路径上看见 Bukkit 类型才能调 PlayerInput 的公开方法（只有编译期才会去读 Server 实现）
+    // 单测需要在类路径上看见 Bukkit 类型（只有编译期才会去读 Server 实现）
     testImplementation("org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT")
 
     // 文本渲染：MiniMessage 为主，兼容传统 & / § 颜色码。

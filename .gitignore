@@ -32,3 +32,4 @@ tmp/
 *.tmp
 /platform/canvas/build
 /.workbuddy-ai
+/.dsh-gradle

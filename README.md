@@ -106,7 +106,7 @@ YLib 的源码分成两层，**这是有意的边界，不是目录洁癖**：
 
 | 模块 | 内容 | 你能依赖吗 |
 | --- | --- | --- |
-| `api` | 你 import 的一切：`YLib`、`CommandManager`、`Menu`/`MenuItem`、`TextRenderer`、`Argument`/`CommandNode`、`ConfigurationManager`、`Logger`、`MessageService`… | **能** —— 这些在语义化版本承诺范围内 |
+| `api` | 你 import 的一切：`YLib`、`CommandManager`、`MenuTemplate`/`MenuBuilder`/`Items`/`Menus`、`TextRenderer`、`Argument`/`CommandNode`、`ConfigurationManager`、`Logger`、`MessageService`… | **能** —— 这些在语义化版本承诺范围内 |
 | `core` | `*Impl`、`CommandDispatcher`、`ConfigurationLoader`、`LoggerUtil`… | **不能** —— 内部实现，随时会变 |
 
 这不是口头约定：**`core` 根本不在你的编译类路径上**（根项目的 `core` 是 `implementation`
@@ -224,81 +224,84 @@ String plain = TextRenderer.strip("<yellow>Mining</yellow>");
 
 ### Menus (chest GUI)
 
-「一个界面 = 一份外观 + 一段填充逻辑」：外观（`MenuAppearance`）决定标题、容器大小、布局表与每一格长什么样，
-代码只写「摆哪个物品、点了做什么、取哪些数据」。外观两种来源，机制完全一样——**代码里直接造**
-（`MenuAppearances.create`），或**代码定义默认值、文件交给 YLib 生成与读取**（`MenuAppearances.file`：
-缺文件按默认值生成、文件里写了的以文件为准、缺的键回落默认值、写坏的只回退那一项）。
-布局就是一张文本图：一行一串字符、一个字符一格，`#` 或 `` `名字` `` 就是槽位名；一个名字可以占多格——
-静态槽位 `set(名字, 物品)` 整组同一物品，动态槽位 `fill(名字, 一串物品)` 按序填（列表就这么填）。
-宿主启用时调一次 `MenuListener.init(plugin)` 即可——它也顺带注册了聊天输入监听器，所以 `MenuItem.input(...)` 不用再单独注册。
+**布局即 ASCII 图，行为即声明。** 一个菜单类实现 `MenuTemplate`，只有两件事要写：`layout()` 给一张图，
+`declare(b)` 说清每个符号是什么、点了做什么。宿主启用时调一次 `Menus.init(plugin)`（不调则界面能开、点了没反应），
+注册期就把布局、符号、分页容量、材质名、yml 版本全部校验完——**菜单写错在启动期炸，不是玩家点开时炸**。
 
 ```java
-public final class ShopMenu extends Menu<Services> {
+@MenuConfig(path = "gui/adminmenu.yml", version = 1, sessionTtl = 1800)
+public final class AdminMenu implements MenuTemplate {
 
-    // 默认外观住在菜单自己的类里；装配处再交给 MenuAppearances.file(plugin, "gui/shop", DEFAULTS) 生成 / 读取文件
-    public static final MenuAppearance DEFAULTS = MenuAppearances.create("&e商店")
-            .path("shop.main")                                   // 语言键前缀 gui.shop.main.…
-            .layout("#########",
-                    "#########",
-                    "`prev` `pages` `next`")
-            .item("pages", "PAPER", "&7第 {page}/{total} 页")
-            .item("prev", "ARROW", "&e上一页")
-            .item("next", "ARROW", "&e下一页")
-            .item(MenuAppearance.FILLER, "GRAY_STAINED_GLASS_PANE", " ")
-            .build();
+    private final QuestService questService;
 
-    private int page;
-
-    public ShopMenu(Player viewer, Services services) {
-        super(viewer, services.messages(), services.menus().shop(), services);
+    public AdminMenu(QuestService questService) {
+        this.questService = questService;
     }
 
     @Override
-    protected void fill() {
-        // 夹紧页码 → 取这一页 → 逐条生成 → 填进 "#" → 一条都没有时在首格摆 items.empty
-        Pager pager = pagedList(page, "#", context().shop().items(), this::card, "empty");
-        page = pager.page();                        // 夹紧后的页码：按钮上的动作要用它，别用外面那个原始值
-
-        Map<String, String> vars = Placeholders.vars("page", pager.pageNumber(), "total", pager.totalPages());
-        item("pages", vars, null);                  // 只展示，不响应点击
-        if (pager.hasPrevious()) {
-            item("prev", vars, click -> goToPage(pager.page() - 1));
-        } else {
-            set("prev", MenuItem.display(Material.GRAY_DYE, "&7上一页", lore -> { }));   // 到头了变灰，位置固定
-        }
-        if (pager.hasNext()) {
-            item("next", vars, click -> goToPage(pager.page() + 1));
-        } else {
-            set("next", MenuItem.display(Material.GRAY_DYE, "&7下一页", lore -> { }));
-        }
-        background();
+    public String[] layout() {                       // 每行 9 个符号，正好 9 格
+        return new String[]{
+            "#########",
+            "##`quests`#c#`create`##",
+            "#########"
+        };
     }
 
-    private void goToPage(int page) {
-        this.page = page;
-        refresh();                                  // 只改数据 + 重建
+    @Override
+    public void declare(MenuBuilder b) {
+        b.symbol('#').item("border")                 // 8 个槽位共用一份物品定义
+            .of(Items.of(Material.GRAY_STAINED_GLASS_PANE).name(" "));
+
+        b.symbol('c').item("create_btn")
+            .of(Items.of(Material.WRITABLE_BOOK).name("&f创建任务").lore("&7点击创建"))
+            .onClick((slot, ctx) -> new CreateQuestMenu(questService).open(ctx.viewer()));
+
+        b.symbol("quests").item("quests_btn")        // 多字符符号用反引号
+            .of(Items.of(Material.WRITABLE_BOOK)
+                     .name("&f任务列表")
+                     .lore("&7当前共 &e{count} &7个"))
+            .ph("count", ctx -> questService.count(ctx.viewer()))   // 打开时求值
+            .onClick((slot, ctx) -> new QuestListMenu(questService).open(ctx.viewer()));
+
+        b.fillEmpty(Items.filler());                 // 没被符号占用的格子
+        b.interaction(Interaction.READ_ONLY);        // 默认即此：玩家动不了菜单里的任何物品
     }
 }
 ```
 
-`build()` 是 final 的：基类先按外观声明布局、再调 `fill()`，所以子类写不出「还没声明布局就按名字取槽位」这种
-顺序错误，容器大小也由布局行数算（不必自己写 `行数 × 9`）。分页用 `Pager`：每页几条 = 该区域在布局图里占几格，
-不必自己算；`pager.page()` / `pageNumber()` / `totalPages()` / `hasPrevious()` / `hasNext()` 就是全部要看的。
-
-想在聊天栏问一个值（改任务 id 这类），一个工厂方法就够；输入 `取消`/`cancel`、超时、退服都会放弃：
+| 要点 | 说明 |
+|---|---|
+| 布局与格数 | **一行的格数 = 它的符号数**（默认 9）。`#` 是 1 格，`` `quests` `` 也是 1 格；**空白算 0 格**，只用于对齐 |
+| 符号 → 槽位 | 一个符号可以占多格（边框的标准用法），回调里用 `slot.row()` / `slot.col()` 区分 |
+| 占位符 | `ph(名字, ctx -> 值)`，**每次打开 / 刷新求值**，绝不在构建期冻结 |
+| 点击 | `onLeftClick` / `onRightClick` / `onShiftLeftClick` / `onClick(ClickKind, …)` / 按槽位号 / 全量兜底，优先级从精确到宽泛 |
+| 事件策略 | `READ_ONLY`（默认）/ `ALLOW_MOVE` / `ALLOW_TAKE`；拦点击、拖拽、漏斗抽取、丢入四种路径 |
+| 配置文件 | `@MenuConfig` 一键生成 / 读取：缺文件生成、已存在不覆盖、写了的以文件为准、缺的回落代码默认值、坏项只回退那一项 |
+| 分页 | `pageItems(perPage, source)`——`perPage` 必须等于该符号在布局里的格数，不符就启动报错 |
+| Session | 由「玩家 × 菜单」决定，**`close()` 不销毁**，因此「看完详情返回列表还在第 3 页」天然成立 |
 
 ```java
-set("id", MenuItem.input(Material.NAME_TAG, "&f任务 id", lore -> lore.add("&7左键编辑"),
-        "只能用小写字母、数字与下划线",          // 输入提示
-        () -> quest.id(),                       // 当前值；没有就给 null
-        text -> {                               // 提交后自己 refresh() 或重开界面
-            quest.id(text);
-            refresh();
-        }));
+// 分页：perPage 必须与 l 在布局里出现的次数一致
+b.symbol('l').item("quest_entry")
+    .pageItems(4, (viewer, page) -> questService.page(viewer, page, 4))
+    .onClick((slot, ctx) -> {
+        int global = ctx.page() * ctx.perPage() + ctx.indexInSymbol(slot);
+        Quest q = questService.at(ctx.viewer(), global);
+        if (q != null) {
+            new QuestDetailMenu(questService, q).open(ctx.viewer());
+        }
+    });
+
+b.symbol('p').item("prev").of(Items.of(Material.ARROW).name("&f上一页")).previousPage();
+b.symbol('q').item("pageinfo").of(Items.of(Material.PAPER).name("&f第 &e{page}/{pages} &7页")).pageIndicator();
+b.symbol('n').item("next").of(Items.of(Material.ARROW).name("&f下一页")).nextPage();
 ```
 
-> 上面所有 `MenuItem` 工厂方法的 lore 参数都是 `Consumer<List<String>>`，要自己 `add`——
-> 传 `List.of(...)` 编译不过，不想要 lore 就传 `lore -> { }`。
+> 物品一律由 `Items` 三级阶梯给出：`Items.of(Material)`（模板写死）、`Items.of(String)`（yml 读来的材质名，
+> 启动期解析 + 改名建议）、`Items.of(ItemStack)`（接管成品物品）。名字与 lore 收 `&` 色码字符串，
+> 里面可以写 `{占位符}`；**不带 MiniMessage**——玩家昵称里的 `<` 会被标签解析吃掉。
+
+完整的规则、校验清单与配置格式见 [文档/菜单.md](文档/菜单.md)。
 
 更详细的文档见 [文档/](文档/Home.md)：
 
@@ -309,7 +312,7 @@ set("id", MenuItem.input(Material.NAME_TAG, "&f任务 id", lore -> lore.add("&7�
 | [命令帮助](文档/命令帮助.md) | 统一格式的 help 输出 |
 | [配置](文档/配置.md) | 注解配置、类型映射、注释（`refreshComment` / `@keep`）、验证规则、版本迁移 |
 | [多语言](文档/多语言.md) | 语言文件、占位符、`TextRenderer` |
-| [菜单](文档/菜单.md) | 箱子界面框架（布局即文本图） |
+| [菜单](文档/菜单.md) | 箱子界面框架（布局即文本图、声明式物品与行为） |
 | [调度器](文档/调度器.md) | Spigot / Paper / Folia / Canvas 统一调度器 |
 | [日志](文档/日志.md) | 日志级别、占位符、定向输出 |
 
@@ -321,7 +324,8 @@ set("id", MenuItem.input(Material.NAME_TAG, "&f任务 id", lore -> lore.add("&7�
 YLib/
 ├── api/                  # 对外暴露的一切：契约 + 框架 + 公共工具（Java 8）
 │                         #   scheduler/config/command/logger/message 的接口与注解，
-│                         #   gui 菜单框架、TextRenderer、Argument/CommandNode
+│                         #   menu 菜单框架（MenuTemplate/Items/Menus）、TextRenderer、
+│                         #   Argument/CommandNode
 │                         #   注意：本模块编译期看不见 core，边界由构建强制
 ├── core/                 # 只放内部实现（Java 8）：*Impl / Dispatcher / Loader / Parser / Validator
 │                         #   对消费方编译期不可见（根项目里是 implementation 依赖）
@@ -336,3 +340,4 @@ YLib/
 
 `core` 与 `api` 停留在 Java 8：文本渲染所用的 Adventure **4.x** 全线是 Java 8 字节码，
 因此不需要为了 MiniMessage 抬升消费方的 Java 门槛（5.x 才需要 Java 21）。
+菜单框架同样只用 1.13 起就存在的方法，因此能在 1.13 ~ 最新版的服务端上跑。
