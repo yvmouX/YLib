@@ -1,10 +1,10 @@
 package cn.yvmou.ylib.menu;
 
-import cn.yvmou.ylib.menu.internal.LegacyText;
 import cn.yvmou.ylib.menu.internal.MenuLog;
 import cn.yvmou.ylib.menu.internal.MenuRegistry;
 import cn.yvmou.ylib.menu.internal.MenuScheduler;
 import cn.yvmou.ylib.menu.internal.SymbolState;
+import cn.yvmou.ylib.utils.LegacyCodes;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -77,7 +77,7 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
     public static MenuView create(MenuDefinition definition, Player viewer, MenuSession session,
                                   Map<String, String> titleVars) {
         String title = Placeholders.apply(definition.template().title(), titleVars);
-        MenuView view = new MenuView(definition, viewer, session, LegacyText.render(title));
+        MenuView view = new MenuView(definition, viewer, session, LegacyCodes.toSection(title));
         view.draw();
         return view;
     }

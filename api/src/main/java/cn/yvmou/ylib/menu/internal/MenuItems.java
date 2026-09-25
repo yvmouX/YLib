@@ -1,5 +1,6 @@
 package cn.yvmou.ylib.menu.internal;
 
+import cn.yvmou.ylib.utils.LegacyCodes;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -101,18 +102,18 @@ public final class MenuItems {
 
     private static void applyName(ItemMeta meta, String name) {
         if (SET_COMPONENT_NAME != null) {
-            invoke(meta, SET_COMPONENT_NAME, component(LegacyText.render(name)));
+            invoke(meta, SET_COMPONENT_NAME, component(LegacyCodes.toSection(name)));
             return;
         }
         if (SET_STRING_NAME != null) {
-            invoke(meta, SET_STRING_NAME, LegacyText.render(name));
+            invoke(meta, SET_STRING_NAME, LegacyCodes.toSection(name));
         }
     }
 
     private static void applyLore(ItemMeta meta, List<String> lines) {
         List<String> rendered = new ArrayList<String>(lines.size());
         for (String line : lines) {
-            rendered.add(LegacyText.render(line));
+            rendered.add(LegacyCodes.toSection(line));
         }
         if (SET_COMPONENT_LORE != null) {
             List<Component> components = new ArrayList<Component>(rendered.size());

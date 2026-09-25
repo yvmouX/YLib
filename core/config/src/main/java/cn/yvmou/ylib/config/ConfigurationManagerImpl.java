@@ -300,7 +300,7 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
                 fieldMeta.field.set(target, value);
             } catch (IllegalAccessException e) {
                 // Should not happen as we set accessible in parser
-                logger.error("Failed to copy field: " + fieldMeta.configPath, e);
+                logger.error(e, "Failed to copy field: {}", fieldMeta.configPath);
             }
         }
     }

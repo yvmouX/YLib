@@ -106,7 +106,7 @@ YLib 的源码分成两层，**这是有意的边界，不是目录洁癖**：
 
 | 模块 | 内容 | 你能依赖吗 |
 | --- | --- | --- |
-| `api` | 你 import 的一切：`YLib`、`CommandManager`、`MenuTemplate`/`MenuBuilder`/`Items`/`Menus`、`TextRenderer`、`Argument`/`CommandNode`、`ConfigurationManager`、`Logger`、`MessageService`… | **能** —— 这些在语义化版本承诺范围内 |
+| `api` | 你 import 的一切：`YLib`、`CommandManager`、`MenuTemplate`/`MenuBuilder`/`Items`/`Menus`、`TextRenderer`、`Argument`/`CommandNode`、`ConfigurationManager`、`Logger`/`Notices`、`MessageService`、`LegacyCodes`… | **能** —— 这些在语义化版本承诺范围内 |
 | `core` | `*Impl`、`CommandDispatcher`、`ConfigurationLoader`、`LoggerUtil`… | **不能** —— 内部实现，随时会变 |
 
 这不是口头约定：**`core` 根本不在你的编译类路径上**（根项目的 `core` 是 `implementation`
@@ -314,7 +314,7 @@ b.symbol('n').item("next").of(Items.of(Material.ARROW).name("&f下一页")).next
 | [多语言](文档/多语言.md) | 语言文件、占位符、`TextRenderer` |
 | [菜单](文档/菜单.md) | 箱子界面框架（布局即文本图、声明式物品与行为） |
 | [调度器](文档/调度器.md) | Spigot / Paper / Folia / Canvas 统一调度器 |
-| [日志](文档/日志.md) | 日志级别、占位符、定向输出 |
+| [日志](文档/日志.md) | 日志级别、`{}` 占位符、异常、以及给命令发送者的提示（`Notices`） |
 
 版本变更见 [GitHub Releases](https://github.com/yvmouX/YLib/releases)（由工作流按提交自动生成）。
 
@@ -328,7 +328,7 @@ YLib/
 │                         #   Argument/CommandNode
 │                         #   注意：本模块编译期看不见 core，边界由构建强制
 ├── core/                 # 只放内部实现（Java 8），按特性分模块
-│   ├── logger/           #   LoggerImpl / LoggerUtil / MessageImpl —— core 的地基
+│   ├── logger/           #   LoggerImpl / LoggerUtil —— core 的地基
 │   ├── config/           #   ConfigurationLoader / ManagerImpl / Metadata / Parser / Validator
 │   ├── command/          #   Dispatcher / ManagerImpl / AnnotationParser / config / wrapped
 │   ├── message/          #   MessageFormatter / MessageServiceImpl

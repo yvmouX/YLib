@@ -40,7 +40,7 @@ public class CommandConfigFile {
                     file.getParentFile().mkdirs();
                     file.createNewFile();
                 } catch (IOException e) {
-                    logger.error("Failed to create commands.yml", e);
+                    logger.error(e, "Failed to create commands.yml");
                 }
             }
         }
@@ -80,7 +80,7 @@ public class CommandConfigFile {
         try {
             config.save(file);
         } catch (IOException e) {
-            logger.error("Failed to save commands.yml", e);
+            logger.error(e, "Failed to save commands.yml");
         }
     }
 }

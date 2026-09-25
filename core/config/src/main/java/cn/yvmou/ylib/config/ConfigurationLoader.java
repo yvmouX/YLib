@@ -164,7 +164,7 @@ public class ConfigurationLoader {
             logger.info("Generated default configuration file: " + metadata.configFile);
 
         } catch (IOException e) {
-            logger.error("Failed to generate default configuration file: " + metadata.configFile, e);
+            logger.error(e, "Failed to generate default configuration file: {}", metadata.configFile);
         }
     }
 
@@ -224,7 +224,7 @@ public class ConfigurationLoader {
                 logger.info("Merged missing keys into configuration file: " + metadata.configFile);
             }
         } catch (Exception e) {
-            logger.error("Failed to merge missing configuration keys for " + metadata.configFile, e);
+            logger.error(e, "Failed to merge missing configuration keys for {}", metadata.configFile);
         }
     }
 
@@ -314,7 +314,7 @@ public class ConfigurationLoader {
                     newConfig.save(configFile);
                     logger.info("Configuration migration completed successfully.");
                 } catch (IOException e) {
-                    logger.error("Failed to save migrated configuration", e);
+                    logger.error(e, "Failed to save migrated configuration");
                 }
 
             } else {

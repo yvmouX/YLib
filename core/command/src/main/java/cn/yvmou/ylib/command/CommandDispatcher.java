@@ -1,6 +1,6 @@
 package cn.yvmou.ylib.command;
 
-import cn.yvmou.ylib.YLib;
+import cn.yvmou.ylib.Notices;
 import cn.yvmou.ylib.command.args.Argument;
 import cn.yvmou.ylib.command.context.CommandContext;
 import cn.yvmou.ylib.command.exception.CommandParseException;
@@ -169,11 +169,13 @@ public class CommandDispatcher {
 
     private boolean validatePermissionAndConditions(CommandSender sender, CommandNode node) {
         if (!hasPermission(sender, node)) {
-            YLib.getYLib().getLogger().toLog(sender).error("没有权限执行此命令");
+            // 玩家提示走 Notices：它是发给发送者的游戏消息，不是日志。
+            // 早先走 Logger.toLog(sender).error(...)，那条路会在控制台留下一条 "YLib error" 记录。
+            Notices.error(sender, "没有权限执行此命令");
             return false;
         }
         if (!hasRequirement(sender, node)) {
-            YLib.getYLib().getLogger().toLog(sender).error("没有满足命令需求");
+            Notices.error(sender, "没有满足命令需求");
             return false;
         }
         return true;

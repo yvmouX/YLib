@@ -1,121 +1,85 @@
 package cn.yvmou.ylib.logger;
 
 import cn.yvmou.ylib.PluginInfo;
+import cn.yvmou.ylib.utils.LegacyCodes;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.logging.Level;
+
+/**
+ * 控制台日志的实现。四条方法**只有一处出口**，因此不会再出现「info 走聊天、warn 走日志」的错位。
+ *
+ * <h2>为什么统一走 {@link java.util.logging}</h2>
+ * 之前 {@code info}/{@code debug} 发 {@code ConsoleSender.sendMessage(...)}，而 {@code warn}/{@code error}
+ * 走 {@code Logger#log(...)} —— 同一个 Logger 的四个方法，一半拿到的是「聊天消息」的待遇
+ * （带色码、能被别人的事件监听改写），一半拿到的是真日志的待遇（时间戳、级别、可被日志系统过滤）。
+ * 现在四条都走 {@code Logger#log(Level, String)}：时间戳、级别、日志系统过滤统一生效，
+ * 色码在写入前用 {@link LegacyCodes#strip} 剥掉。
+ *
+ * <h2>{@code debug} 为什么用 {@link Level#INFO} 而不是 {@link Level#FINE}</h2>
+ * 因为 {@code FINE} 会被过滤掉、什么也看不见。实测：根 logger 与 {@code ConsoleHandler}
+ * 的默认级别都是 {@code INFO}，{@code log(FINE, …)} 在<b>到达任何 handler 之前</b>就被 JUL 丢弃了。
+ * 也就是说「用级别过滤 debug」在 Bukkit 上不成立 —— 而 {@code FINE} 与 {@code INFO} 在日志里
+ * 长得也分不出来（默认格式只写级别名）。
+ * <p>
+ * 因此 {@code debug} 走 {@code INFO} 级别、靠消息里的 {@code [DEBUG]} 标签区分，
+ * 开关**只由** {@link cn.yvmou.ylib.PluginInfo#getLoggerDebug()} 负责。
+ * 代价是服主不能用日志级别单独过滤掉调试行（只能按文本过滤），换来的是「开了开关就一定看得见」。
+ */
 public class LoggerImpl implements Logger {
-    private CommandSender target;
 
     public LoggerImpl() {
     }
 
-    // 私有构造，用于创建临时的 Logger 实例
-    private LoggerImpl(CommandSender target) {
-        this.target = target;
-    }
+    // ---------- 四条日志 ----------
 
     @Override
     public void debug(@NotNull String format, @NotNull Object... args) {
-        debug(ChatColor.BLUE, format, args);
-    }
-
-    @Override
-    public void debug(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args) {
-        if (!PluginInfo.getLoggerDebug()) return;
-        log(color, "DEBUG", format, args);
+        // 库侧开关是唯一的闸门：关掉调试时连格式化都不做
+        if (!PluginInfo.getLoggerDebug()) {
+            return;
+        }
+        write(Level.INFO, "DEBUG", format, args);
     }
 
     @Override
     public void info(@NotNull String format, @NotNull Object... args) {
-        info(ChatColor.GREEN, format, args);
-    }
-
-    @Override
-    public void info(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args) {
-        log(color, "INFO", format, args);
+        write(Level.INFO, "INFO", format, args);
     }
 
     @Override
     public void warn(@NotNull String format, @NotNull Object... args) {
-        warn(ChatColor.YELLOW, format, args);
-    }
-
-    @Override
-    public void warn(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args) {
-        log(color, "WARN", format, args);
+        write(Level.WARNING, "WARN", format, args);
     }
 
     @Override
     public void error(@NotNull String format, @NotNull Object... args) {
-        error(ChatColor.RED, format, args);
+        write(Level.SEVERE, "ERROR", format, args);
     }
 
     @Override
-    public void error(@NotNull ChatColor color, @NotNull String format, @NotNull Object... args) {
-        log(color, "ERROR", format, args);
-        logThrowables(args);
+    public void error(@Nullable Throwable cause, @NotNull String format, @NotNull Object... args) {
+        write(Level.SEVERE, "ERROR", format, args);
+        if (cause != null) {
+            // 堆栈单独写一条：这样「一条日志一行」的格式不被破坏，日志系统也能把堆栈收进
+            // 可折叠的异常块（Paper 的 Log4j 就是这么处理的）
+            Bukkit.getLogger().log(Level.SEVERE, PluginInfo.getLoggerPrefix() + "  ↑ 异常堆栈", cause);
+        }
     }
 
-    @Override
-    public MessageImpl to(@NotNull CommandSender sender) {
-        // 返回一个新的不可变实例，保证线程安全
-        return new MessageImpl(sender);
-    }
+    // ---------- 唯一出口 ----------
 
-    @Override
-    public LoggerImpl toLog(@NotNull CommandSender sender) {
-        return new LoggerImpl(sender);
-    }
-
-    /*
-       ┌─────────────────────────────────────────────────────────────────┐
-       │  私有方法 | Private Method
-       └─────────────────────────────────────────────────────────────────┘
+    /**
+     * 把一条日志写进控制台。
+     * <p>
+     * 级别标签由**我们**加、而不交给日志系统：JUL 默认格式只有「级别缩写 + logger 名」，
+     * 而我们要的是统一的插件前缀。因此格式固定为 {@code <插件前缀>[LEVEL] 正文}，正文里的色码先剥掉。
      */
-    private void logThrowables(@NotNull Object... args) {
-        // 堆栈只输出到控制台，避免把异常细节发给玩家
-        if (target != null) {
-            return;
-        }
-        for (Object arg : args) {
-            if (arg instanceof Throwable) {
-                Bukkit.getLogger().log(java.util.logging.Level.SEVERE, "YLib error", (Throwable) arg);
-            }
-        }
-    }
-
-    private void log(@NotNull ChatColor levelColor, @NotNull String levelName, @NotNull String format, @NotNull Object... args) {
-        String msg = LoggerUtil.formatMessage(format, args);
-
-        if (target != null) {
-            // 发送给指定接收者：带上级别标签，便于玩家/管理员分辨
-            target.sendMessage(String.format("%s§8[%s§l§n%s§8]§r %s%s",
-                    PluginInfo.getLoggerPrefix(), levelColor, levelName, levelColor, msg));
-            return;
-        }
-
-        String prefix = "[" + PluginInfo.getLoggerPrefix() + "] ";
-        switch (levelName) {
-            case "WARN":
-            case "ERROR":
-                // 走标准日志级别，便于日志过滤与监控；服务器会按级别整行着色，
-                // 因此去掉消息自带的颜色代码（日志系统不翻译颜色代码）
-                Bukkit.getLogger().log("ERROR".equals(levelName)
-                                ? java.util.logging.Level.SEVERE
-                                : java.util.logging.Level.WARNING,
-                        prefix + ChatColor.stripColor(msg));
-                break;
-            case "DEBUG":
-                // 标准日志级别没有 DEBUG，保留标签以便区分
-                Bukkit.getConsoleSender().sendMessage(prefix + "§8[DEBUG]§r " + msg);
-                break;
-            default:
-                // INFO 走控制台发送，保留消息自带的颜色；
-                // 级别标签交给服务器日志输出，避免出现两个级别标签
-                Bukkit.getConsoleSender().sendMessage(prefix + msg);
-        }
+    private void write(@NotNull Level level, @NotNull String levelName,
+                       @NotNull String format, @NotNull Object... args) {
+        String body = LegacyCodes.strip(LoggerUtil.formatMessage(format, args));
+        Bukkit.getLogger().log(level, PluginInfo.getLoggerPrefix() + "[" + levelName + "] " + body);
     }
 }

@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
  * Menus.actions(new MenuActions() {
  *     @Override
  *     public void message(Player viewer, String text) {
- *         viewer.sendMessage(LegacyText.render(text));
+ *         viewer.sendMessage(LegacyCodes.toSection(text));
  *     }
  *
  *     @Override

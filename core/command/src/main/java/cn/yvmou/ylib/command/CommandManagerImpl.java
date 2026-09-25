@@ -93,7 +93,7 @@ public class CommandManagerImpl implements CommandManager {
                         logger.warn("Command " + commandName + " is disabled in config, but cannot be fully unregistered dynamically.");
                     }
                 } catch (Exception e) {
-                    logger.error("Failed to reload config for command " + commandName, e);
+                    logger.error(e, "Failed to reload config for command {}", commandName);
                 }
             }
         }

@@ -420,7 +420,7 @@ public class AnnotationParser {
 
     private static void logError(String message, Throwable t) {
         try {
-            YLib.getYLib().getLogger().error("{}", message, t);
+            YLib.getYLib().getLogger().error(t, "{}", message);
         } catch (IllegalStateException ignored) {
             // YLib 未初始化时（命令解析阶段理论上不会发生），回退到标准错误输出
             System.err.println("[YLib] " + message);
