@@ -19,6 +19,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -169,7 +170,6 @@ class MenuConfigTest {
     /** 声明了迁移函数、且版本号是 1（用来验证「旧文件被迁移」）。 */
     @MenuConfig(path = "gui/shop.yml", version = 1, migrate = "migrateV0")
     public static final class MigratingShop implements MenuTemplate {
-
         @Override
         public String[] layout() {
             return SHOP_LAYOUT;
@@ -204,6 +204,24 @@ class MenuConfigTest {
         }
     }
 
+    /**
+     * {@code generateDefault = false}：文件的生成与回写都交给运维 / 版本控制。
+     * 库仍然**读**它（缺的键回落代码默认值），但不该往里写任何东西。
+     */
+    @MenuConfig(path = "gui/shop.yml", version = 1, generateDefault = false)
+    public static final class NoGenerateShop implements MenuTemplate {
+
+        @Override
+        public String[] layout() {
+            return SHOP_LAYOUT;
+        }
+
+        @Override
+        public void declare(MenuBuilder b) {
+            declareShop(b);
+        }
+    }
+
     // ---------- 生成 ----------
 
     @Test
@@ -224,6 +242,40 @@ class MenuConfigTest {
         assertEquals(Arrays.asList("&7价格 {price}"), yaml.getStringList("items.buy_btn.lore"));
         // 生成完就能用：没被文件改动的符号仍是代码默认值
         assertEquals(Material.DIAMOND, definition.stateByConfigKey("buy_btn").items().material());
+    }
+
+    @Test
+    @DisplayName("生成的配置带注释（服主照着注释就能改）")
+    void generatedFileHasComments(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        Menus.shutdown();
+        Menus.register(plugin(folder), new AnnotatedShop());
+
+        File generated = new File(folder, "gui/shop.yml");
+        assertTrue(generated.isFile(), "缺文件时应当生成默认配置");
+
+        List<String> lines = Files.readAllLines(generated.toPath(), StandardCharsets.UTF_8);
+        String text = String.join("\n", lines);
+
+        // 注释必须真的以 "# " 出现在文件里，而不是只活在内存里的 YamlConfiguration
+        boolean hasCommentLine = false;
+        for (String line : lines) {
+            if (line.startsWith("# ")) {
+                hasCommentLine = true;
+                break;
+            }
+        }
+        assertTrue(hasCommentLine, "生成的配置里应有以 '# ' 开头的注释行：\n" + text);
+        // 关键几处说明要在：文件是什么、怎么改、材质怎么看
+        assertTrue(text.contains("配置版本号"), "缺少 version 的注释：\n" + text);
+        assertTrue(text.contains("物品外观"), "缺少 items 的注释：\n" + text);
+        assertTrue(text.contains("原版材质名"), "缺少 material 的注释：\n" + text);
+        // 布局原文也要能看到：否则服主得翻代码才知道哪个符号落在哪一格。
+        // 这条曾经不成立——注释发在 "layout" 这个键上，而那个键根本不在文件里，于是被静默丢掉。
+        assertTrue(text.contains("布局由模板的 layout() 决定"),
+                "缺少布局说明（注释不能发在不存在的键上）：\n" + text);
+        assertTrue(text.contains("####`buy`####"),
+                "布局原文应当出现在文件里：\n" + text);
     }
 
     @Test
@@ -379,6 +431,130 @@ class MenuConfigTest {
         assertTrue(failure.getMessage().contains("静态方法"), failure.getMessage());
     }
 
+    // ---------- 升级友好：补齐新增键 ----------
+
+    @Test
+    @DisplayName("老配置文件缺了新版本的符号键：自动补进文件（这是升级场景的关键一条）")
+    void fillsMissingItemKeys(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        // 一份「上个版本」的配置：只有 frame，没有 buy_btn
+        write(folder, "gui/shop.yml", "version: 1\n"
+                + "items:\n"
+                + "  frame:\n"
+                + "    material: GRAY_STAINED_GLASS_PANE\n"
+                + "    name: ' '\n");
+        Menus.shutdown();
+        WARNINGS.clear();
+        Menus.register(plugin(folder), new AnnotatedShop());
+
+        YamlConfiguration yaml = load(new File(folder, "gui/shop.yml"));
+        // 新符号以代码默认值补了进去
+        assertEquals("DIAMOND", yaml.getString("items.buy_btn.material"));
+        assertEquals("&b买一颗钻石", yaml.getString("items.buy_btn.name"));
+        assertEquals(Arrays.asList("&7价格 {price}"), yaml.getStringList("items.buy_btn.lore"));
+        // 用户原有的项一个字都没动
+        assertEquals("GRAY_STAINED_GLASS_PANE", yaml.getString("items.frame.material"));
+        assertEquals(" ", yaml.getString("items.frame.name"));
+        // 补的东西也要有注释，否则服主不知道那是什么
+        String text = new String(Files.readAllBytes(new File(folder, "gui/shop.yml").toPath()),
+                StandardCharsets.UTF_8);
+        assertTrue(text.contains("原版材质名"), "补进来的键应当带注释：\n" + text);
+        // 补了东西要出声，否则「配置自己变了」很吓人
+        boolean warned = false;
+        for (String warning : WARNINGS) {
+            if (warning.contains("补齐")) {
+                warned = true;
+            }
+        }
+        assertTrue(warned, WARNINGS.toString());
+    }
+
+    @Test
+    @DisplayName("补充不覆盖用户改过的值，也不动用户写的注释")
+    void fillDoesNotTouchUserValues(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        write(folder, "gui/shop.yml", "version: 1\n"
+                + "# 我自己写的注释，别动它\n"
+                + "items:\n"
+                + "  buy_btn:\n"
+                + "    material: EMERALD\n"
+                + "    name: '&a我改过的名字'\n"
+                + "    lore:\n"
+                + "    - '&7我的说明'\n");
+        Menus.shutdown();
+        Menus.register(plugin(folder), new AnnotatedShop());
+
+        String text = new String(Files.readAllBytes(new File(folder, "gui/shop.yml").toPath()),
+                StandardCharsets.UTF_8);
+        assertTrue(text.contains("# 我自己写的注释，别动它"), "用户的注释不该被覆盖：\n" + text);
+        YamlConfiguration yaml = load(new File(folder, "gui/shop.yml"));
+        assertEquals("EMERALD", yaml.getString("items.buy_btn.material"), "用户改过的值不该被改回默认");
+        assertEquals("&a我改过的名字", yaml.getString("items.buy_btn.name"));
+        assertEquals(Arrays.asList("&7我的说明"), yaml.getStringList("items.buy_btn.lore"));
+    }
+
+    @Test
+    @DisplayName("项在但个别字段缺：只补缺的那个字段")
+    void fillsMissingFieldOnly(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        // 有 material 和 name，故意删掉 lore
+        write(folder, "gui/shop.yml", "version: 1\n"
+                + "items:\n"
+                + "  buy_btn:\n"
+                + "    material: EMERALD\n"
+                + "    name: '&a留着'\n"
+                + "  frame:\n"
+                + "    material: GRAY_STAINED_GLASS_PANE\n"
+                + "    name: ' '\n"
+                + "    lore: []\n");
+        Menus.shutdown();
+        Menus.register(plugin(folder), new AnnotatedShop());
+
+        YamlConfiguration yaml = load(new File(folder, "gui/shop.yml"));
+        assertEquals("EMERALD", yaml.getString("items.buy_btn.material"), "已有的字段不该动");
+        assertEquals("&a留着", yaml.getString("items.buy_btn.name"), "已有的字段不该动");
+        assertEquals(Arrays.asList("&7价格 {price}"), yaml.getStringList("items.buy_btn.lore"),
+                "缺掉的字段应当补上");
+    }
+
+    @Test
+    @DisplayName("文件已完整：不写盘（mtime 不变）")
+    void doesNotRewriteCompleteFile(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        Menus.shutdown();
+        Menus.register(plugin(folder), new AnnotatedShop());
+        File file = new File(folder, "gui/shop.yml");
+
+        long before = file.lastModified();
+        // 停一下，让「有没有写盘」在时间戳上看得出来
+        Thread.sleep(20);
+        Menus.shutdown();
+        Menus.register(plugin(folder), new AnnotatedShop());
+        assertEquals(before, file.lastModified(),
+                "文件已完整时不该重写——否则每次启动 mtime 都变，服主会以为配置被动过");
+    }
+
+    @Test
+    @DisplayName("generateDefault = false：缺键只记警告，不写盘")
+    void doesNotFillWhenGenerateDefaultOff(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        write(folder, "gui/shop.yml", "version: 1\nitems: {}\n");
+        Menus.shutdown();
+        WARNINGS.clear();
+        Menus.register(plugin(folder), new NoGenerateShop());
+
+        YamlConfiguration yaml = load(new File(folder, "gui/shop.yml"));
+        assertNull(yaml.getString("items.buy_btn.material"),
+                "关掉 generateDefault 表示这个文件由运维管，库不该往里写");
+        boolean warned = false;
+        for (String warning : WARNINGS) {
+            if (warning.contains("generateDefault = false")) {
+                warned = true;
+            }
+        }
+        assertTrue(warned, "至少要说一声「缺了但我不写」：" + WARNINGS);
+    }
+
     @Test
     @DisplayName("没有 @MenuConfig 的模板：完全不走文件，也不生成文件")
     void withoutAnnotationNoFileIsRead(@TempDir Path temp) throws Exception {
@@ -409,5 +585,103 @@ class MenuConfigTest {
         MenuDefinition first = Menus.register(plugin, new AnnotatedShop());
         MenuDefinition second = Menus.register(plugin, new AnnotatedShop());
         assertTrue(first == second, "同一模板类只该有一份定义");
+    }
+
+    // ---------- 热重载 ----------
+
+    @Test
+    @DisplayName("reload 重读文件并换上一份新定义")
+    void reloadRebuildsDefinition(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        Menus.shutdown();
+        org.bukkit.plugin.Plugin plugin = plugin(folder);
+
+        MenuDefinition before = Menus.register(plugin, new AnnotatedShop());
+        assertEquals(Material.DIAMOND, before.stateByConfigKey("buy_btn").items().material());
+
+        // 改配置，然后重载
+        write(folder, "gui/shop.yml", "version: 1\n"
+                + "items:\n"
+                + "  buy_btn:\n"
+                + "    material: EMERALD\n"
+                + "    name: '&a热重载后的名字'\n");
+        MenuDefinition after = Menus.reload(plugin, new AnnotatedShop());
+
+        assertNotNull(after, "已注册的模板重载后应当拿到新定义");
+        assertTrue(after != before, "重载应当换上一份**新**定义，而不是改旧的");
+        assertEquals(Material.EMERALD, after.stateByConfigKey("buy_btn").items().material());
+        assertEquals("&a热重载后的名字", after.stateByConfigKey("buy_btn").items().name());
+        // 词典也指向新定义：之后 open 用到的就是它
+        assertTrue(Menus.definitionOf(new AnnotatedShop()) == after, "定义表应当已切到新定义");
+    }
+
+    @Test
+    @DisplayName("reload 没写的那一项仍然回落代码默认值")
+    void reloadKeepsCodeDefaults(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        Menus.shutdown();
+        org.bukkit.plugin.Plugin plugin = plugin(folder);
+        Menus.register(plugin, new AnnotatedShop());
+
+        write(folder, "gui/shop.yml", "version: 1\n"
+                + "items:\n"
+                + "  buy_btn:\n"
+                + "    material: EMERALD\n");
+        MenuDefinition after = Menus.reload(plugin, new AnnotatedShop());
+
+        // lore 没写 → 仍是代码里的那份（与启动期同一条合并路径）
+        assertEquals(Arrays.asList("&7价格 {price}"), after.stateByConfigKey("buy_btn").items().lore());
+        // 文件里没提的符号也还在
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE,
+                after.stateByConfigKey("frame").items().material());
+    }
+
+    @Test
+    @DisplayName("reload 没注册过的模板：返回 null，不凭空注册")
+    void reloadUnknownTemplateReturnsNull(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        Menus.shutdown();
+        assertNull(Menus.reload(plugin(folder), new AnnotatedShop()));
+        assertNull(Menus.definitionOf(new AnnotatedShop()), "重载不该顺手注册一个菜单");
+    }
+
+    @Test
+    @DisplayName("reloadAll 重载全部已注册的菜单，并返回数量")
+    void reloadAllReloadsEverything(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        Menus.shutdown();
+        org.bukkit.plugin.Plugin plugin = plugin(folder);
+        Menus.register(plugin, new AnnotatedShop());
+        Menus.register(plugin, plainShop());
+
+        write(folder, "gui/shop.yml", "version: 1\nitems:\n  buy_btn:\n    material: EMERALD\n");
+        assertEquals(2, Menus.reloadAll(plugin), "两个已注册的菜单都该被重载");
+        assertEquals(Material.EMERALD,
+                Menus.definitionOf(new AnnotatedShop()).stateByConfigKey("buy_btn").items().material());
+    }
+
+    @Test
+    @DisplayName("reload 遇到版本比代码新的配置：照启动期那样抛")
+    void reloadSurfacesBlockingConfigErrors(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        Menus.shutdown();
+        org.bukkit.plugin.Plugin plugin = plugin(folder);
+        Menus.register(plugin, new AnnotatedShop());
+
+        write(folder, "gui/shop.yml", "version: 99\nitems: {}\n");
+        assertThrows(MenuConfigException.class, () -> Menus.reload(plugin, new AnnotatedShop()),
+                "阻断级配置错误在重载时也应当抛，由调用方决定怎么报");
+    }
+
+    @Test
+    @DisplayName("重载后 session 还在：菜单身份是模板类名，不随定义换掉")
+    void reloadKeepsSessionIdentity(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        Menus.shutdown();
+        org.bukkit.plugin.Plugin plugin = plugin(folder);
+        MenuDefinition before = Menus.register(plugin, new AnnotatedShop());
+        MenuDefinition after = Menus.reload(plugin, new AnnotatedShop());
+        assertEquals(before.key(), after.key(),
+                "定义换了但身份不变，否则玩家会在重载后丢掉页码");
     }
 }

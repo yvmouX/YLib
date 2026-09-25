@@ -327,7 +327,14 @@ YLib/
 │                         #   menu 菜单框架（MenuTemplate/Items/Menus）、TextRenderer、
 │                         #   Argument/CommandNode
 │                         #   注意：本模块编译期看不见 core，边界由构建强制
-├── core/                 # 只放内部实现（Java 8）：*Impl / Dispatcher / Loader / Parser / Validator
+├── core/                 # 只放内部实现（Java 8），按特性分模块
+│   ├── logger/           #   LoggerImpl / LoggerUtil / MessageImpl —— core 的地基
+│   ├── config/           #   ConfigurationLoader / ManagerImpl / Metadata / Parser / Validator
+│   ├── command/          #   Dispatcher / ManagerImpl / AnnotationParser / config / wrapped
+│   ├── message/          #   MessageFormatter / MessageServiceImpl
+│   └── bootstrap/        #   CoreServices + META-INF/services（装配入口）
+│                         #   依赖方向：logger ← config ← command，logger ← message，
+│                         #   四者 ← bootstrap。子模块之间不允许成环。
 │                         #   对消费方编译期不可见（根项目里是 implementation 依赖）
 ├── platform/             # 平台适配层
 │   ├── canvas/           # Canvas 专用实现 (Java 17, 复用 Folia 调度实现)
@@ -337,6 +344,10 @@ YLib/
 ├── 文档/                 # 中文文档
 └── build.gradle.kts      # 统一管理版本和发布逻辑
 ```
+
+`core` 的子模块边界是**构建强制**的，不只是目录约定：想从 logger 实现里 import
+`ConfigurationManagerImpl` 会直接编译失败。`bootstrap` 单独成一个模块，是因为 `CoreServices`
+同时 `new` 出四个子系统，它不属于任何单一特性域。
 
 `core` 与 `api` 停留在 Java 8：文本渲染所用的 Adventure **4.x** 全线是 Java 8 字节码，
 因此不需要为了 MiniMessage 抬升消费方的 Java 门槛（5.x 才需要 Java 21）。

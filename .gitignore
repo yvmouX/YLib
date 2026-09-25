@@ -3,6 +3,11 @@
 /build/
 /api/build
 /core/build
+/core/logger/build
+/core/config/build
+/core/command/build
+/core/message/build
+/core/bootstrap/build
 /platform/build
 /platform/folia/build
 /platform/paper/build

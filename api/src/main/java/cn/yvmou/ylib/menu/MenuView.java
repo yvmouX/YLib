@@ -41,7 +41,13 @@ import java.util.function.Function;
  */
 public final class MenuView implements MenuControl, MenuContext, InventoryHolder {
 
-    private final MenuDefinition definition;
+    /**
+     * 这个菜单的静态定义。
+     * <p>
+     * 不是 {@code final}：热重载会用 {@link #reuse(MenuDefinition)} 把它换成新的一份，
+     * 这样已经开着的界面不必关掉重开（容器大小相同时）。
+     */
+    private MenuDefinition definition;
     private final Player viewer;
     private final MenuSession session;
     private final Inventory inventory;
@@ -74,6 +80,21 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
         MenuView view = new MenuView(definition, viewer, session, LegacyText.render(title));
         view.draw();
         return view;
+    }
+
+    /**
+     * 换一份定义并重画，用于热重载：把这个玩家开着的界面切到新定义上。
+     *
+     * @return 换成功了吗；{@code false} 表示新定义与当前容器**大小不一致**
+     *         （布局行数改了），那时只能关掉重开——容器大小在 {@code createInventory} 之后就定稿了。
+     */
+    public boolean reuse(MenuDefinition replacement) {
+        if (replacement == null || replacement.size() != definition.size()) {
+            return false;
+        }
+        this.definition = replacement;
+        draw();
+        return true;
     }
 
     // ---------- 渲染 ----------

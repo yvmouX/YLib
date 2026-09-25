@@ -59,6 +59,15 @@ public final class MenuRegistry implements Listener {
     private static final Map<Class<?>, MenuDefinition> DEFINITIONS =
             new LinkedHashMap<Class<?>, MenuDefinition>();
 
+    /**
+     * 模板类 → 当初登记的那个实例。
+     * <p>
+     * 热重载要靠它重跑 {@code declare()}。存实例而不是类，是因为模板可以持有 Service 依赖，
+     * 而重建必须从**同一个实例**出发（临时 new 一个可能拿不到那些依赖）。
+     */
+    private static final Map<Class<?>, MenuTemplate> TEMPLATES =
+            new LinkedHashMap<Class<?>, MenuTemplate>();
+
     /** 玩家 → 他此刻开着的那个菜单视图。 */
     private static final Map<UUID, MenuView> VIEWS = new ConcurrentHashMap<UUID, MenuView>();
 
@@ -112,21 +121,101 @@ public final class MenuRegistry implements Listener {
             // 同一个模板类注册两次没有第二个答案；也顺带挡住「两个实例各拿一份定义」的意外
             return existing;
         }
-        MenuConfig config = type.getAnnotation(MenuConfig.class);
+        MenuDefinition definition = rebuild(plugin, template);
+        TEMPLATES.put(type, template);
+        DEFINITIONS.put(type, definition);
+        if (plugin != null) {
+            PLUGINS.put(definition, plugin);
+        }
+        return definition;
+    }
+
+    /**
+     * 跑一遍「解析 → 声明 → 读 yml」，产出定义并逐条记录 warning。
+     * <p>
+     * 注册与热重载共用这一条路径——两者的差别只在「产出之后要不要覆盖缓存」，
+     * 分成两份实现的话，校验规则迟早会在其中一条上漂移。
+     */
+    private static MenuDefinition rebuild(Plugin plugin, MenuTemplate template) {
+        MenuConfig config = template.getClass().getAnnotation(MenuConfig.class);
         MenuBuilder builder = new MenuBuilder();
         template.declare(builder);
         MenuDefinition definition = builder.build(template, config);
         if (config != null) {
             MenuConfigLoader.apply(plugin, template, definition, config);
         }
-        DEFINITIONS.put(type, definition);
-        if (plugin != null) {
-            PLUGINS.put(definition, plugin);
-        }
         for (String warning : definition.warnings()) {
-            MenuLog.warn(type.getSimpleName() + ": " + warning);
+            MenuLog.warn(template.getClass().getSimpleName() + ": " + warning);
         }
         return definition;
+    }
+
+    // ---------- 热重载 ----------
+
+    /**
+     * 重读某个模板的配置并重建定义。
+     * <p>
+     * 已经开着这个菜单的玩家会被就地切到新定义上（容器大小不变时只是重画，不闪屏、不丢光标上的物品）；
+     * 如果**布局行数改了**，容器大小在创建时就定稿了，切不过去 —— 那时记一条 warning，
+     * 让那个界面保持旧定义直到玩家自己重开（而不是粗暴地关掉他的界面）。
+     *
+     * @return 新定义；这个模板没注册过则返回 {@code null}（重载不该凭空注册一个菜单）
+     */
+    public static MenuDefinition reload(Plugin plugin, MenuTemplate template) {
+        if (template == null) {
+            return null;
+        }
+        Class<?> type = template.getClass();
+        MenuDefinition previous = DEFINITIONS.get(type);
+        if (previous == null) {
+            return null;
+        }
+        MenuTemplate registered = TEMPLATES.containsKey(type) ? TEMPLATES.get(type) : template;
+        Plugin owner = plugin != null ? plugin : PLUGINS.get(previous);
+
+        MenuDefinition replacement = rebuild(owner, registered);
+        DEFINITIONS.put(type, replacement);
+        if (owner != null) {
+            PLUGINS.put(replacement, owner);
+        }
+        if (previous != replacement) {
+            PLUGINS.remove(previous);
+        }
+        reattach(previous, replacement);
+        return replacement;
+    }
+
+    /**
+     * 重载全部已注册的菜单。
+     *
+     * @return 重建成功的数量
+     */
+    public static int reloadAll(Plugin plugin) {
+        List<MenuTemplate> snapshot = new ArrayList<MenuTemplate>(TEMPLATES.values());
+        int reloaded = 0;
+        for (MenuTemplate template : snapshot) {
+            if (reload(plugin, template) != null) {
+                reloaded++;
+            }
+        }
+        return reloaded;
+    }
+
+    /** 把开着旧定义的界面切到新定义上；大小不一致的留着不动并提示重开。 */
+    private static void reattach(MenuDefinition previous, MenuDefinition replacement) {
+        if (previous == replacement) {
+            return;
+        }
+        for (MenuView view : VIEWS.values()) {
+            if (view.definition() != previous) {
+                continue;
+            }
+            if (!view.reuse(replacement)) {
+                MenuLog.warn(replacement.key() + " 的布局行数变了（容器大小 " + previous.size()
+                        + " → " + replacement.size() + "）：已经开着的那个界面只能关掉重开，"
+                        + "它的容器大小在打开时就定稿了");
+            }
+        }
     }
 
     /** 取定义；没注册过返回 {@code null}。 */
@@ -245,6 +334,7 @@ public final class MenuRegistry implements Listener {
         }
         LISTENERS.clear();
         DEFINITIONS.clear();
+        TEMPLATES.clear();
         VIEWS.clear();
         PLUGINS.clear();
         MenuSession.clear();

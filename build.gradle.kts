@@ -84,7 +84,10 @@ dependencies {
     // 否则 IDE 补全里会混进 LoggerImpl、CommandDispatcher 这类东西。
     // 它仍然会被打进下面的 shadowJar，运行时一个类都不少。
     // 公开 API 一律住在 api 模块，依赖方向永远是从 core 指向 api。
-    implementation(project(":core"))
+    //
+    // 只声明 bootstrap：它是 core 的装配入口（CoreServices），其余 core 子模块
+    // 通过它自己的 implementation 依赖传递进来，因此这里不必逐个列举。
+    implementation(project(":core:bootstrap"))
     api(project(":platform:canvas"))
     api(project(":platform:folia"))
     api(project(":platform:spigot"))

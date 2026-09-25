@@ -112,11 +112,57 @@ public final class Menus {
         MenuRegistry.shutdown();
     }
 
+    // ---------- 热重载 ----------
+
+    /**
+     * 重读某个菜单的配置文件并重建它的定义（{@code /xxx reload config} 调它）。
+     * <p>
+     * 与启动期走的是**同一条**解析 + 校验 + 合并路径，因此重载之后「写坏的那一项回退默认值」
+     * 这类保证与启动期完全一致；写错到阻断级别的配置（版本比代码新、yml 语法错）仍然会抛，
+     * 由调用方决定是让整个命令失败还是记日志。
+     * <p>
+     * 已经开着这个菜单的玩家会被**就地**切到新定义上：容器大小不变时只是重画（不闪屏、
+     * 不丢光标上的物品），页码等 session 也原样保留。若**布局行数改了**，容器大小在打开时
+     * 就已定稿，切不过去 —— 那时记一条 warning，让那个界面保持旧样子直到玩家自己重开。
+     *
+     * @return 新定义；这个模板没注册过则返回 {@code null}（重载不该凭空注册一个菜单）
+     */
+    public static MenuDefinition reload(Plugin plugin, MenuTemplate template) {
+        return MenuRegistry.reload(plugin, template);
+    }
+
+    /**
+     * 重载全部已注册的菜单。传 {@code null} 时沿用各自登记时的插件。
+     *
+     * @return 成功重建的数量
+     */
+    public static int reloadAll(Plugin plugin) {
+        return MenuRegistry.reloadAll(plugin);
+    }
+
     // ---------- 日志与声明式动作 ----------
 
     /** 接管菜单框架的警告出口（配置脏数据这类）；不接管就打控制台。 */
     public static void logger(java.util.function.Consumer<String> sink) {
         MenuLog.sink(sink);
+    }
+
+    /**
+     * 注入「下一 tick 执行」的实现（只影响 {@code delayedRefresh(true)}）。
+     * <p>
+     * <b>不注入也能用</b>：默认回退到 Bukkit 调度器；拿不到调度器（单测、关服中）时就地执行一次。
+     * 行为与「没这回事」时完全一致。
+     *
+     * <pre>{@code
+     * // Folia / Canvas 上请注入平台调度器：那两个平台不允许直接用 Bukkit 调度器
+     * Menus.scheduler(task -> ylib.getScheduler().runLater(task, 1L));
+     * }</pre>
+     *
+     * 之所以做成注入而不是内部直接取平台调度器：那会把调度器（以及 {@code YLib} 本身）
+     * 拽进菜单包的依赖里，而菜单包的其余部分只有 Bukkit 依赖。
+     */
+    public static void scheduler(java.util.function.Consumer<Runnable> nextTick) {
+        cn.yvmou.ylib.menu.internal.MenuScheduler.register(nextTick);
     }
 
     /**

@@ -50,6 +50,17 @@ public final class MenuConfigLoader {
     /** 打进 jar 的只读内置配置前缀。 */
     private static final String RES_PREFIX = "res://";
 
+    /**
+     * 三种物品字段的说明文案。
+     * <p>
+     * 提成常量是刻意的：生成骨架与「给老文件补新键」都要写这三行，
+     * 分成两处字面量迟早会漂移成两种说法。
+     */
+    private static final String COMMENT_MATERIAL =
+            "原版材质名（大小写不敏感）；认不出来会回退代码默认材质";
+    private static final String COMMENT_NAME = "显示名，支持 & 色码与 {占位符}";
+    private static final String COMMENT_LORE = "每行一条，支持 & 色码与 {占位符}";
+
     private MenuConfigLoader() {
     }
 
@@ -99,6 +110,8 @@ public final class MenuConfigLoader {
         }
 
         mergeItems(definition, path, yaml);
+        // 升级友好：把布局里有、文件里还没有的符号键补进去（老配置文件因此不必手动改）
+        fillMissingItems(plugin, definition, path, yaml, config.generateDefault());
         rejectUnknownTopLevelKeys(path, yaml);
     }
 
@@ -160,7 +173,7 @@ public final class MenuConfigLoader {
      * 按代码默认值生成一份带注释的配置。
      * <p>
      * 生成出来的是**能直接改的文件**：每个符号都写上当前代码默认值，服主要改哪里一目了然。
-     * 布局只是注释里的参考（改布局要动代码——容器的行数与槽位顺序由它决定，
+     * 布局只是文件头的参考说明（改布局要动代码——容器的行数与槽位顺序由它决定，
      * 允许配置改布局就等于允许配置把 perPage 与槽位数搞不一致）。
      */
     private static void writeDefaults(MenuTemplate template, MenuDefinition definition,
@@ -168,38 +181,22 @@ public final class MenuConfigLoader {
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.set("version", Integer.valueOf(version));
 
-        StringBuilder layout = new StringBuilder("布局由模板的 layout() 决定（改布局要动代码）。当前是：\n");
-        for (String row : template.layout()) {
-            layout.append("  ").append(row).append('\n');
-        }
-        layout.append("上面是代码里的布局原文，仅作参考。");
-
-        List<String> keys = new ArrayList<String>();
         for (SymbolState state : definition.symbols().values()) {
             if (state.isPaged() || state.items() == null || state.items().rawStack() != null) {
                 // 分页符号与成品物品没有可覆盖的外观，写出来只会让人以为改了有用
                 continue;
             }
-            keys.add(state.configKey());
-            String base = "items." + state.configKey();
-            Items items = state.items();
-            yaml.set(base + ".material", items.material() == null ? null : items.material().name());
-            yaml.set(base + ".name", items.name());
-            yaml.set(base + ".lore", items.lore() == null
-                    ? Collections.emptyList() : new ArrayList<String>(items.lore()));
+            // 与「给老文件补键」共用同一段写入逻辑，两处的字段与注释因此不可能漂移
+            writeItem(yaml, "items." + state.configKey(), state.items());
         }
 
-        comment(yaml, "version", "配置版本号：比代码的 @MenuConfig.version 旧会跑迁移，新则拒绝加载");
-        comment(yaml, "layout", layout.toString());
+        // 布局说明并进 version 的注释里，而不是单独发在 "layout" 这个键上：
+        // 那个键不存在于文件里，注释会被静默丢掉（setComments 只对已存在的路径生效）。
+        comment(yaml, "version", "配置版本号：比代码的 @MenuConfig.version 旧会跑迁移，新则拒绝加载\n"
+                + "\n" + layoutSummary(template));
         comment(yaml, "items", "物品外观：键 = 代码里 item(\"...\") 写的那个键；"
                 + "写了的以本文件为准，没写的用代码默认值\n"
                 + "可选的 actions 会完全接管该格的点击行为（写了它，代码里的 onClick 被忽略）");
-        for (String key : keys) {
-            String base = "items." + key;
-            comment(yaml, base + ".material", "原版材质名（大小写不敏感）；认不出来会回退代码默认材质");
-            comment(yaml, base + ".name", "显示名，支持 & 色码与 {占位符}");
-            comment(yaml, base + ".lore", "每行一条，支持 & 色码与 {占位符}");
-        }
 
         File parent = file.getParentFile();
         if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
@@ -212,22 +209,48 @@ public final class MenuConfigLoader {
         }
     }
 
+    /** 文件头里的布局参考：把模板的布局原文抄一遍，省得服主为了看懂槽位去翻代码。 */
+    private static String layoutSummary(MenuTemplate template) {
+        StringBuilder text = new StringBuilder("布局由模板的 layout() 决定（改布局要动代码）。当前是：");
+        String[] rows = template.layout();
+        for (int index = 0; index < rows.length; index++) {
+            text.append("\n  ").append(rows[index]);
+        }
+        return text.toString();
+    }
+
     /**
      * 给生成文件里的键加注释。
      * <p>
-     * {@code YamlConfiguration#setComments} 是较新版本才有的（老服务端上没有），因此走反射并在
-     * 失败时静默跳过——注释是锦上添花，缺了不影响读写。
+     * 两个 Bukkit 怪癖都在这里兜住（与 {@code core:config} 的 {@code ConfigurationLoader} 一致）：
+     * <ul>
+     *   <li>{@code setComments} 只对**已存在**的路径生效——所以本方法必须在 {@code yaml.set(...)}
+     *       之后调用，且不能给「文件里根本不存在的键」加注释（那会静默失效）；</li>
+     *   <li>注释里的 {@code \r} 要裁掉：{@code \r\n} 的 {@code \r} 会留在行尾，YAML 里是控制字符，
+     *       不报错但查不出来。</li>
+     * </ul>
+     * {@code setComments} 是较新版本才有的（老服务端上没有），因此走反射并在失败时静默跳过——
+     * 注释是锦上添花，缺了不影响读写。
      */
     private static void comment(YamlConfiguration yaml, String key, String text) {
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+        List<String> lines = new ArrayList<String>();
+        for (String line : text.split("\n")) {
+            // 只用 \n 分段：\r\n 的 \r 会留在行尾
+            lines.add(line.endsWith("\r") ? line.substring(0, line.length() - 1) : line);
+        }
         try {
             Method method = yaml.getClass().getMethod("setComments", String.class, List.class);
-            method.invoke(yaml, key, Arrays.asList(text.split("\n")));
+            method.invoke(yaml, key, lines);
         } catch (ReflectiveOperationException ignored) {
             // 老服务端：没有注释也不影响读写
         } catch (RuntimeException ignored) {
             // 某些实现会对未知键抛：同样不影响读写
         }
     }
+
     // ---------- 合并 ----------
 
     /** 把 yml 里的 items 叠加到定义上：写了的以文件为准，缺的回落代码默认值。 */
@@ -259,6 +282,107 @@ public final class MenuConfigLoader {
             bindActions(state, section, path, key);
         }
         // 布局里没配的符号：用代码默认值，不报错（这是最正常的情况）
+    }
+
+    /**
+     * 升级友好：把**代码里有、文件里还没有**的符号键补进文件。
+     *
+     * <h2>为什么值得写盘</h2>
+     * 「缺的键回落代码默认值」保证了**运行**没问题，但服主打开文件看不到那一项——
+     * 于是「这个菜单支持改哪些东西」只能靠翻文档。插件升级新增一个按钮时尤其明显：
+     * 老配置文件里根本没有它的影子。
+     *
+     * <h2>三条自我约束</h2>
+     * <ul>
+     *   <li><b>只加不改</b>：文件里已有的键一律不碰——用户改过的值、用户写的注释全都留着；</li>
+     *   <li><b>没变化就不写盘</b>：文件已完整时直接返回，免得每次启动 mtime 都变、
+     *       让服主以为配置被动过；</li>
+     *   <li><b>只在 {@code generateDefault = true} 时补</b>：那个开关的语义是「这个文件由 YLib 管」，
+     *       关掉它表示文件由运维 / 版本控制提供，库不该往里写东西。</li>
+     * </ul>
+     *
+     * @param generateDefault 来自 {@code @MenuConfig}；为 {@code false} 时只看不写
+     */
+    private static void fillMissingItems(Plugin plugin, MenuDefinition definition, String path,
+                                         YamlConfiguration yaml, boolean generateDefault) {
+        if (path.startsWith(RES_PREFIX)) {
+            return;      // jar 内置只读配置：不落地、也不回写
+        }
+        boolean modified = false;
+        int missing = 0;
+        for (SymbolState state : definition.symbols().values()) {
+            if (state.isPaged() || state.items() == null || state.items().rawStack() != null) {
+                // 分页符号与成品物品没有可覆盖的外观（与生成骨架时的口径一致）
+                continue;
+            }
+            if (fillMissingItem(yaml, state)) {
+                modified = true;
+                missing++;
+            }
+        }
+        if (!modified) {
+            return;
+        }
+        if (!generateDefault) {
+            MenuLog.warn(path + " 有 " + missing + " 个符号的配置项缺失，但 "
+                    + "@MenuConfig(generateDefault = false)：本库不替你写这个文件");
+            return;
+        }
+        File file = fileOf(plugin, path);
+        try {
+            yaml.save(file);
+            MenuLog.warn(path + " 补齐了 " + missing + " 个新版本的配置项（已有的值与注释都没动）");
+        } catch (Exception failure) {
+            // 写不进去不算致命：运行期用的是代码默认值，界面照常
+            MenuLog.warn(path + " 补齐配置项失败: " + failure.getMessage());
+        }
+    }
+
+    /** 补一个符号缺失的键；返回是否真的动了文件。 */
+    private static boolean fillMissingItem(YamlConfiguration yaml, SymbolState state) {
+        String base = "items." + state.configKey();
+        Items items = state.items();
+
+        // 整项缺失：连键带注释一起写进去，服主一眼就知道这一项是什么
+        if (!yaml.contains(base)) {
+            writeItem(yaml, base, items);
+            return true;
+        }
+
+        // 项在、个别字段缺：只补缺的那些（用户可能是故意删掉 lore 的）
+        boolean modified = false;
+        if (!yaml.contains(base + ".material") && items.material() != null) {
+            yaml.set(base + ".material", items.material().name());
+            comment(yaml, base + ".material", COMMENT_MATERIAL);
+            modified = true;
+        }
+        if (!yaml.contains(base + ".name")) {
+            yaml.set(base + ".name", items.name());
+            comment(yaml, base + ".name", COMMENT_NAME);
+            modified = true;
+        }
+        if (!yaml.contains(base + ".lore")) {
+            yaml.set(base + ".lore", loreOf(items));
+            comment(yaml, base + ".lore", COMMENT_LORE);
+            modified = true;
+        }
+        return modified;
+    }
+
+    /** 把一个符号的默认外观写进 yaml（含注释）；生成骨架与补键共用。 */
+    private static void writeItem(YamlConfiguration yaml, String base, Items items) {
+        yaml.set(base + ".material", items.material() == null ? "" : items.material().name());
+        comment(yaml, base + ".material", COMMENT_MATERIAL);
+        yaml.set(base + ".name", items.name());
+        comment(yaml, base + ".name", COMMENT_NAME);
+        yaml.set(base + ".lore", loreOf(items));
+        comment(yaml, base + ".lore", COMMENT_LORE);
+    }
+
+    /** 空 lore 写成空列表（写入 {@code null} 会让 YAML 里整个键消失）。 */
+    private static List<String> loreOf(Items items) {
+        return items.lore() == null ? Collections.<String>emptyList()
+                : new ArrayList<String>(items.lore());
     }
 
     /** 合并一格物品：逐个字段「文件里有就用文件，没有就回落代码默认值」。 */
