@@ -432,7 +432,8 @@ b.fillEmpty(Items.of(Material.BLACK_STAINED_GLASS_PANE).name(" "));   // 兜底:
 - `generateDefault = true`:**文件不存在时**写入默认骨架;**已存在则绝不覆盖**。
 - `generateDefault = false`:不生成,但**仍会尝试读取**同名文件做覆盖(方便"配置由运维预置"的场景)。
 - `path` 必须以 `res://` 之外的相对路径书写,基准是 `plugin.getDataFolder()`;也可以显式写 `res://gui/adminmenu.yml` 表示打进 jar 的**只读内置配置**(作为默认值来源,不落地到磁盘)。
-- 生成时**注释每个键的含义**,并对每个符号写入当前代码默认值,便于服主直接改。
+- 生成时对每个符号写入当前代码默认值,便于服主直接改。**不写注释**(阶段 88 的决定:语义放文档,
+  文件保持干净、可 diff)。
 
 ### 9.2 覆盖规则
 

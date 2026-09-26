@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -245,8 +246,8 @@ class MenuConfigTest {
     }
 
     @Test
-    @DisplayName("生成的配置带注释（服主照着注释就能改）")
-    void generatedFileHasComments(@TempDir Path temp) throws Exception {
+    @DisplayName("生成的配置不带注释（说明在文档里，文件保持干净）")
+    void generatedFileHasNoComments(@TempDir Path temp) throws Exception {
         File folder = temp.toFile();
         Menus.shutdown();
         Menus.register(plugin(folder), new AnnotatedShop());
@@ -254,31 +255,16 @@ class MenuConfigTest {
         File generated = new File(folder, "gui/shop.yml");
         assertTrue(generated.isFile(), "缺文件时应当生成默认配置");
 
-        List<String> lines = Files.readAllLines(generated.toPath(), StandardCharsets.UTF_8);
-        String text = String.join("\n", lines);
-
-        // 注释必须真的以 "# " 出现在文件里，而不是只活在内存里的 YamlConfiguration
-        boolean hasCommentLine = false;
-        for (String line : lines) {
-            if (line.startsWith("# ")) {
-                hasCommentLine = true;
-                break;
-            }
+        for (String line : Files.readAllLines(generated.toPath(), StandardCharsets.UTF_8)) {
+            assertFalse(line.trim().startsWith("#"),
+                    "生成的文件里不该有注释，但出现了：" + line);
         }
-        assertTrue(hasCommentLine, "生成的配置里应有以 '# ' 开头的注释行：\n" + text);
-        // 关键几处说明要在：文件是什么、怎么改、材质怎么看、布局怎么改
-        assertTrue(text.contains("配置版本号"), "缺少 version 的注释：\n" + text);
-        assertTrue(text.contains("物品外观"), "缺少 items 的注释：\n" + text);
-        assertTrue(text.contains("原版材质名"), "缺少 material 的注释：\n" + text);
-        assertTrue(text.contains("界面布局"), "缺少 layout 的注释：\n" + text);
-        assertTrue(text.contains("本文件里这一份优先于代码"),
-                "layout 的注释必须写明「文件优先」，否则服主改了代码不见效时无从下手：\n" + text);
-        // 布局本身是**真键**（不是注释里的参考图）：这样它才真的可改
-        assertTrue(text.contains("####`buy`####"),
-                "布局原文应当出现在文件里：\n" + text);
+
+        // 内容该有的还得有：布局是**真键**（不是注释里的参考图），这样它才真的可改
         YamlConfiguration yaml = load(new File(folder, "gui/shop.yml"));
         assertEquals(Arrays.asList(SHOP_LAYOUT), yaml.getStringList("layout"),
                 "layout 应当是可读回的真键");
+        assertEquals("DIAMOND", yaml.getString("items.buy_btn.material"));
     }
 
     // ---------- 布局覆盖 ----------
@@ -515,10 +501,6 @@ class MenuConfigTest {
         // 用户原有的项一个字都没动
         assertEquals("GRAY_STAINED_GLASS_PANE", yaml.getString("items.frame.material"));
         assertEquals(" ", yaml.getString("items.frame.name"));
-        // 补的东西也要有注释，否则服主不知道那是什么
-        String text = new String(Files.readAllBytes(new File(folder, "gui/shop.yml").toPath()),
-                StandardCharsets.UTF_8);
-        assertTrue(text.contains("原版材质名"), "补进来的键应当带注释：\n" + text);
         // 补了东西要出声，否则「配置自己变了」很吓人
         boolean warned = false;
         for (String warning : WARNINGS) {
