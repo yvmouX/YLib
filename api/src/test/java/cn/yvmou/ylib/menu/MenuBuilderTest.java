@@ -126,6 +126,22 @@ class MenuBuilderTest {
         };
     }
 
+    @Test
+    @DisplayName("不调 item(...)：配置键默认就是符号名——同名不必写两遍")
+    void configKeyDefaultsToSymbolName() {
+        MenuDefinition definition = build(template(
+                rows("xxxxxxxxx", "x`create`xxxxxxx"),
+                new Declare() {
+                    @Override
+                    public void apply(MenuBuilder b) {
+                        b.symbol("create").of(Items.of(Material.STONE));   // 故意不调 item(...)
+                        b.symbol('x').of(Items.of(Material.STONE));        // 单字符同样默认
+                    }
+                }));
+        assertEquals("create", definition.symbols().get("create").configKey());
+        assertEquals("x", definition.symbols().get("x").configKey());
+    }
+
     private static MenuDefinition build(MenuTemplate template) {
         MenuBuilder builder = new MenuBuilder();
         template.declare(builder);

@@ -39,6 +39,9 @@ public final class SymbolBinder {
      * <p>
      * 布局里的符号是「怎么画」，键是「配置里叫什么」——两者分开是为了让服主改配置时不必知道
      * 布局表里那个符号到底是一个字符还是 {@code `quests`} 这样的长名字。
+     * <p>
+     * 键与符号同名时不必调：不调时键默认就是符号名（如 {@code b.symbol('*')} 的键就是 {@code *}）。
+     * 只有「单字符符号想要可读的配置键」这类解耦场景才需要写它。
      */
     public SymbolBinder item(String configKey) {
         if (configKey == null || configKey.trim().isEmpty()) {
