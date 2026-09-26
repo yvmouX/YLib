@@ -281,11 +281,6 @@ public final class MenuRegistry implements Listener {
         return session;
     }
 
-    /** 内部用：{@code MenuControl.open} 走它。 */
-    static MenuSession openInternal(MenuDefinition definition, Player viewer) {
-        return open(definition, viewer);
-    }
-
     public static void close(MenuTemplate template, Player viewer) {
         MenuDefinition definition = definitionOf(template);
         if (definition == null || viewer == null) {
