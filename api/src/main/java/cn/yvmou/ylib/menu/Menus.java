@@ -75,6 +75,26 @@ public final class Menus {
         return MenuRegistry.open(definition, viewer);
     }
 
+    /** 打开菜单，并先写入这次打开要用的状态——模板全局共享，「这次看哪个任务 / 哪份草稿」只能放 session。 */
+    public static MenuSession open(MenuTemplate template, Player viewer, java.util.function.Consumer<MenuSession> state) {
+        return open(template, viewer, Collections.<String, String>emptyMap(), state);
+    }
+
+    /** 打开菜单：先给标题的 {@code {占位符}} 提供取值，再写入这次打开要用的状态（状态写入发生在打开前）。 */
+    public static MenuSession open(MenuTemplate template, Player viewer, Map<String, String> titleVars,
+                                   java.util.function.Consumer<MenuSession> state) {
+        MenuSession session = session(template.getClass(), viewer);
+        if (state != null) {
+            state.accept(session);
+        }
+        return open(template, viewer, titleVars);
+    }
+
+    /** 按「玩家 × 此菜单」取 session（必要时新建）；TTL 用模板声明的 {@code sessionTtl}。 */
+    public static MenuSession session(Class<?> menu, Player viewer) {
+        return MenuRegistry.sessionOf(menu, viewer);
+    }
+
     /** 关掉某个玩家正开着的这个菜单；没开着就什么都不做。 */
     public static void close(MenuTemplate template, Player viewer) {
         MenuRegistry.close(template, viewer);

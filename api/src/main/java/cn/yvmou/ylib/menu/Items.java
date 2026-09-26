@@ -153,6 +153,12 @@ public final class Items {
         }
     }
 
+    /** 解析材质名；认不出来退回 {@code fallback}——数据里的名字不该让界面开不出来。 */
+    public static Material resolveOr(String name, Material fallback) {
+        Material material = resolve(name);
+        return material == null ? fallback : material;
+    }
+
     /**
      * 「未知材质」的改名建议。
      * <p>
@@ -421,6 +427,12 @@ public final class Items {
             merged.flags = flags != null ? flags : (base == null ? null : base.flags);
             merged.metaMutator = metaMutator != null ? metaMutator : (base == null ? null : base.metaMutator);
             return merged;
+        }
+
+        /** 渲染为成品 ItemStack：名字与 lore 用定义里这份（调用方已把占位符求值好）。 */
+        public ItemStack stack() {
+            Items items = build();
+            return items.render(items.name(), items.lore());
         }
     }
 }

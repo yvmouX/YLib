@@ -241,6 +241,16 @@ public final class MenuRegistry implements Listener {
         return definition;
     }
 
+    /** 按「玩家 × 此菜单」取 session（必要时新建），TTL 用模板声明的 sessionTtl；未注册的菜单在这里就报。 */
+    public static MenuSession sessionOf(Class<?> menu, Player viewer) {
+        MenuDefinition definition = menu == null ? null : DEFINITIONS.get(menu);
+        if (definition == null) {
+            throw new MenuConfigException((menu == null ? "null" : menu.getName())
+                    + " 还没注册：先在 onEnable 里调用 Menus.register(plugin, template)");
+        }
+        return MenuSession.of(definition.key(), viewer, ttlOf(definition));
+    }
+
     /** 全部已注册定义，按注册顺序。 */
     public static List<MenuDefinition> definitions() {
         return Collections.unmodifiableList(new ArrayList<MenuDefinition>(DEFINITIONS.values()));
