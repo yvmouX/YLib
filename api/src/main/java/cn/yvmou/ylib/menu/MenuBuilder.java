@@ -124,12 +124,25 @@ public final class MenuBuilder {
     // ---------- 构建 ----------
 
     /**
+     * 用模板自己声明的布局构建（{@link MenuTemplate#layout()}）。
+     * <p>
+     * 配置文件里的 {@code layout} 走另一个重载——布局可以来自 yml，但**由谁来解析仍然只有这一处**，
+     * 因此「布局写错」的报错与校验两边完全一致。
+     */
+    public MenuDefinition build(MenuTemplate template, MenuConfig config) {
+        return build(template, config, template.layout());
+    }
+
+    /**
      * 解析布局、回填槽位、跑完全部启动期校验，产出不可变的 {@link MenuDefinition}。
      * <p>
      * 由 {@code Menus.register} 调用一次。任何一条校验不过都抛 {@link MenuConfigException}——
      * 菜单的错误全都属于「写错了」，越早报越省事。
+     *
+     * @param rows 实际使用的布局：模板写的，或配置文件覆盖后的那一份
      */
-    public MenuDefinition build(MenuTemplate template, MenuConfig config) {        LayoutParser.Result layout = LayoutParser.parse(template.layout(), template.columns());
+    public MenuDefinition build(MenuTemplate template, MenuConfig config, String[] rows) {
+        LayoutParser.Result layout = LayoutParser.parse(rows, template.columns());
 
         // 校验 5：单字符符号与多字符符号互为前缀
         LayoutParser.checkPrefixConflict(symbols.keySet());
@@ -155,22 +168,8 @@ public final class MenuBuilder {
             entry.getValue().slots(slots);
         }
 
-        // 校验 13 / 14：分页符号的 perPage 必须等于它在布局里的出现次数
-        for (SymbolState state : symbols.values()) {
-            if (!state.isPaged()) {
-                continue;
-            }
-            if (state.perPage() < 1) {
-                throw new MenuConfigException("符号 '" + state.symbol() + "' 的 perPage 必须 ≥ 1，收到 "
-                        + state.perPage());
-            }
-            int actual = state.slots().size();
-            if (state.perPage() != actual) {
-                throw new MenuConfigException("符号 '" + state.symbol() + "' 声明 perPage=" + state.perPage()
-                        + "，但布局中" + (actual < state.perPage() ? "只" : "竟") + "出现 " + actual
-                        + " 次（应为 " + state.perPage() + " 次）");
-            }
-        }
+        // 分页符号的每页条数就是它占的格数（SymbolState.perPage 现算），因此没有「两个数对不对得上」这条校验；
+        // 唯一要拦的是「声明了分页却没落在布局里」——那会让它一页都铺不出来，上面的 warning 已经报了
 
         // 校验 15／物品缺失：一个符号既没有静态物品也没有分页数据源 → 界面上那一格永远空着
         for (SymbolState state : symbols.values()) {
@@ -190,8 +189,13 @@ public final class MenuBuilder {
                 openHandler, closeHandler, warnings, config);
     }
 
-    /** 声明过的符号（校验与测试用）。 */
-    Map<String, SymbolState> symbols() {
+    /**
+     * 声明过的符号，按声明顺序。
+     * <p>
+     * {@code build(...)} 之前就要能读到它：配置文件里的 {@code layout} 得先知道「能用哪些符号」
+     * 才能校验，而读文件必须排在解析布局之前。
+     */
+    public Map<String, SymbolState> symbols() {
         return symbols;
     }
 }

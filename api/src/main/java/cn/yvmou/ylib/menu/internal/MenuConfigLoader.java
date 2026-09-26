@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -50,6 +51,9 @@ public final class MenuConfigLoader {
     /** 打进 jar 的只读内置配置前缀。 */
     private static final String RES_PREFIX = "res://";
 
+    /** 布局的键名：与 {@code items} 并列的顶层键。 */
+    private static final String KEY_LAYOUT = "layout";
+
     /**
      * 三种物品字段的说明文案。
      * <p>
@@ -65,30 +69,27 @@ public final class MenuConfigLoader {
     }
 
     /**
-     * 按 {@code @MenuConfig} 读取并叠加配置文件。符号的物品定义会被**就地替换**成合并后的结果。
+     * 读取（必要时生成）某份菜单的配置文件。
+     * <p>
+     * <b>读文件必须排在 {@code MenuBuilder.build} 之前</b>：文件里的 {@code layout} 决定容器怎么切，
+     * 而定义一旦 build 出来就定稿了。因此本类拆成「先读」与「后合并 items」两段
+     * （{@link #readItems}），{@code MenuRegistry} 按这个顺序调。
      *
-     * @param plugin     宿主插件（定位 dataFolder、读 jar 内资源）
-     * @param template   模板实例（迁移时可能要调用它身上的方法）
-     * @param definition 已经解析好的定义
-     * @param config     模板类上的注解
+     * @param plugin  宿主插件（定位 dataFolder、读 jar 内资源）
+     * @param template 模板实例（迁移时可能要调用它身上的方法）
+     * @param symbols 代码里声明过的符号（生成默认骨架时要按它写 items）
+     * @param config  模板类上的注解
+     * @return 可读的配置；没有可读的文件时返回 {@code null}（全部用代码默认值）
      */
-    public static void apply(Plugin plugin, MenuTemplate template, MenuDefinition definition,
-                             MenuConfig config) {
-        String path = config.path() == null ? "" : config.path().trim();
-        if (path.isEmpty()) {
-            throw new MenuConfigException(template.getClass().getName()
-                    + " 的 @MenuConfig.path 是空的：不要配置文件就别标 @MenuConfig");
-        }
-
+    public static YamlConfiguration readAll(Plugin plugin, MenuTemplate template,
+                                            Map<String, SymbolState> symbols, MenuConfig config) {
+        String path = pathOf(template, config);
         boolean fromJar = path.startsWith(RES_PREFIX);
-        YamlConfiguration yaml;
-        if (fromJar) {
-            yaml = readFromJar(plugin, path.substring(RES_PREFIX.length()));
-        } else {
-            yaml = readFromDisk(plugin, template, definition, path, config.generateDefault(), config.version());
-        }
+        YamlConfiguration yaml = fromJar
+                ? readFromJar(plugin, path.substring(RES_PREFIX.length()))
+                : readFromDisk(plugin, template, symbols, path, config.generateDefault(), config.version());
         if (yaml == null) {
-            return;      // 没有可读的文件：全部用代码默认值
+            return null;     // 没有可读的文件：全部用代码默认值
         }
 
         int codeVersion = config.version();
@@ -103,30 +104,78 @@ public final class MenuConfigLoader {
             migrate(plugin, template, path, yaml, config, fileVersion);
             // 迁移完之后按新版本重新读一次，保证「迁移产物」与「后续读取」看到的是同一份
             yaml = fromJar ? readFromJar(plugin, path.substring(RES_PREFIX.length()))
-                    : readFromDisk(plugin, template, definition, path, false, config.version());
-            if (yaml == null) {
-                return;
-            }
+                    : readFromDisk(plugin, template, symbols, path, false, config.version());
         }
+        return yaml;
+    }
 
+    /**
+     * 文件里的布局覆盖。
+     * <p>
+     * <b>整份校验、整份回退</b>：行数与每行的格数一起决定容器大小与分页容量，只认一半的布局
+     * 没有任何意义——回退到代码里那份至少还是一个自洽的界面。这与「材质名写错只回退那一项」
+     * 是同一条政策：代码写错当场抛，配置脏数据回退 + 警告，界面永远开得起来。
+     *
+     * @param yaml     {@link #readAll} 读到的配置；{@code null} 表示没有文件
+     * @param declared 代码里声明过的符号名；布局里出现没声明过的符号属于配置写错（新增符号要动代码）
+     */
+    public static String[] readLayout(YamlConfiguration yaml, String path, MenuTemplate template,
+                                      Set<String> declared) {
+        String[] defaults = template.layout();
+        if (yaml == null || !yaml.contains(KEY_LAYOUT)) {
+            return defaults;
+        }
+        String[] candidate = yaml.getStringList(KEY_LAYOUT).toArray(new String[0]);
+        try {
+            LayoutParser.Result parsed = LayoutParser.parse(candidate, template.columns());
+            for (String symbol : parsed.slotsBySymbol().keySet()) {
+                if (!declared.contains(symbol)) {
+                    throw new MenuConfigException("符号 '" + symbol + "' 没有在代码里声明过"
+                            + "（能用哪些符号由 declare() 决定，新增符号要动代码）");
+                }
+            }
+            return candidate;
+        } catch (MenuConfigException unusable) {
+            MenuLog.warn(path + " 的 layout 用不了：" + unusable.getMessage() + "；已整份回退代码里的布局");
+            return defaults;
+        }
+    }
+
+    /** 把 yml 里的 items 叠加到定义上；在 {@code MenuBuilder.build} 之后跑。 */
+    public static void readItems(Plugin plugin, MenuDefinition definition, YamlConfiguration yaml,
+                                 MenuConfig config) {
+        if (yaml == null) {
+            return;
+        }
+        String path = pathOf(definition.template(), config);
         mergeItems(definition, path, yaml);
-        // 升级友好：把布局里有、文件里还没有的符号键补进去（老配置文件因此不必手动改）
-        fillMissingItems(plugin, definition, path, yaml, config.generateDefault());
+        // 升级友好：把代码里有、文件里还没有的键补进去（老配置文件因此不必手动改）
+        fillMissing(plugin, definition, path, yaml, config.generateDefault());
         rejectUnknownTopLevelKeys(path, yaml);
+    }
+
+    /** {@code @MenuConfig.path} 的取值与检查；两条读取路径都要用。 */
+    private static String pathOf(MenuTemplate template, MenuConfig config) {
+        String path = config.path() == null ? "" : config.path().trim();
+        if (path.isEmpty()) {
+            throw new MenuConfigException(template.getClass().getName()
+                    + " 的 @MenuConfig.path 是空的：不要配置文件就别标 @MenuConfig");
+        }
+        return path;
     }
 
     // ---------- 读文件 ----------
 
     /** 读磁盘上的配置；{@code generateDefault} 时缺文件会先生成一份默认骨架。 */
     private static YamlConfiguration readFromDisk(Plugin plugin, MenuTemplate template,
-                                                  MenuDefinition definition, String path,
+                                                  Map<String, SymbolState> symbols, String path,
                                                   boolean generateDefault, int version) {
         File file = fileOf(plugin, path);
         if (!file.isFile()) {
             if (!generateDefault) {
                 return null;
             }
-            writeDefaults(template, definition, path, file, version);
+            writeDefaults(template, symbols, path, file, version);
         }
         YamlConfiguration yaml = new YamlConfiguration();
         try {
@@ -172,16 +221,16 @@ public final class MenuConfigLoader {
     /**
      * 按代码默认值生成一份带注释的配置。
      * <p>
-     * 生成出来的是**能直接改的文件**：每个符号都写上当前代码默认值，服主要改哪里一目了然。
-     * 布局只是文件头的参考说明（改布局要动代码——容器的行数与槽位顺序由它决定，
-     * 允许配置改布局就等于允许配置把 perPage 与槽位数搞不一致）。
+     * 生成出来的是**能直接改的文件**：布局与每个符号的当前默认值都写上，服主要改哪里一目了然。
+     * 收的是 {@code symbols} 而不是已解析的定义——读文件要发生在解析布局之前（布局本身在文件里）。
      */
-    private static void writeDefaults(MenuTemplate template, MenuDefinition definition,
+    private static void writeDefaults(MenuTemplate template, Map<String, SymbolState> symbols,
                                       String path, File file, int version) {
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.set("version", Integer.valueOf(version));
+        writeLayout(yaml, template);
 
-        for (SymbolState state : definition.symbols().values()) {
+        for (SymbolState state : symbols.values()) {
             if (state.isPaged() || state.items() == null || state.items().rawStack() != null) {
                 // 分页符号与成品物品没有可覆盖的外观，写出来只会让人以为改了有用
                 continue;
@@ -190,10 +239,7 @@ public final class MenuConfigLoader {
             writeItem(yaml, "items." + state.configKey(), state.items());
         }
 
-        // 布局说明并进 version 的注释里，而不是单独发在 "layout" 这个键上：
-        // 那个键不存在于文件里，注释会被静默丢掉（setComments 只对已存在的路径生效）。
-        comment(yaml, "version", "配置版本号：比代码的 @MenuConfig.version 旧会跑迁移，新则拒绝加载\n"
-                + "\n" + layoutSummary(template));
+        comment(yaml, "version", "配置版本号：比代码的 @MenuConfig.version 旧会跑迁移，新则拒绝加载");
         comment(yaml, "items", "物品外观：键 = 代码里 item(\"...\") 写的那个键；"
                 + "写了的以本文件为准，没写的用代码默认值\n"
                 + "可选的 actions 会完全接管该格的点击行为（写了它，代码里的 onClick 被忽略）");
@@ -209,14 +255,21 @@ public final class MenuConfigLoader {
         }
     }
 
-    /** 文件头里的布局参考：把模板的布局原文抄一遍，省得服主为了看懂槽位去翻代码。 */
-    private static String layoutSummary(MenuTemplate template) {
-        StringBuilder text = new StringBuilder("布局由模板的 layout() 决定（改布局要动代码）。当前是：");
-        String[] rows = template.layout();
-        for (int index = 0; index < rows.length; index++) {
-            text.append("\n  ").append(rows[index]);
-        }
-        return text.toString();
+    /**
+     * 把代码里的布局写成一个**真键**：文件里这一份会覆盖代码，整份写坏则整份回退。
+     * <p>
+     * 注释里必须写清「本文件优先」——服主改了代码里的布局却不见效时，第一嫌疑就是文件里这一份。
+     */
+    private static void writeLayout(YamlConfiguration yaml, MenuTemplate template) {
+        yaml.set(KEY_LAYOUT, Arrays.asList(template.layout()));
+        comment(yaml, KEY_LAYOUT, "界面布局：一行一项、一行 " + template.columns() + " 格；"
+                + "一个字符一格，`名字` 让多字符符号也只占一格，空白不占格\n"
+                + "能用哪些符号由代码的 declare() 决定（新增符号要动代码）；"
+                + "分页符号的每页条数 = 它在布局里出现的格数\n"
+                + "本文件里这一份优先于代码：改了代码里的布局而这里还留着旧的，界面就还是旧的"
+                + "（想跟着代码走就删掉这个键或整个文件）\n"
+                + "整份写坏（行数不对 / 一行超过 " + template.columns() + " 格 / 引用了没声明过的符号）"
+                + "会整份回退代码里的布局并记一条警告");
     }
 
     /**
@@ -303,13 +356,21 @@ public final class MenuConfigLoader {
      *
      * @param generateDefault 来自 {@code @MenuConfig}；为 {@code false} 时只看不写
      */
-    private static void fillMissingItems(Plugin plugin, MenuDefinition definition, String path,
-                                         YamlConfiguration yaml, boolean generateDefault) {
+    private static void fillMissing(Plugin plugin, MenuDefinition definition, String path,
+                                    YamlConfiguration yaml, boolean generateDefault) {
         if (path.startsWith(RES_PREFIX)) {
             return;      // jar 内置只读配置：不落地、也不回写
         }
         boolean modified = false;
         int missing = 0;
+        // 老文件里没有 layout：补上代码里那一份。与 items 同一条政策——
+        // 「文件里看得见这个可改项」比「文件的键恰好跟代码一致」更重要；
+        // 代价是补进去之后它就成为覆盖层（注释里写明了怎么交还给代码）。
+        if (!yaml.contains(KEY_LAYOUT)) {
+            writeLayout(yaml, definition.template());
+            modified = true;
+            missing++;
+        }
         for (SymbolState state : definition.symbols().values()) {
             if (state.isPaged() || state.items() == null || state.items().rawStack() != null) {
                 // 分页符号与成品物品没有可覆盖的外观（与生成骨架时的口径一致）
@@ -483,7 +544,7 @@ public final class MenuConfigLoader {
 
     /** 认不认识的顶层键：记一条警告（可能是旧版本留下的），不影响其余部分。 */
     private static void rejectUnknownTopLevelKeys(String path, YamlConfiguration yaml) {
-        Set<String> known = new LinkedHashSet<String>(Arrays.asList("version", "items"));
+        Set<String> known = new LinkedHashSet<String>(Arrays.asList("version", KEY_LAYOUT, "items"));
         for (String key : yaml.getKeys(false)) {
             if (!known.contains(key)) {
                 MenuLog.warn(path + " 里有不认识的顶层键 " + key + "（不生效；可能是旧版本留下的）");

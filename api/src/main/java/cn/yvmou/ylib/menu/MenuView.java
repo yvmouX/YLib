@@ -187,9 +187,10 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
         if (cached != null) {
             return cached;
         }
+        int perPage = state.perPage();
         List<ItemStack> fetched;
         try {
-            fetched = state.pageSource().fetch(viewer, session.page());
+            fetched = state.pageSource().fetch(viewer, session.page(), perPage);
         } catch (RuntimeException failure) {
             // 取数失败不该让整个界面开不出来；数据源自己该记日志
             fetched = Collections.emptyList();
@@ -197,14 +198,21 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
         if (fetched == null) {
             fetched = Collections.emptyList();
         }
-        int perPage = state.perPage();
         if (fetched.size() > perPage) {
             MenuLog.warn("符号 '" + symbol + "' 每页返回 " + fetched.size() + " 条，超出容量 "
-                    + perPage + "，已截断（fetch 与 perPage 没对齐）");
+                    + perPage + "，已截断（数据源没有按 perPage 切片）");
             fetched = new ArrayList<ItemStack>(fetched.subList(0, perPage));
         }
         pageCache.put(symbol, fetched);
         return fetched;
+    }
+
+    /** 这个分页符号当前页取到多少条；不是分页符号时返回 -1。 */
+    int pageSizeOf(SymbolState state) {
+        if (state == null || !state.isPaged()) {
+            return -1;
+        }
+        return pageOf(state).size();
     }
 
     /** 兜底填充：没被任何符号占用的格子，以及不可见的符号腾出来的格子。 */
@@ -425,6 +433,11 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
             return 0;
         }
         return state.isPaged() ? state.perPage() : state.slots().size();
+    }
+
+    @Override
+    public int pageSize() {
+        return pageSizeOf(currentSymbol);
     }
 
     @Override

@@ -11,6 +11,7 @@ import cn.yvmou.ylib.menu.MenuTemplate;
 import cn.yvmou.ylib.menu.MenuView;
 import cn.yvmou.ylib.menu.Menus;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -131,18 +132,26 @@ public final class MenuRegistry implements Listener {
     }
 
     /**
-     * 跑一遍「解析 → 声明 → 读 yml」，产出定义并逐条记录 warning。
+     * 跑一遍「声明 → 读 yml →（按文件里的布局）解析 → 合并 items」，产出定义并逐条记录 warning。
      * <p>
      * 注册与热重载共用这一条路径——两者的差别只在「产出之后要不要覆盖缓存」，
      * 分成两份实现的话，校验规则迟早会在其中一条上漂移。
+     * <p>
+     * <b>顺序不能换</b>：文件里的 {@code layout} 决定容器怎么切，而定义一旦 build 出来就定稿了，
+     * 所以「读文件」必须排在 {@code build} 之前；物品覆盖反过来要在 build 之后（它改的是定义里的物品）。
      */
     private static MenuDefinition rebuild(Plugin plugin, MenuTemplate template) {
         MenuConfig config = template.getClass().getAnnotation(MenuConfig.class);
         MenuBuilder builder = new MenuBuilder();
         template.declare(builder);
-        MenuDefinition definition = builder.build(template, config);
-        if (config != null) {
-            MenuConfigLoader.apply(plugin, template, definition, config);
+
+        YamlConfiguration yaml = config == null ? null
+                : MenuConfigLoader.readAll(plugin, template, builder.symbols(), config);
+        String[] rows = yaml == null ? template.layout()
+                : MenuConfigLoader.readLayout(yaml, config.path(), template, builder.symbols().keySet());
+        MenuDefinition definition = builder.build(template, config, rows);
+        if (yaml != null) {
+            MenuConfigLoader.readItems(plugin, definition, yaml, config);
         }
         for (String warning : definition.warnings()) {
             MenuLog.warn(template.getClass().getSimpleName() + ": " + warning);

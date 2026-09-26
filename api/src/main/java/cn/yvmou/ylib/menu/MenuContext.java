@@ -50,8 +50,18 @@ public interface MenuContext {
     /** 写入当前页；只校验 {@code >= 0}，上界由 {@link #pageCount()} 决定。 */
     void page(int page);
 
-    /** 当前符号声明的每页条数；当前符号不是分页符号时为该符号的槽位数。 */
+    /** 当前符号的每页条数（= 它在布局里占的格数）；当前符号不是分页符号时为该符号的槽位数。 */
     int perPage();
+
+    /**
+     * 当前符号**这一页实际取到的条目数**；不是分页符号时为 {@code -1}。
+     * <p>
+     * 与 {@link #perPage()} 的区别：那是「能放几格」，这是「真放了几条」。总条数未知的数据源
+     * （{@code total()} 返回 -1）只能靠它判断有没有下一页——取满了才可能有下一页。
+     */
+    default int pageSize() {
+        return -1;
+    }
 
     /** 总页数；数据源{@code total()} 返回 -1（未知）时也返回 -1。 */
     int pageCount();

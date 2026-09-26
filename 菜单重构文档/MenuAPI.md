@@ -242,9 +242,14 @@ b.symbol('#').item("border")
 | 10 | 占位符名不与内置冲突、无空名 | `占位符名不能为空` |
 | 11 | yml 中出现的符号都在布局里 | `配置项 items.foo 未在布局中使用,已忽略` |
 | 12 | yml 的 `version` ≤ 当前 `@MenuConfig.version` | 版本更高 → 拒绝加载该文件 |
-| 13 | `pageItems(perPage, ...)` 的 `perPage` == 该符号的槽位数 | `符号 'l' 声明 perPage=4,但布局中只出现 2 次(应为 4 次)` |
-| 14 | `perPage` ≥ 1 | `符号 'l' 的 perPage 必须 ≥ 1` |
+| 13 | `layout`（代码里的与 yml 覆盖后的）能被解析：行数 1..6、每行 == `columns()`、反引号成对 | `第2行共 8 列,期望 9 列` |
+| 14 | 布局里出现的符号都在 `declare()` 里声明过 | `符号 'quests' 未声明(首次出现在第1行第3列)` |
 | 15 | 同一个符号不能同时有 `pageItems` 和固定 `of(...)` | `符号 'l' 同时声明了 pageItems 与静态物品,语义冲突` |
+
+> 原表里的 13 / 14 是「`perPage` == 该符号的槽位数」与「`perPage` ≥ 1」。页容量改成
+> **由布局推导**之后这两个数不可能对不上，两条校验随之删除（见 §10.1）。
+> 而「布局写错」现在分两种来源：**代码里的布局**（`layout()`）写错仍然抛；**yml 里的 `layout`**
+> 写错则整份回退代码布局 + 记 warning（配置脏数据不该让插件起不来）。
 
 **建议**:再加一个 `MenuTemplate#dryRun()`(或 JUnit 里的 `MenuTestKit.assertValid(AdminMenu.class)`),让这些校验能在 CI 里跑,不用起服务端。
 
@@ -488,25 +493,27 @@ items:
 
 任务列表这类「数量不定」的菜单需要专门的分页支持,否则只能手写槽位计算。
 
-### 10.1 页容量(`perPage`)必须显式声明
+### 10.1 页容量(`perPage`)由布局决定
 
 ```java
 .pageItems(4, (viewer, page) -> questService.page(viewer, page, 4))
-//          ↑ perPage:每页条数,由使用者显式给出
+```
+↑ **这是重构时最初的写法，已被推翻**：`perPage` 不再由使用者声明，而是「该符号在布局里占几格」。
+现在的签名是：
+
+```java
+b.symbol('l').pageItems((viewer, page, perPage) -> questService.page(viewer, page, perPage));
+//                                    ↑ 框架按布局算好交给你，代码里不该再写一个常量
 ```
 
-**为什么要显式写,而不是从布局推导:**
+**为什么改掉原来的「显式声明」**：那个数（每页几条）与「符号在布局里占几格」本该是同一个数，
+声明两遍就多了一处可以不一致的地方，于是不得不加一条启动期校验去拦「改了布局忘了改 perPage」。
+把冗余去掉之后，这条校验连同它的报错一起消失——**布局改了容量自动跟着改，不存在忘不忘**。
+数据源仍然拿得到 `perPage`（它要切片），只是这个数从框架来，不从常量来。
 
-- `pageItems` 的数据源(Service)必须知道每页几条才能切片,这个数字在 Service 里当常量用,不能是"运行时才知道的布局结果";
-- 布局里 `l` 的槽位数(`slotCount`)**必须等于** `perPage`,否则会出现"格子永远空着"或"数据永远看不到"的静默错误。
-
-因此 **§5 增加一条启动期校验**:
-
-| 校验 | 报错信息示例 |
-|---|---|
-| `pageItems` 的 `perPage` == 该符号的 `slotCount` | `符号 'l' 声明 perPage=4,但布局中只出现 2 次(应为 4 次)` |
-
-这条校验把"布局改了忘了改 perPage"这类错误挡在启动期,而不是等玩家翻页时发现少了两条。
+> 「总条数」仍然由数据源自己报：实现 `PageSource.total(viewer)` 才有确定的 `pageCount()`，
+> 用 `Fetcher`（lambda）就是「未知」，此时页码显示 `?`，「下一页」按「这一页取满了 `perPage` 条」判断。
+> `PageSource` 刻意**不是**函数式接口（`total()` 没有默认值），因此它不会和 `Fetcher` 抢 lambda。
 
 ### 10.2 逐槽位渲染 + 显式清空(末页不满的安全保证)
 
@@ -666,13 +673,23 @@ public final class SymbolBinder {
     public SymbolBinder onRightClick(ClickHandler h);
     public SymbolBinder onShiftLeftClick(ClickHandler h);
     public SymbolBinder onShiftRightClick(ClickHandler h);
-    public SymbolBinder pageItems(int perPage, PageSource source);      // 见 §10
+    public SymbolBinder pageItems(Fetcher fetcher);                     // 每页条数由布局给,见 §10
+    public SymbolBinder pageItems(PageSource source);                   // 同上,另报总条数
 }
 
-/** 分页数据源。total 返回 -1 表示"页数未知"(游标式数据)。 */
+/** 分页取数的便捷写法(函数式接口)。 */
+@FunctionalInterface
+public interface Fetcher {
+    List<ItemStack> fetch(Player viewer, int page, int perPage);
+}
+
+/**
+ * 分页数据源。**刻意不是函数式接口**——total() 没有默认值,因此它不会和 Fetcher 抢 lambda:
+ * 「总条数不知道」不是一种要传 -1 的状态,而是「你该用 Fetcher」。
+ */
 public interface PageSource {
-    List<ItemStack> fetch(Player viewer, int page);
-    default int total(Player viewer) { return -1; }
+    List<ItemStack> fetch(Player viewer, int page, int perPage);
+    int total(Player viewer);
 }
 
 @FunctionalInterface

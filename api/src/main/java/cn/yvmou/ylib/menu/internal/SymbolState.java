@@ -41,9 +41,6 @@ public final class SymbolState {
     /** 分页数据源；不是分页符号时为 {@code null}。 */
     private PageSource pageSource;
 
-    /** 分页符号每页条数。 */
-    private int perPage;
-
     /** 占位符：名字 → 打开时求值的函数。 */
     private final Map<String, Function<MenuContext, String>> placeholders =
             new LinkedHashMap<String, Function<MenuContext, String>>();
@@ -94,8 +91,7 @@ public final class SymbolState {
         this.items = items;
     }
 
-    public void pageItems(int perPage, PageSource source) {
-        this.perPage = perPage;
+    public void pageItems(PageSource source) {
         this.pageSource = source;
     }
 
@@ -166,8 +162,15 @@ public final class SymbolState {
         return pageSource;
     }
 
+    /**
+     * 分页符号每页条数 = 它在布局里占的格数。
+     * <p>
+     * <b>刻意不是声明出来的数</b>：容量与格数本该是同一个数，声明两遍就多一处可以不一致的地方
+     * （「改了布局忘了改 perPage」正是这么来的）。槽位由 {@code MenuBuilder.build()} 回填，
+     * 所以这个值在注册期之后才有意义。
+     */
     public int perPage() {
-        return perPage;
+        return slots.size();
     }
 
     public Map<String, Function<MenuContext, String>> placeholders() {

@@ -144,7 +144,7 @@ class MenuBuilderTest {
     private static Fetcher emptyPages() {
         return new Fetcher() {
             @Override
-            public List<ItemStack> fetch(Player viewer, int page) {
+            public List<ItemStack> fetch(Player viewer, int page, int perPage) {
                 return Collections.emptyList();
             }
         };
@@ -231,35 +231,36 @@ class MenuBuilderTest {
     }
 
     @Test
-    @DisplayName("perPage 必须等于该符号在布局里出现的次数：不符就抛，并给出两个数")
-    void perPageMustMatchSlotCount() {
-        MenuConfigException failure = assertThrows(MenuConfigException.class, () -> build(template(
-                rows("ll#######"),
-                new Declare() {
-                    @Override
-                    public void apply(MenuBuilder b) {
-                        b.symbol('#').of(Items.of(Material.STONE));
-                        // 布局里 l 只出现 2 次，却声明了 4
-                        b.symbol('l').pageItems(4, emptyPages());
-                    }
-                })));
-        assertTrue(failure.getMessage().contains("perPage=4"), failure.getMessage());
-        assertTrue(failure.getMessage().contains("出现 2 次"), failure.getMessage());
+    @DisplayName("每页条数 = 分页符号在布局里出现的格数（不是另外声明的数）")
+    void perPageFollowsLayout() {
+        MenuDefinition two = build(paged("#ll######"));
+        assertEquals(2, two.slotsOf("l").size());
+        assertTrue(two.stateOf("l").isPaged());
+        assertEquals(2, two.stateOf("l").perPage());
+
+        // 同一份 declare()，布局多给一格，容量就跟着涨——不存在「改了布局忘了改常量」
+        MenuDefinition four = build(paged("#llll####"));
+        assertEquals(4, four.stateOf("l").perPage());
     }
 
     @Test
-    @DisplayName("perPage 必须 ≥ 1")
-    void perPageMustBePositive() {
-        MenuConfigException failure = assertThrows(MenuConfigException.class, () -> build(template(
-                rows("l########"),
-                new Declare() {
-                    @Override
-                    public void apply(MenuBuilder b) {
-                        b.symbol('#').of(Items.of(Material.STONE));
-                        b.symbol('l').pageItems(0, emptyPages());
-                    }
-                })));
-        assertTrue(failure.getMessage().contains("perPage 必须"), failure.getMessage());
+    @DisplayName("声明了分页却没进布局：只记一条 warning（那一页一格格子都没有，界面照常开）")
+    void pagedSymbolOutsideLayoutOnlyWarns() {
+        MenuDefinition definition = build(paged("#########"));
+        assertEquals(0, definition.stateOf("l").perPage());
+        assertTrue(definition.warnings().stream().anyMatch(w -> w.contains("'l'")),
+                definition.warnings().toString());
+    }
+
+    /** 一份「# 是石头、l 是分页区」的模板。 */
+    private static MenuTemplate paged(String layout) {
+        return template(rows(layout), new Declare() {
+            @Override
+            public void apply(MenuBuilder b) {
+                b.symbol('#').of(Items.of(Material.STONE));
+                b.symbol('l').pageItems(emptyPages());
+            }
+        });
     }
 
     @Test
@@ -271,7 +272,7 @@ class MenuBuilderTest {
                     @Override
                     public void apply(MenuBuilder b) {
                         b.symbol('#').of(Items.of(Material.STONE));
-                        b.symbol('l').of(Items.of(Material.PAPER)).pageItems(1, emptyPages());
+                        b.symbol('l').of(Items.of(Material.PAPER)).pageItems(emptyPages());
                     }
                 })));
         assertTrue(failure.getMessage().contains("语义冲突"), failure.getMessage());
@@ -497,17 +498,9 @@ class MenuBuilderTest {
     }
 
     @Test
-    @DisplayName("分页符号：perPage 与出现次数一致时正常构建")
+    @DisplayName("分页符号：构建后每页条数就是它在布局里的格数")
     void pagedSymbolBuilds() {
-        MenuDefinition definition = build(template(
-                rows("#ll######"),
-                new Declare() {
-                    @Override
-                    public void apply(MenuBuilder b) {
-                        b.symbol('#').of(Items.of(Material.STONE));
-                        b.symbol('l').pageItems(2, emptyPages());
-                    }
-                }));
+        MenuDefinition definition = build(paged("#ll######"));
         assertEquals(2, definition.slotsOf("l").size());
         assertTrue(definition.stateOf("l").isPaged());
         assertEquals(2, definition.stateOf("l").perPage());

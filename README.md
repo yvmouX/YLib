@@ -276,14 +276,14 @@ public final class AdminMenu implements MenuTemplate {
 | 占位符 | `ph(名字, ctx -> 值)`，**每次打开 / 刷新求值**，绝不在构建期冻结 |
 | 点击 | `onLeftClick` / `onRightClick` / `onShiftLeftClick` / `onClick(ClickKind, …)` / 按槽位号 / 全量兜底，优先级从精确到宽泛 |
 | 事件策略 | `READ_ONLY`（默认）/ `ALLOW_MOVE` / `ALLOW_TAKE`；拦点击、拖拽、漏斗抽取、丢入四种路径 |
-| 配置文件 | `@MenuConfig` 一键生成 / 读取：缺文件生成、已存在不覆盖、写了的以文件为准、缺的回落代码默认值、坏项只回退那一项 |
-| 分页 | `pageItems(perPage, source)`——`perPage` 必须等于该符号在布局里的格数，不符就启动报错 |
+| 配置文件 | `@MenuConfig` 一键生成 / 读取：缺文件生成、已存在不覆盖、写了的以文件为准、缺的回落代码默认值、坏项只回退那一项。**`layout` 也是可配的键**（写坏整份回退代码布局） |
+| 分页 | `pageItems(source)`——**每页条数 = 该符号在布局里的格数**，由框架作为 `perPage` 参数交给数据源，代码里没有第二个数 |
 | Session | 由「玩家 × 菜单」决定，**`close()` 不销毁**，因此「看完详情返回列表还在第 3 页」天然成立 |
 
 ```java
-// 分页：perPage 必须与 l 在布局里出现的次数一致
+// 分页：l 在布局里占几格，perPage 就是几，不用另写常量
 b.symbol('l').item("quest_entry")
-    .pageItems(4, (viewer, page) -> questService.page(viewer, page, 4))
+    .pageItems((viewer, page, perPage) -> questService.page(viewer, page, perPage))
     .onClick((slot, ctx) -> {
         int global = ctx.page() * ctx.perPage() + ctx.indexInSymbol(slot);
         Quest q = questService.at(ctx.viewer(), global);

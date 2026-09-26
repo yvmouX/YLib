@@ -87,6 +87,11 @@ public final class ClickContext implements MenuContext {
     }
 
     @Override
+    public int pageSize() {
+        return view.pageSizeOf(symbol);
+    }
+
+    @Override
     public int pageCount() {
         return view.pageCountOf(symbol);
     }

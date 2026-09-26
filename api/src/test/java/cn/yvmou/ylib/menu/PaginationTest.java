@@ -41,13 +41,23 @@ class PaginationTest {
         private int page;
         private final int perPage;
         private final int pageCount;
+        private final int pageSize;
         private final List<Slot> slots;
         private int refreshes;
 
         FakeContext(int page, int perPage, int pageCount, int slotCount) {
+            this(page, perPage, pageCount, slotCount, slotCount);
+        }
+
+        /**
+         * @param pageSize 这一页**实际取到**的条目数：总页数未知时「下一页」按它判断，
+         *                 与 {@code slotCount}（能放几格）是两件事
+         */
+        FakeContext(int page, int perPage, int pageCount, int slotCount, int pageSize) {
             this.page = page;
             this.perPage = perPage;
             this.pageCount = pageCount;
+            this.pageSize = pageSize;
             List<Slot> built = new ArrayList<Slot>();
             for (int index = 0; index < slotCount; index++) {
                 built.add(new Slot(index, 0, index));
@@ -139,6 +149,11 @@ class PaginationTest {
         }
 
         @Override
+        public int pageSize() {
+            return pageSize;
+        }
+
+        @Override
         public int pageCount() {
             return pageCount;
         }
@@ -187,15 +202,15 @@ class PaginationTest {
     // ---------- 分页构建 ----------
 
     @Test
-    @DisplayName("分页符号：perPage 与布局里的格数一致才能构建")
-    void pagedSymbolNeedsMatchingPerPage() {
+    @DisplayName("分页符号：每页条数取布局里的格数")
+    void pagedSymbolTakesCapacityFromLayout() {
         MenuDefinition definition = build(new String[]{"ll#######"}, 9, new Declare() {
             @Override
             public void apply(MenuBuilder b) {
                 b.symbol('#').of(Items.of(Material.STONE));
-                b.symbol('l').item("entry").pageItems(2, new Fetcher() {
+                b.symbol('l').item("entry").pageItems(new Fetcher() {
                     @Override
-                    public List<ItemStack> fetch(Player viewer, int page) {
+                    public List<ItemStack> fetch(Player viewer, int page, int perPage) {
                         return Collections.emptyList();
                     }
                 });
@@ -218,9 +233,9 @@ class PaginationTest {
                     @Override
                     public void apply(MenuBuilder b) {
                         b.symbol('#').of(Items.of(Material.STONE));
-                        b.symbol('l').pageItems(2, new Fetcher() {
+                        b.symbol('l').pageItems(new Fetcher() {
                             @Override
-                            public List<ItemStack> fetch(Player viewer, int page) {
+                            public List<ItemStack> fetch(Player viewer, int page, int perPage) {
                                 return Collections.emptyList();
                             }
                         }).ph("x", new java.util.function.Function<MenuContext, String>() {
@@ -276,19 +291,19 @@ class PaginationTest {
     }
 
     @Test
-    @DisplayName("下一页：总页数未知（-1）时退化为「这一页铺满了即还有下一页」")
+    @DisplayName("下一页：总页数未知（-1）时退化为「这一页取满了 perPage 条即还有下一页」")
     void nextPageWithUnknownTotal() {
         ClickHandler handler = nextHandler();
 
-        // 铺满 4 格 → 认为还有下一页
-        FakeContext full = new FakeContext(0, 4, -1, 4);
+        // 取满 4 条 → 认为还有下一页（格子数与取到的条数是两件事，这里刻意让它们不同）
+        FakeContext full = new FakeContext(0, 4, -1, 6, 4);
         handler.handle(new Slot(0, 0, 0), full);
         assertEquals(1, full.page());
 
-        // 只铺了 2 格 → 到底了
-        FakeContext partial = new FakeContext(0, 4, -1, 2);
+        // 只取到 2 条 → 到底了
+        FakeContext partial = new FakeContext(0, 4, -1, 6, 2);
         handler.handle(new Slot(0, 0, 0), partial);
-        assertEquals(0, partial.page(), "没铺满就不该再翻");
+        assertEquals(0, partial.page(), "没取满就不该再翻");
         assertEquals(0, partial.refreshes);
     }
 

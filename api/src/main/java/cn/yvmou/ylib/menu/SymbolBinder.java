@@ -22,7 +22,7 @@ import java.util.function.Predicate;
  * 用 {@link MenuContext#indexInSymbol(Slot)} 换成页内下标即可定位到具体条目：
  * <pre>{@code
  * b.symbol('l').item("quest_entry")
- *     .pageItems(4, (viewer, page) -> renderRows(viewer, page))
+ *     .pageItems((viewer, page, perPage) -> renderRows(viewer, page, perPage))
  *     .onClick((slot, ctx) -> open(ctx.page() * ctx.perPage() + ctx.indexInSymbol(slot)));
  * }</pre>
  */
@@ -147,25 +147,44 @@ public final class SymbolBinder {
     }
 
     /**
-     * 把这个符号变成**分页条目区**。
+     * 把这个符号变成**分页条目区**：每页条数 = 该符号在布局里出现的格数。
      *
-     * @param perPage 每页条数，必须等于该符号在布局里出现的次数（启动期校验，见重构文档 §10.1）
-     * @param fetcher 按页取数据：{@code (viewer, page) -> 这一页的条目}
+     * @param fetcher 按页取数据：{@code (viewer, page, perPage) -> 这一页的条目}；
+     *                {@code perPage} 由框架给（布局决定），调用方不该另写常量
      */
-    public SymbolBinder pageItems(int perPage, Fetcher fetcher) {
+    public SymbolBinder pageItems(Fetcher fetcher) {
         if (fetcher == null) {
+            throw new MenuConfigException("符号 '" + state.symbol() + "' 的 pageItems 数据源是 null");
+        }
+        return pageItems(new PageSource() {
+            @Override
+            public List<ItemStack> fetch(org.bukkit.entity.Player viewer, int page, int perPage) {
+                return fetcher.fetch(viewer, page, perPage);
+            }
+
+            /** 便捷写法不报总条数：{@code pageCount()} 因此是「未知」。 */
+            @Override
+            public int total(org.bukkit.entity.Player viewer) {
+                return -1;
+            }
+        });
+    }
+
+    /**
+     * 同上，但由数据源自己报告总条数（{@link PageSource#total}）。
+     * <p>
+     * 只有需要「页码指示器显示真实总页数」或「用总页数判断能不能翻」时才用它；
+     * 只要「取第几页」的话 {@link #pageItems(Fetcher)} 更短。
+     */
+    public SymbolBinder pageItems(PageSource source) {
+        if (source == null) {
             throw new MenuConfigException("符号 '" + state.symbol() + "' 的 pageItems 数据源是 null");
         }
         if (state.items() != null) {
             throw new MenuConfigException("符号 '" + state.symbol()
                     + "' 同时声明了 pageItems 与静态物品，语义冲突");
         }
-        state.pageItems(perPage, new PageSource() {
-            @Override
-            public List<ItemStack> fetch(org.bukkit.entity.Player viewer, int page) {
-                return fetcher.fetch(viewer, page);
-            }
-        });
+        state.pageItems(source);
         return this;
     }
 
@@ -192,7 +211,8 @@ public final class SymbolBinder {
      * <p>
      * <b>不要靠「返回空列表」猜到底</b>——空列表也可能只是这一页恰好没数据（筛选后），把它当成
      * 「没有下一页」会让玩家永远翻不过去。因此判断顺序是：
-     * 总页数已知（{@code pageCount() >= 0}）就用它；未知时退化为「这一页铺满了 perPage 格即还有下一页」。
+     * 总页数已知（{@code pageCount() >= 0}）就用它；未知时退化为「这一页取满了 {@code perPage} 条
+     * 即还有下一页」（{@link MenuContext#pageSize()} 是这一页**实际取到**的条数，不是格子数）。
      */
     public SymbolBinder nextPage() {
         return onClick(new ClickHandler() {
@@ -200,9 +220,7 @@ public final class SymbolBinder {
             public void handle(Slot slot, MenuContext ctx) {
                 int next = ctx.page() + 1;
                 int total = ctx.pageCount();
-                boolean allowed = total >= 0
-                        ? next < total
-                        : ctx.symbolSlots().size() >= ctx.perPage();
+                boolean allowed = total >= 0 ? next < total : ctx.pageSize() >= ctx.perPage();
                 if (allowed) {
                     ctx.page(next);
                     ctx.menu().refresh();

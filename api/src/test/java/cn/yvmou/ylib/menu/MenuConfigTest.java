@@ -266,16 +266,76 @@ class MenuConfigTest {
             }
         }
         assertTrue(hasCommentLine, "生成的配置里应有以 '# ' 开头的注释行：\n" + text);
-        // 关键几处说明要在：文件是什么、怎么改、材质怎么看
+        // 关键几处说明要在：文件是什么、怎么改、材质怎么看、布局怎么改
         assertTrue(text.contains("配置版本号"), "缺少 version 的注释：\n" + text);
         assertTrue(text.contains("物品外观"), "缺少 items 的注释：\n" + text);
         assertTrue(text.contains("原版材质名"), "缺少 material 的注释：\n" + text);
-        // 布局原文也要能看到：否则服主得翻代码才知道哪个符号落在哪一格。
-        // 这条曾经不成立——注释发在 "layout" 这个键上，而那个键根本不在文件里，于是被静默丢掉。
-        assertTrue(text.contains("布局由模板的 layout() 决定"),
-                "缺少布局说明（注释不能发在不存在的键上）：\n" + text);
+        assertTrue(text.contains("界面布局"), "缺少 layout 的注释：\n" + text);
+        assertTrue(text.contains("本文件里这一份优先于代码"),
+                "layout 的注释必须写明「文件优先」，否则服主改了代码不见效时无从下手：\n" + text);
+        // 布局本身是**真键**（不是注释里的参考图）：这样它才真的可改
         assertTrue(text.contains("####`buy`####"),
                 "布局原文应当出现在文件里：\n" + text);
+        YamlConfiguration yaml = load(new File(folder, "gui/shop.yml"));
+        assertEquals(Arrays.asList(SHOP_LAYOUT), yaml.getStringList("layout"),
+                "layout 应当是可读回的真键");
+    }
+
+    // ---------- 布局覆盖 ----------
+
+    @Test
+    @DisplayName("文件里的 layout 覆盖代码：容器大小与每个符号的格子都跟着变")
+    void fileOverridesLayout(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        write(folder, "gui/shop.yml", "version: 1\n"
+                + "layout:\n"
+                + "- '#########'\n"
+                + "- '####`buy`####'\n");
+        Menus.shutdown();
+
+        MenuDefinition definition = Menus.register(plugin(folder), new AnnotatedShop());
+
+        assertEquals(18, definition.size(), "布局改成 2 行，容器就是 18 格");
+        assertEquals(13, definition.slotsOf("buy").get(0).index(), "buy 落在第 2 行第 5 格");
+        assertEquals(List.of(), definition.warnings(), "覆盖后的布局里符号都有格子");
+    }
+
+    @Test
+    @DisplayName("文件里的 layout 写坏了：整份回退代码布局 + 警告，注册照常成功")
+    void brokenLayoutFallsBackAsAWhole(@TempDir Path temp) throws Exception {
+        // 第 2 行只有 8 格
+        write(temp.toFile(), "gui/shop.yml", "version: 1\n"
+                + "layout:\n"
+                + "- '#########'\n"
+                + "- '#`buy`######'\n");
+        Menus.shutdown();
+        MenuDefinition tooNarrow = Menus.register(plugin(temp.toFile()), new AnnotatedShop());
+        assertEquals(36, tooNarrow.size(), "格数不对 → 整份回退代码里的 4 行布局");
+
+        // 引用了没在 declare() 里声明过的符号
+        write(temp.toFile(), "gui/shop.yml", "version: 1\n"
+                + "layout:\n"
+                + "- '#########'\n"
+                + "- '####`nope`###'\n");
+        Menus.shutdown();
+        MenuDefinition unknownSymbol = Menus.register(plugin(temp.toFile()), new AnnotatedShop());
+        assertEquals(36, unknownSymbol.size());
+        assertEquals(13, unknownSymbol.slotsOf("buy").get(0).index(), "回退后用的是代码布局");
+    }
+
+    @Test
+    @DisplayName("老文件里没有 layout：补上代码里那一份，已有的值不动")
+    void layoutIsFilledIntoOlderFiles(@TempDir Path temp) throws Exception {
+        File folder = temp.toFile();
+        write(folder, "gui/shop.yml", "version: 1\nitems:\n  buy_btn:\n    material: EMERALD\n");
+        Menus.shutdown();
+
+        Menus.register(plugin(folder), new AnnotatedShop());
+
+        YamlConfiguration yaml = load(new File(folder, "gui/shop.yml"));
+        assertEquals("EMERALD", yaml.getString("items.buy_btn.material"), "已有的值必须保留");
+        assertEquals(Arrays.asList(SHOP_LAYOUT), yaml.getStringList("layout"),
+                "缺的 layout 应当按代码默认值补进文件");
     }
 
     @Test
