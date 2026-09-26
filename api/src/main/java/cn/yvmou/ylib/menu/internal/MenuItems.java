@@ -176,10 +176,10 @@ public final class MenuItems {
     private static void invoke(ItemMeta meta, Method method, Object argument) {
         try {
             method.invoke(meta, argument);
-        } catch (ReflectiveOperationException ignored) {
-            // 探测时方法在，调用时却失败（服务端实现不完整）：不设这个名字，也不打断整个界面
-        } catch (RuntimeException ignored) {
-            // 参数被服务端拒绝（例如某些实现不接受空 Component）
+        } catch (ReflectiveOperationException | RuntimeException failure) {
+            // 探测时方法在，调用时却失败（服务端实现不完整 / 参数被拒，例如空 Component）：
+            // 不设这个名字，也不打断整个界面——但必须留痕，否则「lore 不显示」无从排查
+            MenuLog.warn("物品文本写入失败（" + method.getName() + "）：" + failure);
         }
     }
 }

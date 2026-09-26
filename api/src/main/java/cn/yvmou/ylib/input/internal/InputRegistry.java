@@ -29,7 +29,7 @@ public final class InputRegistry implements Listener {
     private static volatile UniversalScheduler scheduler;
     private static volatile boolean listenerRegistered;
 
-    InputRegistry() {
+    public InputRegistry() {
     }
 
     /** 宿主装配：事件派发登记一次即可；单测里没有服务端，注册不了不算失败。 */
