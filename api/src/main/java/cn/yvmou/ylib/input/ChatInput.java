@@ -87,7 +87,7 @@ public final class ChatInput {
             return this;
         }
 
-        /** 答上来之后要做的事，收到的文本已去首尾空白。 */
+        /** 答上来之后要做的事，收到的文本已去首尾空白；不设则玩家的回答被吞掉——一般总要给。 */
         public Builder onAnswer(Consumer<String> onAnswer) {
             this.onAnswer = onAnswer;
             return this;

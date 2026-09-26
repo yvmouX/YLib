@@ -72,9 +72,10 @@ public final class InputRegistry implements Listener {
         Inputs.take(playerId);
     }
 
-    /** 宿主禁用：全部作废。 */
+    /** 宿主禁用：全部作废，并把监听器标记复位（Bukkit 会随禁用注销监听器，再装配要能重新登记）。 */
     public static void shutdown() {
         Inputs.clear();
+        listenerRegistered = false;
     }
 
     /** 抢在其它监听器之前拿走这句话：{@code LOWEST} 保证看到的还是原文。 */
