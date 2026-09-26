@@ -21,7 +21,7 @@ import java.util.function.Predicate;
  * <b>分页条目怎么响应点击</b>：条目区整体只有一份点击回调——回调拿到的 {@code slot} 就是被点的那一格，
  * 用 {@link MenuContext#indexInSymbol(Slot)} 换成页内下标即可定位到具体条目：
  * <pre>{@code
- * b.symbol('l').item("quest_entry")
+ * b.symbol('l', "quest_entry")
  *     .pageItems((viewer, page, perPage) -> renderRows(viewer, page, perPage))
  *     .onClick((slot, ctx) -> open(ctx.page() * ctx.perPage() + ctx.indexInSymbol(slot)));
  * }</pre>
@@ -32,23 +32,6 @@ public final class SymbolBinder {
 
     SymbolBinder(SymbolState state) {
         this.state = state;
-    }
-
-    /**
-     * yml 覆盖用的键。
-     * <p>
-     * 布局里的符号是「怎么画」，键是「配置里叫什么」——两者分开是为了让服主改配置时不必知道
-     * 布局表里那个符号到底是一个字符还是 {@code `quests`} 这样的长名字。
-     * <p>
-     * 键与符号同名时不必调：不调时键默认就是符号名（如 {@code b.symbol('*')} 的键就是 {@code *}）。
-     * 只有「单字符符号想要可读的配置键」这类解耦场景才需要写它。
-     */
-    public SymbolBinder item(String configKey) {
-        if (configKey == null || configKey.trim().isEmpty()) {
-            throw new MenuConfigException("符号 '" + state.symbol() + "' 的配置键不能为空");
-        }
-        state.configKey(configKey);
-        return this;
     }
 
     /** 固定物品的外观（名字与 lore 里可以含 {@code {占位符}}）。 */

@@ -55,17 +55,29 @@ public final class MenuBuilder {
 
     /** 多字符符号：布局里必须用反引号包裹。 */
     public SymbolBinder symbol(String name) {
+        return symbol(name, name);
+    }
+
+    /** 声明符号并显式指定配置键：布局里叫 {@code name}，yml 覆盖时叫 {@code configKey}（单字符平铺符号想要可读键时用）。 */
+    public SymbolBinder symbol(char symbol, String configKey) {
+        return symbol(String.valueOf(symbol), configKey);
+    }
+
+    public SymbolBinder symbol(String name, String configKey) {
         if (name == null || name.isEmpty()) {
             throw new MenuConfigException("符号名不能为空");
         }
         if (name.indexOf('`') >= 0) {
             throw new MenuConfigException("符号名不能含反引号：" + name + "（反引号是布局表的词法边界）");
         }
+        if (configKey == null || configKey.trim().isEmpty()) {
+            throw new MenuConfigException("符号 '" + name + "' 的配置键不能为空");
+        }
         SymbolState existing = symbols.get(name);
         if (existing != null) {
             throw new MenuConfigException("符号 '" + name + "' 被重复声明");
         }
-        SymbolState state = new SymbolState(name);
+        SymbolState state = new SymbolState(name, configKey);
         symbols.put(name, state);
         return new SymbolBinder(state);
     }

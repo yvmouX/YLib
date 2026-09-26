@@ -127,8 +127,8 @@ class MenuConfigTest {
             {"#########", "####`buy`####", "#########", "#########"};
 
     private static void declareShop(MenuBuilder b) {
-        b.symbol('#').item("frame").of(Items.of(Material.GRAY_STAINED_GLASS_PANE).name(" "));
-        b.symbol("buy").item("buy_btn")
+        b.symbol('#', "frame").of(Items.of(Material.GRAY_STAINED_GLASS_PANE).name(" "));
+        b.symbol("buy", "buy_btn")
                 .of(Items.of(Material.DIAMOND).name("&b买一颗钻石").lore("&7价格 {price}"))
                 .ph("price", new java.util.function.Function<MenuContext, String>() {
                     @Override

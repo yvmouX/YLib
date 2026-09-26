@@ -67,8 +67,13 @@ public final class SymbolState {
     private boolean actionsBound;
 
     public SymbolState(String symbol) {
+        this(symbol, symbol);
+    }
+
+    /** 配置键与符号名不同的声明：布局里用短符号（方便平铺），yml 覆盖时用可读的键。 */
+    public SymbolState(String symbol, String configKey) {
         this.symbol = symbol;
-        this.configKey = symbol;
+        this.configKey = configKey;
     }
 
     // ---------- 声明（构建期） ----------

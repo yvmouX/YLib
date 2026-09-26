@@ -24,8 +24,8 @@ package cn.yvmou.ylib.menu;
  *
  *     @Override
  *     public void declare(MenuBuilder b) {
- *         b.symbol('#').item("border").of(Items.of(Material.GRAY_STAINED_GLASS_PANE).name(" "));
- *         b.symbol("quests").item("quests_btn")
+ *         b.symbol('#', "border").of(Items.of(Material.GRAY_STAINED_GLASS_PANE).name(" "));
+ *         b.symbol("quests", "quests_btn")
  *             .of(Items.of(Material.WRITABLE_BOOK).name("&f任务列表"))
  *             .ph("count", ctx -> String.valueOf(questService.count(ctx.viewer())))
  *             .onClick((slot, ctx) -> new QuestListMenu(questService).open(ctx.viewer()));

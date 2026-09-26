@@ -130,14 +130,16 @@ class MenuBuilderTest {
     @DisplayName("不调 item(...)：配置键默认就是符号名——同名不必写两遍")
     void configKeyDefaultsToSymbolName() {
         MenuDefinition definition = build(template(
-                rows("xxxxxxxxx", "x`create`xxxxxxx"),
+                rows("#########", "#`create`#x#####"),
                 new Declare() {
                     @Override
                     public void apply(MenuBuilder b) {
-                        b.symbol("create").of(Items.of(Material.STONE));   // 故意不调 item(...)
-                        b.symbol('x').of(Items.of(Material.STONE));        // 单字符同样默认
+                        b.symbol('#', "border").of(Items.of(Material.STONE));  // 合并形式：布局 #，配置键 border
+                        b.symbol("create").of(Items.of(Material.STONE));       // 键默认 = 符号名
+                        b.symbol('x').of(Items.of(Material.STONE));            // 单字符同样默认
                     }
                 }));
+        assertEquals("border", definition.symbols().get("#").configKey());
         assertEquals("create", definition.symbols().get("create").configKey());
         assertEquals("x", definition.symbols().get("x").configKey());
     }
@@ -194,7 +196,7 @@ class MenuBuilderTest {
                 new Declare() {
                     @Override
                     public void apply(MenuBuilder b) {
-                        b.symbol('#').item("border").of(Items.of(Material.GRAY_STAINED_GLASS_PANE));
+                        b.symbol('#', "border").of(Items.of(Material.GRAY_STAINED_GLASS_PANE));
                         // 故意漏掉 `quests` 与 `create`
                     }
                 })));
@@ -210,9 +212,9 @@ class MenuBuilderTest {
                 new Declare() {
                     @Override
                     public void apply(MenuBuilder b) {
-                        b.symbol('#').item("a").of(Items.of(Material.STONE));
-                        b.symbol('c').item("b").of(Items.of(Material.DIRT));
-                        b.symbol("crate").item("d").of(Items.of(Material.PAPER));
+                        b.symbol('#', "a").of(Items.of(Material.STONE));
+                        b.symbol('c', "b").of(Items.of(Material.DIRT));
+                        b.symbol("crate", "d").of(Items.of(Material.PAPER));
                     }
                 })));
         assertTrue(failure.getMessage().contains("前缀冲突"), failure.getMessage());
@@ -226,8 +228,8 @@ class MenuBuilderTest {
                 new Declare() {
                     @Override
                     public void apply(MenuBuilder b) {
-                        b.symbol('#').item("a").of(Items.of(Material.STONE));
-                        b.symbol('#').item("b").of(Items.of(Material.DIRT));
+                        b.symbol('#', "a").of(Items.of(Material.STONE));
+                        b.symbol('#', "b").of(Items.of(Material.DIRT));
                     }
                 })));
         assertTrue(failure.getMessage().contains("被重复声明"), failure.getMessage());
@@ -372,13 +374,13 @@ class MenuBuilderTest {
                 new Declare() {
                     @Override
                     public void apply(MenuBuilder b) {
-                        b.symbol('#').item("border")
+                        b.symbol('#', "border")
                                 .of(Items.of(Material.GRAY_STAINED_GLASS_PANE).name(" "));
-                        b.symbol("quests").item("quests_btn")
+                        b.symbol("quests", "quests_btn")
                                 .of(Items.of(Material.WRITABLE_BOOK).name("&f任务列表"));
-                        b.symbol('x').item("create_btn")
+                        b.symbol('x', "create_btn")
                                 .of(Items.of(Material.WRITABLE_BOOK).name("&f创建任务"));
-                        b.symbol("create").item("create_long_btn")
+                        b.symbol("create", "create_long_btn")
                                 .of(Items.of(Material.WRITABLE_BOOK).name("&f创建任务"));
                         b.fillEmpty(Items.filler());
                         b.interaction(Interaction.READ_ONLY);

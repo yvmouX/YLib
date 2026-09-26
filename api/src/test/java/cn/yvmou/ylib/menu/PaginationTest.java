@@ -208,7 +208,7 @@ class PaginationTest {
             @Override
             public void apply(MenuBuilder b) {
                 b.symbol('#').of(Items.of(Material.STONE));
-                b.symbol('l').item("entry").pageItems(new Fetcher() {
+                b.symbol('l', "entry").pageItems(new Fetcher() {
                     @Override
                     public List<ItemStack> fetch(Player viewer, int page, int perPage) {
                         return Collections.emptyList();
@@ -258,7 +258,7 @@ class PaginationTest {
             @Override
             public void apply(MenuBuilder b) {
                 b.symbol('#').of(Items.of(Material.STONE));
-                b.symbol('p').item("prev").of(Items.of(Material.ARROW)).previousPage();
+                b.symbol('p', "prev").of(Items.of(Material.ARROW)).previousPage();
             }
         });
         ClickHandler handler = definition.stateOf("p").resolve(definition.slotsOf("p").get(0), ClickType.LEFT);
@@ -312,7 +312,7 @@ class PaginationTest {
             @Override
             public void apply(MenuBuilder b) {
                 b.symbol('#').of(Items.of(Material.STONE));
-                b.symbol('n').item("next").of(Items.of(Material.ARROW)).nextPage();
+                b.symbol('n', "next").of(Items.of(Material.ARROW)).nextPage();
             }
         });
         return definition.stateOf("n").resolve(definition.slotsOf("n").get(0), ClickType.LEFT);
@@ -325,7 +325,7 @@ class PaginationTest {
             @Override
             public void apply(MenuBuilder b) {
                 b.symbol('#').of(Items.of(Material.STONE));
-                b.symbol('q').item("info").of(Items.of(Material.PAPER).name("&f第 {page}/{pages} 页"))
+                b.symbol('q', "info").of(Items.of(Material.PAPER).name("&f第 {page}/{pages} 页"))
                         .pageIndicator();
             }
         });
