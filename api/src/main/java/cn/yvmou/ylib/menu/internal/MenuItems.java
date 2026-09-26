@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +27,8 @@ import java.util.List;
  *       没有 {@code displayName}。</li>
  * </ul>
  * 也就是说没有任何一个方法能同时编译通过又覆盖两端。因此这里在**类加载时探测一次**，
- * 有 Component 版就用它（1.16+ Paper / 较新的 Spigot），否则退回 String 版（1.13 起都有）。
+ * 写入时 <b>String 版优先</b>（所有在役服务端都保留且行为一致；Canvas 这类新分支的
+ * {@code lore(List&lt;? extends Component&gt;)} 会拒绝外部列表），失败或不存在的落到 Component 版。
  * <p>
  * 探测结果只算一次，因此渲染热路径上没有任何反射开销。
  */
@@ -101,12 +103,14 @@ public final class MenuItems {
     // ---------- 文本写入（两端各一条路） ----------
 
     private static void applyName(ItemMeta meta, String name) {
-        if (SET_COMPONENT_NAME != null) {
-            invoke(meta, SET_COMPONENT_NAME, component(LegacyCodes.toSection(name)));
-            return;
-        }
+        String legacy = LegacyCodes.toSection(name);
         if (SET_STRING_NAME != null) {
-            invoke(meta, SET_STRING_NAME, LegacyCodes.toSection(name));
+            if (invoke(meta, SET_STRING_NAME, legacy)) {
+                return;
+            }
+        }
+        if (SET_COMPONENT_NAME != null) {
+            invoke(meta, SET_COMPONENT_NAME, component(legacy));
         }
     }
 
@@ -115,16 +119,17 @@ public final class MenuItems {
         for (String line : lines) {
             rendered.add(LegacyCodes.toSection(line));
         }
+        if (SET_STRING_LORE != null) {
+            if (invoke(meta, SET_STRING_LORE, rendered)) {
+                return;
+            }
+        }
         if (SET_COMPONENT_LORE != null) {
             List<Component> components = new ArrayList<Component>(rendered.size());
             for (String line : rendered) {
                 components.add(component(line));
             }
             invoke(meta, SET_COMPONENT_LORE, components);
-            return;
-        }
-        if (SET_STRING_LORE != null) {
-            invoke(meta, SET_STRING_LORE, rendered);
         }
     }
 
@@ -173,13 +178,17 @@ public final class MenuItems {
         }
     }
 
-    private static void invoke(ItemMeta meta, Method method, Object argument) {
+    /** 反射调用；成功返回 {@code true}，失败记警告（含被包装的真实原因）并返回 {@code false}，调用方落到下一条路径。 */
+    private static boolean invoke(ItemMeta meta, Method method, Object argument) {
         try {
             method.invoke(meta, argument);
+            return true;
+        } catch (InvocationTargetException failure) {
+            Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+            MenuLog.warn("物品文本写入被服务端拒绝（" + method.getName() + "）：" + cause);
         } catch (ReflectiveOperationException | RuntimeException failure) {
-            // 探测时方法在，调用时却失败（服务端实现不完整 / 参数被拒，例如空 Component）：
-            // 不设这个名字，也不打断整个界面——但必须留痕，否则「lore 不显示」无从排查
             MenuLog.warn("物品文本写入失败（" + method.getName() + "）：" + failure);
         }
+        return false;
     }
 }
