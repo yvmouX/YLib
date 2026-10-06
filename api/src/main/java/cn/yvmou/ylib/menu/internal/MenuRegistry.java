@@ -27,6 +27,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
@@ -458,8 +459,20 @@ public final class MenuRegistry implements Listener {
         }
         int slot = event.getSlot();
         MenuView.Rendered rendered = view.renderedAt(slot);
-        if (rendered == null || rendered.handler() == null) {
-            // 没注册回调（含兜底填充物）→ 等同于点到空槽
+        if (rendered == null) {
+            // 没渲染过 / 兜底填充物（含点不到符号的格子）→ 等同于点到空槽
+            return;
+        }
+        ItemStack cursor = event.getCursor();
+        if (rendered.itemHandler() != null && cursor != null && !cursor.getType().isAir()) {
+            // 手上有物品：这一格是「接收」而不是「放下」。与 interaction 策略无关地拦下，
+            // 否则 ALLOW_MOVE 下原版会把物品真放进去，再叠一次回调
+            event.setCancelled(true);
+            drop(view, rendered, cursor, new ClickContext(view, event, clickType, rendered.slot(),
+                    rendered.state()));
+            return;
+        }
+        if (rendered.handler() == null) {
             return;
         }
         dispatch(view, event, clickType, rendered);
@@ -475,6 +488,16 @@ public final class MenuRegistry implements Listener {
             // 玩家看到的「点了没反应」如果没有日志就无从排查
             MenuLog.warn("菜单动作执行失败: " + view.definition().key()
                     + " slot=" + rendered.slot().index() + " (" + clickType + ") -> " + failure);
+        }
+    }
+
+    /** 把一件物品交给「接收物品」那一格的回调；异常只记日志。 */
+    private void drop(MenuView view, MenuView.Rendered rendered, ItemStack dropped, ClickContext context) {
+        try {
+            rendered.itemHandler().handle(rendered.slot(), context, dropped);
+        } catch (RuntimeException failure) {
+            MenuLog.warn("菜单接收物品的处理器执行失败: " + view.definition().key()
+                    + " slot=" + rendered.slot().index() + " -> " + failure);
         }
     }
 
@@ -506,6 +529,9 @@ public final class MenuRegistry implements Listener {
      * {@code ALLOW_MOVE} 全放行。
      * <p>
      * 只拦点击不拦拖拽是这类框架最常见的漏洞：拖拽能把菜单物品分配到多个槽位。
+     * <p>
+     * 例外是**「接收物品」的格子**：拖拽只落在这一格上时交给它的回调（这正是「把物品拖进去」这个手势），
+     * 同样取消原版分配——不然物品会被真的放进去，而这一格的语义是「接收」。
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     public void onDrag(InventoryDragEvent event) {
@@ -524,6 +550,10 @@ public final class MenuRegistry implements Listener {
             // 整段都落在玩家背包里的拖拽交给原版：他得先把物品拖起来
             return;
         }
+        if (dropByDrag(view, event)) {
+            event.setCancelled(true);
+            return;
+        }
         switch (view.definition().interaction()) {
             case ALLOW_MOVE:
                 return;
@@ -537,6 +567,39 @@ public final class MenuRegistry implements Listener {
             default:
                 event.setCancelled(true);
         }
+    }
+
+    /**
+     * 拖拽落在**唯一一格**「接收物品」的菜单槽上时把物品交给它，返回是否接了。
+     * <p>
+     * 要求「只落在一格」：拖过好几格是「分配物品」的手势，把它当成「放进某一格」只会让玩家
+     * 莫名其妙地改掉一格；那一格由原版决定，不是他的本意。
+     */
+    private boolean dropByDrag(MenuView view, InventoryDragEvent event) {
+        ItemStack cursor = event.getOldCursor();
+        if (cursor == null || cursor.getType().isAir()) {
+            return false;
+        }
+        int target = -1;
+        for (int rawSlot : event.getRawSlots()) {
+            if (rawSlot < 0 || rawSlot >= view.definition().size()) {
+                continue;
+            }
+            if (target >= 0 && rawSlot != target) {
+                return false;
+            }
+            target = rawSlot;
+        }
+        if (target < 0) {
+            return false;
+        }
+        MenuView.Rendered rendered = view.renderedAt(target);
+        if (rendered == null || rendered.itemHandler() == null) {
+            return false;
+        }
+        // 拖拽不是点击：没有 InventoryClickEvent 可给，ClickContext 的 event / clickType 只能是 null
+        drop(view, rendered, cursor, new ClickContext(view, null, null, rendered.slot(), rendered.state()));
+        return true;
     }
 
     /**

@@ -13,6 +13,9 @@ public enum Interaction {
      * <p>
      * 拦的不只是 {@code InventoryClickEvent}（见 {@code MenuDispatcher}）：拖拽、漏斗/其他容器抽走、
      * 玩家丢弃的物品落到菜单上都要各拦一道，只拦点击会被这三种绕过去。
+     * <p>
+     * 声明了 {@link SymbolBinder#onItemDrop} 的格子不受这条影响：那一格本来就是用来**接收**的，
+     * 交给它的物品既不会被放进槽里、也不会留在菜单里（见 {@link ItemDropHandler}）。
      */
     READ_ONLY,
 

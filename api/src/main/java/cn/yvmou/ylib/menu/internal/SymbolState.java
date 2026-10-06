@@ -2,6 +2,7 @@ package cn.yvmou.ylib.menu.internal;
 
 import cn.yvmou.ylib.menu.ClickHandler;
 import cn.yvmou.ylib.menu.ClickKind;
+import cn.yvmou.ylib.menu.ItemDropHandler;
 import cn.yvmou.ylib.menu.Items;
 import cn.yvmou.ylib.menu.MenuConfigException;
 import cn.yvmou.ylib.menu.MenuContext;
@@ -59,6 +60,9 @@ public final class SymbolState {
 
     /** 按 Bukkit 槽位号指定的回调，优先级最高。 */
     private final Map<Integer, ClickHandler> slotClicks = new LinkedHashMap<Integer, ClickHandler>();
+
+    /** 接收玩家拉进来的物品的回调；{@code null} 表示这一格不接收。 */
+    private ItemDropHandler itemDrop;
 
     /** 这个符号占据的槽位；由 {@code MenuBuilder.build()} 在解析布局后回填。 */
     private List<Slot> slots = Collections.emptyList();
@@ -142,6 +146,10 @@ public final class SymbolState {
 
     public void slotClick(int slot, ClickHandler handler) {
         slotClicks.put(Integer.valueOf(slot), handler);
+    }
+
+    public void itemDrop(ItemDropHandler handler) {
+        this.itemDrop = handler;
     }
 
     /** 回填这个符号占据的槽位；只在 {@code MenuBuilder.build()} 里调一次。 */
@@ -236,5 +244,15 @@ public final class SymbolState {
     /** 有没有任何点击回调；没有的话这一格等同于空槽（点击只按 interaction 策略取消）。 */
     public boolean hasClick() {
         return fallbackClick != null || !kindClicks.isEmpty() || !shiftClicks.isEmpty() || !slotClicks.isEmpty();
+    }
+
+    /**
+     * 接收物品的回调；{@code null} 表示这一格不接收。
+     * <p>
+     * 刻意不进 {@link #hasClick()}：那是「yml 的 actions 有没有接管这一格」的判断，
+     * 而声明式动作只描述点击，接不接收物品与它无关。
+     */
+    public ItemDropHandler itemDrop() {
+        return itemDrop;
     }
 }

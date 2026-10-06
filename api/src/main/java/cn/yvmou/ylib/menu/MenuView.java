@@ -152,7 +152,7 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
                 return null;
             }
             Slot slot = slotAt(state, index);
-            return new Rendered(stack, state, slot, state.resolve(slot, null));
+            return new Rendered(stack, state, slot, state.resolve(slot, null), state.itemDrop());
         } finally {
             currentSymbol = null;
         }
@@ -303,9 +303,9 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
     /**
      * 渲染好的一格：物品、它属于哪个符号与哪一格、以及这一格该跑的点击回调。
      * <p>
-     * 点击回调在**渲染时**就解析好（{@code handler}），而不是点击时再按优先级挑：渲染时手里正好有
-     * 这一格的符号与槽位，点击时再去反查是重复劳动；而且渲染期已经把「不可见」的格子排除掉了，
-     * 所以能拿到 {@code Rendered} 就等于「这一格真的有符号在管事」。
+     * 两个回调都在**渲染时**就解析好（{@code handler} / {@code itemHandler}），而不是点击时再挑：
+     * 渲染时手里正好有这一格的符号与槽位，点击时再去反查是重复劳动；而且渲染期已经把「不可见」的格子
+     * 排除掉了，所以能拿到 {@code Rendered} 就等于「这一格真的有符号在管事」。
      */
     public static final class Rendered {
 
@@ -313,12 +313,15 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
         private final SymbolState state;
         private final Slot slot;
         private final ClickHandler handler;
+        private final ItemDropHandler itemHandler;
 
-        Rendered(ItemStack stack, SymbolState state, Slot slot, ClickHandler handler) {
+        Rendered(ItemStack stack, SymbolState state, Slot slot, ClickHandler handler,
+                 ItemDropHandler itemHandler) {
             this.stack = stack;
             this.state = state;
             this.slot = slot;
             this.handler = handler;
+            this.itemHandler = itemHandler;
         }
 
         public ItemStack stack() {
@@ -336,6 +339,11 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
         /** 这一格的点击回调；{@code null} 表示没注册（按 interaction 策略处理）。 */
         public ClickHandler handler() {
             return handler;
+        }
+
+        /** 这一格接收物品的回调；{@code null} 表示不接收（玩家手上的物品不交给它）。 */
+        public ItemDropHandler itemHandler() {
+            return itemHandler;
         }
     }
 

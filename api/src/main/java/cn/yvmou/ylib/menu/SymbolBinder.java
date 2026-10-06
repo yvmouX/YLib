@@ -12,8 +12,8 @@ import java.util.function.Predicate;
  * 一个符号的声明入口：{@code declare()} 里对同一符号的调用全部链在它身上。
  * <p>
  * 物品一律由 {@link #of(Items.Builder)} 或 {@link #pageItems} 提供，{@link #ph} / {@link #visible} /
- * {@link #onClick} 都是**修饰**——先说清「这一格长什么样」，再说「打开时填什么值、什么条件下显示、
- * 点了做什么」。
+ * {@link #onClick} / {@link #onItemDrop} 都是**修饰**——先说清「这一格长什么样」，再说「打开时填什么值、
+ * 什么条件下显示、点了做什么 / 拉进什么」。
  * <p>
  * {@link #pageItems} 与 {@link #of} 互斥：一个符号要么是固定物品，要么是按页铺的条目区，
  * 两者同时声明就是语义冲突，因此会在声明时当场抛（见重构文档 §5 校验 15）。
@@ -129,6 +129,22 @@ public final class SymbolBinder {
     public SymbolBinder onShiftRightClick(ClickHandler handler) {
         requireHandler(handler);
         state.shiftClick(ClickKind.RIGHT, handler);
+        return this;
+    }
+
+    /**
+     * 让这一格**接收玩家拉进来的物品**：手上带着物品点它、或把物品拖到它上面时，把物品交给回调。
+     * <p>
+     * 与 {@link #onClick(ClickHandler)} 并存时以它为准——手上有物品就是「放入」，点击回调不再触发
+     * （见 {@link ItemDropHandler}）。没有它的话，这一格的手势就只是普通点击。
+     * <p>
+     * 典型用途是「用一件物品当图标 / 当模板」：{@code .onItemDrop((slot, ctx, item) -> setIcon(item.getType()))}。
+     */
+    public SymbolBinder onItemDrop(ItemDropHandler handler) {
+        if (handler == null) {
+            throw new MenuConfigException("符号 '" + state.symbol() + "' 的接收物品回调是 null：不接收就不要注册");
+        }
+        state.itemDrop(handler);
         return this;
     }
 
