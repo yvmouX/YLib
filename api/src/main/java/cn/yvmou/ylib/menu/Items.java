@@ -9,14 +9,15 @@ import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
- * 物品构建器：**「三级阶梯」的唯一入口**。
+ * 物品构建器：**「四级阶梯」的唯一入口**。
  *
  * <table>
- *   <caption>三级阶梯（模板里写死材质、yml 里读材质、直接接管成品物品）</caption>
+ *   <caption>四级阶梯（模板里写死材质、yml 里读材质、接管成品物品、材质随数据变）</caption>
  *   <tr><th>入口</th><th>什么时候用</th></tr>
  *   <tr><td>{@link #of(Material)}</td><td>模板里写死材质（编译期常量）</td></tr>
  *   <tr><td>{@link #of(String)}</td><td>材质名来自 yml —— 启动期解析，认不出来就报错</td></tr>
  *   <tr><td>{@link #of(ItemStack)}</td><td>直接接管一个成品物品（带 NBT / 组件的外部物品）</td></tr>
+ *   <tr><td>{@link #of(java.util.function.Function)}</td><td>材质**打开时才算**：图标跟着数据走（「当前选中的那件东西」）</td></tr>
  * </table>
  *
  * <b>为什么必须有一个 {@code ItemStack} 直传重载</b>：否则框架会被 {@code Material} 枚举绑死，
@@ -27,11 +28,20 @@ import java.util.function.Consumer;
  * 换成 Component 实现也只是这一处的事，对外不必把 Adventure 泄漏成 API 依赖。
  * <p>
  * {@code name} / {@code lore} 里可以写 {@code {名字}} 占位符，由 {@link SymbolBinder#ph} 提供取值。
+ * <b>材质不走占位符</b>：它是物品的身份而不是文案，需要它随数据变就用 {@link #of(java.util.function.Function)}——
+ * 材质在「每次渲染」时求值，与占位符同一时机。
  */
 public final class Items {
 
-    /** 材质；{@link #of(ItemStack)} 造出来的是 {@code null}。 */
+    /** 材质；{@link #of(ItemStack)} 与 {@link #of(java.util.function.Function)} 造出来的是 {@code null}。 */
     private final Material material;
+
+    /**
+     * 动态材质：每次渲染按当前上下文算一个材质；其余路径造出来的是 {@code null}。
+     * <p>
+     * 与 {@link #material} 是**同一个概念的两个来源**，同时只有一个有值（构造处保证）。
+     */
+    private final java.util.function.Function<MenuContext, Material> materialSource;
 
     /** 直接接管的成品物品；其余路径造出来的是 {@code null}。 */
     private final ItemStack stack;
@@ -47,8 +57,10 @@ public final class Items {
     private ItemFlag[] flags;
     private Consumer<ItemMeta> metaMutator;
 
-    private Items(Material material, ItemStack stack, String configName) {
+    private Items(Material material, java.util.function.Function<MenuContext, Material> materialSource,
+                  ItemStack stack, String configName) {
         this.material = material;
+        this.materialSource = materialSource;
         this.stack = stack;
         this.configName = configName;
     }
@@ -58,7 +70,7 @@ public final class Items {
         if (material == null) {
             throw new MenuConfigException("物品材质是 null：界面里摆了这一格，就得给它一个材质");
         }
-        return new Builder(new Items(material, null, null));
+        return new Builder(new Items(material, null, null, null));
     }
 
     /**
@@ -73,7 +85,7 @@ public final class Items {
         if (material == null) {
             throw new MenuConfigException("未知材质 '" + configName + "'" + suggest(configName));
         }
-        return new Builder(new Items(material, null, configName));
+        return new Builder(new Items(material, null, null, configName));
     }
 
     /** 直接接管一个成品物品（带 NBT / 组件的外部物品）；{@code null} 会被拒绝。 */
@@ -81,7 +93,35 @@ public final class Items {
         if (stack == null) {
             throw new MenuConfigException("物品是 null：要留空请用 fillEmpty，而不是 of(null)");
         }
-        return new Builder(new Items(null, stack.clone(), null));
+        return new Builder(new Items(null, null, stack.clone(), null));
+    }
+
+    /**
+     * **材质每次渲染才算**：这一格的图标要跟着数据走时用它。
+     *
+     * <pre>{@code
+     * // 「图标」那一格显示的就是玩家当前选的材质
+     * b.symbol("icon").of(Items.of(ctx -> Items.resolveOr(draft(ctx).icon(), Material.PAPER)))
+     *         .ph("value", ctx -> draft(ctx).icon())
+     *         .onItemDrop((slot, ctx, dropped) -> setIcon(dropped.getType()));
+     * }</pre>
+     *
+     * <h2>为什么不是「往材质里写占位符」</h2>
+     * 名字与 lore 是文案，写 {@code {名字}} 天经地义；材质是物品的身份，而 {@link #of(String)} 的
+     * 「启动期解析、认不出来就报错」正是它最值钱的地方——让材质也走占位符，就等于把它推迟到运行期，
+     * 写错一个名字只会在玩家打开界面时变成一张纸。
+     * <p>
+     * <b>求值失败（返回 {@code null} 或抛异常）回落纸并记警告</b>，与占位符求值失败的处理一致：
+     * 一个写坏的取值函数不该让整个界面开不出来。
+     * <p>
+     * <b>配置文件里的 {@code material} 对这类格子不生效</b>（那一格的外观是数据，不是外观层）；
+     * 但 {@code name} / {@code lore} 照常可覆盖。
+     */
+    public static Builder of(java.util.function.Function<MenuContext, Material> materialSource) {
+        if (materialSource == null) {
+            throw new MenuConfigException("材质取值函数是 null：静态材质请用 of(Material)");
+        }
+        return new Builder(new Items(null, materialSource, null, null));
     }
 
     /** 背景板：灰色玻璃板 + 一个空格名字。 */
@@ -117,8 +157,12 @@ public final class Items {
     public static Items merge(Items defaults, Items from) {
         Items bottom = defaults;
         Items top = from;
+        // 材质只有**一个来源**：静态与动态是同一个槽的两种给法，一并取用，免得出现
+        // 「material() 说石头、materialFor() 说钻石」这种自相矛盾的一份定义
+        boolean topGivesMaterial = top.material != null || top.materialSource != null;
         Items merged = new Items(
-                top.material != null ? top.material : (bottom == null ? null : bottom.material),
+                topGivesMaterial ? top.material : (bottom == null ? null : bottom.material),
+                topGivesMaterial ? top.materialSource : (bottom == null ? null : bottom.materialSource),
                 top.stack != null ? top.stack : (bottom == null ? null : bottom.stack),
                 top.configName != null ? top.configName : (bottom == null ? null : bottom.configName));
         merged.name = top.name != null ? top.name : (bottom == null ? null : bottom.name);
@@ -216,9 +260,43 @@ public final class Items {
 
     // ---------- 读取（配置层与渲染层用） ----------
 
-    /** 解析后的材质；由 {@link #of(ItemStack)} 造的返回 {@code null}。 */
+    /** 静态材质；由 {@link #of(ItemStack)} 与 {@link #of(java.util.function.Function)} 造的返回 {@code null}。 */
     public Material material() {
         return material;
+    }
+
+    /** 材质是不是「每次渲染才算」（{@link #of(java.util.function.Function)}）。配置文件据此不覆盖材质。 */
+    public boolean dynamicMaterial() {
+        return materialSource != null;
+    }
+
+    /**
+     * 这一次渲染该用哪个材质：静态材质的格子原样返回，动态材质的格子在这里求值。
+     * <p>
+     * <b>静态优先</b>：两种来源只会有一个有值（{@link #merge} 保证），万一都设了，静态的那个说了算——
+     * 「配置里写了材质就钉住它」是可预期的，反过来则是「改了配置却没反应」。
+     * <p>
+     * 求值返回 {@code null} 或抛异常一律回落纸并记警告——与占位符求值失败的处理一致：
+     * 一个写坏的取值函数不该让整个界面开不出来。
+     */
+    public Material materialFor(MenuContext ctx) {
+        if (material != null) {
+            return material;
+        }
+        if (materialSource == null) {
+            // of(ItemStack)：没有材质可言（渲染走的是 rawStack 那条路）
+            return null;
+        }
+        try {
+            Material resolved = materialSource.apply(ctx);
+            if (resolved != null) {
+                return resolved;
+            }
+            cn.yvmou.ylib.menu.internal.MenuLog.warn("动态材质返回了 null，先用纸顶上");
+        } catch (RuntimeException failure) {
+            cn.yvmou.ylib.menu.internal.MenuLog.warn("动态材质求值失败：" + failure);
+        }
+        return Material.PAPER;
     }
 
     /** yml 里写的那串材质名；由 {@link #of(Material)} 造的返回 {@code null}。 */
@@ -270,11 +348,21 @@ public final class Items {
      * @param displayLore 已求值 / 已替换占位符的 lore
      */
     public ItemStack render(String displayName, java.util.List<String> displayLore) {
+        return render(null, displayName, displayLore);
+    }
+
+    /**
+     * 带上下文的渲染：动态材质（{@link #of(java.util.function.Function)}）在这里取到「这次该用哪个材质」。
+     * <p>
+     * 渲染期从容器里取物品的地方（{@code MenuView}）走这个重载；{@link Builder#stack()} 那种
+     * 「就地要一个成品」的场景没有上下文，走上面那个（动态材质会求值成纸并记警告）。
+     */
+    public ItemStack render(MenuContext ctx, String displayName, java.util.List<String> displayLore) {
         ItemStack built;
         if (stack != null) {
             built = stack.clone();
         } else {
-            built = cn.yvmou.ylib.menu.internal.MenuItems.render(material, displayName, displayLore);
+            built = cn.yvmou.ylib.menu.internal.MenuItems.render(materialFor(ctx), displayName, displayLore);
         }
         if (customModelData != null) {
             ItemMeta meta = built.getItemMeta();
@@ -341,6 +429,9 @@ public final class Items {
          * 只能用在**按材质构造**的 builder 上：由 {@link #of(ItemStack)} 接管的成品物品没有材质可换，
          * 调用它当场抛——那比静默忽略好，因为「改了配置却没反应」是最难查的一类问题。
          * 传入 {@code null} 表示「不覆盖」，保持原材质。
+         * <p>
+         * 动态材质（{@link #of(java.util.function.Function)}）的格子不会走到这里：配置里的 {@code material}
+         * 对它不生效（那一格的外观是数据），配置层会记一条警告说明这件事。
          */
         public Builder material(Material replacement) {
             if (replacement == null) {
@@ -349,7 +440,7 @@ public final class Items {
             if (base == null || base.stack != null) {
                 throw new MenuConfigException("这是 of(ItemStack) 接管的成品物品，没有材质可以覆盖");
             }
-            return new Builder(new Items(replacement, null, replacement.name()));
+            return new Builder(new Items(replacement, null, null, replacement.name()));
         }
 
         /** lore，每个参数一行；元素内含 {@code \n} 也当换行，空串是空行。 */
@@ -416,6 +507,7 @@ public final class Items {
         public Items build() {
             Items merged = new Items(
                     base == null ? null : base.material,
+                    base == null ? null : base.materialSource,
                     base == null ? null : base.stack,
                     base == null ? null : base.configName);
             merged.name = name != null ? name : (base == null ? null : base.name);

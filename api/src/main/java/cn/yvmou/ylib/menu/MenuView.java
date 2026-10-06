@@ -164,7 +164,8 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
         Map<String, String> values = placeholders(state);
         String name = Placeholders.apply(items.name(), values);
         List<String> lore = items.lore() == null ? null : Placeholders.apply(items.lore(), values);
-        return items.render(name, lore);
+        // 传 this（就是这次的 MenuContext）：动态材质要在渲染这一刻拿到「该用哪个材质」
+        return items.render(this, name, lore);
     }
 
     /** 分页条目：按**槽位在该符号里的下标**取这一页的第 N 条。 */
@@ -222,7 +223,7 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
             inventory.setItem(index, new ItemStack(Material.AIR));
             return;
         }
-        inventory.setItem(index, filler.render(filler.name(), filler.lore()));
+        inventory.setItem(index, filler.render(this, filler.name(), filler.lore()));
     }
 
     /** 求出这个符号的全部占位符值。单个占位符求值失败不该让整个界面打不开，记空串。 */

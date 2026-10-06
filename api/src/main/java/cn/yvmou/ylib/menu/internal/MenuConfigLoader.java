@@ -374,7 +374,10 @@ public final class MenuConfigLoader {
 
     /** 把一个符号的默认外观写进 yaml；生成骨架与补键共用。 */
     private static void writeItem(YamlConfiguration yaml, String base, Items items) {
-        yaml.set(base + ".material", items.material() == null ? "" : items.material().name());
+        // 动态材质的格子**不写** material 键：写死一个就等于把它钉住，而那正是代码里想避免的
+        if (!items.dynamicMaterial()) {
+            yaml.set(base + ".material", items.material() == null ? "" : items.material().name());
+        }
         yaml.set(base + ".name", items.name());
         yaml.set(base + ".lore", loreOf(items));
     }
@@ -403,14 +406,20 @@ public final class MenuConfigLoader {
         Items.Builder builder = Items.basedOn(base);
         if (section.isString("material")) {
             String material = section.getString("material");
-            Material resolved = Items.resolve(material);
-            // 认不出来 → 用代码默认材质并警告，而不是整条不生效：一个名字打错不该丢掉整格的文案
-            if (resolved == null) {
-                MenuLog.warn("items." + key + ".material 认不出来: " + material + Items.suggest(material)
-                        + "，先用代码默认材质（" + path + "）");
+            if (base.dynamicMaterial()) {
+                // 动态材质的格子：材质是数据而不是外观，写死它等于把「跟着数据变」这件事关掉
+                MenuLog.warn("items." + key + " 的材质由代码按数据算（of(函数)），"
+                        + "配置里的 material 不生效（" + path + "）");
             } else {
-                // 只把材质这一项标成「文件给的」；名字 / lore 仍走同一套回落规则
-                builder = Items.of(resolved);
+                Material resolved = Items.resolve(material);
+                // 认不出来 → 用代码默认材质并警告，而不是整条不生效：一个名字打错不该丢掉整格的文案
+                if (resolved == null) {
+                    MenuLog.warn("items." + key + ".material 认不出来: " + material + Items.suggest(material)
+                            + "，先用代码默认材质（" + path + "）");
+                } else {
+                    // 只把材质这一项标成「文件给的」；名字 / lore 仍走同一套回落规则
+                    builder = Items.of(resolved);
+                }
             }
         }
         if (section.isString("name")) {
