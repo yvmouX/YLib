@@ -152,7 +152,7 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
                 return null;
             }
             Slot slot = slotAt(state, index);
-            return new Rendered(stack, state, slot, state.resolve(slot, null), state.itemDrop());
+            return new Rendered(stack, state, slot, state.itemDrop());
         } finally {
             currentSymbol = null;
         }
@@ -302,26 +302,24 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
     }
 
     /**
-     * 渲染好的一格：物品、它属于哪个符号与哪一格、以及这一格该跑的点击回调。
+     * 渲染好的一格：物品、它属于哪个符号与哪一格。
      * <p>
-     * 两个回调都在**渲染时**就解析好（{@code handler} / {@code itemHandler}），而不是点击时再挑：
-     * 渲染时手里正好有这一格的符号与槽位，点击时再去反查是重复劳动；而且渲染期已经把「不可见」的格子
-     * 排除掉了，所以能拿到 {@code Rendered} 就等于「这一格真的有符号在管事」。
+     * 「接收物品」回调在**渲染时**就解析好（渲染期已经把「不可见」的格子排除掉了，
+     * 能拿到 {@code Rendered} 就等于「这一格真的有符号在管事」）；点击回调**必须**点击时再解析——
+     * 它按键位分表（左 / 右 / Shift 组合各一个），而渲染期不知道玩家会按哪个键，
+     * 在这里提前解析只能拿到兜底回调，键位回调会全部失联（点了没反应、也没有任何日志）。
      */
     public static final class Rendered {
 
         private final ItemStack stack;
         private final SymbolState state;
         private final Slot slot;
-        private final ClickHandler handler;
         private final ItemDropHandler itemHandler;
 
-        Rendered(ItemStack stack, SymbolState state, Slot slot, ClickHandler handler,
-                 ItemDropHandler itemHandler) {
+        Rendered(ItemStack stack, SymbolState state, Slot slot, ItemDropHandler itemHandler) {
             this.stack = stack;
             this.state = state;
             this.slot = slot;
-            this.handler = handler;
             this.itemHandler = itemHandler;
         }
 
@@ -335,11 +333,6 @@ public final class MenuView implements MenuControl, MenuContext, InventoryHolder
 
         public Slot slot() {
             return slot;
-        }
-
-        /** 这一格的点击回调；{@code null} 表示没注册（按 interaction 策略处理）。 */
-        public ClickHandler handler() {
-            return handler;
         }
 
         /** 这一格接收物品的回调；{@code null} 表示不接收（玩家手上的物品不交给它）。 */

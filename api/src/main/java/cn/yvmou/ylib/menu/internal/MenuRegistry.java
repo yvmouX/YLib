@@ -1,6 +1,7 @@
 package cn.yvmou.ylib.menu.internal;
 
 import cn.yvmou.ylib.menu.ClickContext;
+import cn.yvmou.ylib.menu.ClickHandler;
 import cn.yvmou.ylib.menu.ClickType;
 import cn.yvmou.ylib.menu.MenuBuilder;
 import cn.yvmou.ylib.menu.MenuConfig;
@@ -472,18 +473,21 @@ public final class MenuRegistry implements Listener {
                     rendered.state()));
             return;
         }
-        if (rendered.handler() == null) {
+        // 点击回调在这里才解析：按键位分表的回调（onLeftClick / onRightClick / Shift 组合）
+        // 只有拿着真实的 ClickType 才查得到，渲染期没有这个信息
+        ClickHandler handler = rendered.state().resolve(rendered.slot(), clickType);
+        if (handler == null) {
             return;
         }
-        dispatch(view, event, clickType, rendered);
+        dispatch(view, event, clickType, rendered, handler);
     }
 
     /** 跑一次回调：异常只记日志，不让服务端的事件处理带崩。 */
     private void dispatch(MenuView view, InventoryClickEvent event, ClickType clickType,
-                          MenuView.Rendered rendered) {
+                          MenuView.Rendered rendered, ClickHandler handler) {
         ClickContext context = new ClickContext(view, event, clickType, rendered.slot(), rendered.state());
         try {
-            rendered.handler().handle(rendered.slot(), context);
+            handler.handle(rendered.slot(), context);
         } catch (RuntimeException failure) {
             // 玩家看到的「点了没反应」如果没有日志就无从排查
             MenuLog.warn("菜单动作执行失败: " + view.definition().key()
