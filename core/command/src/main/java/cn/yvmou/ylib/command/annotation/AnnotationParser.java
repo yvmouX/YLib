@@ -330,13 +330,17 @@ public class AnnotationParser {
             for (int i = 0; i < parameters.length; i++) {
                 Parameter param = parameters[i];
                 Class<?> type = param.getType();
+                // 显式标了 @Arg 的参数一律按命令参数注入。
+                // 必须先于 CommandSender 判断：Player 本身也是 CommandSender，
+                // 否则 `@Arg("target") Player target` 会被注入成发送者（控制台时直接类型不匹配）。
+                boolean isCommandArgument = param.isAnnotationPresent(Arg.class);
 
                 // 注入 CommandSender
-                if (CommandSender.class.isAssignableFrom(type)) {
+                if (!isCommandArgument && CommandSender.class.isAssignableFrom(type)) {
                     args[i] = sender;
                 } 
                 // 注入 CommandContext
-                else if (CommandContext.class.isAssignableFrom(type)) {
+                else if (!isCommandArgument && CommandContext.class.isAssignableFrom(type)) {
                     args[i] = context;
                 } 
                 // 注入 @Arg 参数值

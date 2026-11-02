@@ -25,6 +25,7 @@ public class CommandDispatcher {
         while (argIndex < args.length) {
             String currentArg = args[argIndex];
             boolean matched = false;
+            CommandParseException parseFailure = null;
 
             // 查找匹配的子节点
             for (CommandNode child : currentNode.getChildren()) {
@@ -58,8 +59,10 @@ public class CommandDispatcher {
                         matched = true;
                         argIndex++;
                         break;
-                    } catch (CommandParseException ignored) {
-                        // 如果解析失败，尝试下一个子节点（可能是 Literal 或其他 Argument）
+                    } catch (CommandParseException error) {
+                        // 如果解析失败，尝试下一个子节点（可能是 Literal 或其他 Argument）；
+                        // 记住原因，最终报错时带上，免得「玩家不在线」被说成「未知参数」
+                        parseFailure = error;
                     }
                 }
             }
@@ -67,7 +70,10 @@ public class CommandDispatcher {
             // 但凡有一个字面量/参数没有匹配成功，就抛出未知参数错误，退出整个循环并终止代码，而不是继续匹配。
             if (!matched) {
                 // 如果当前节点有 Executor 且参数已用尽，则执行（但这在 while 循环里通常意味着参数多余）
-                // 这里简单处理：抛出未知命令/参数错误
+                // 这里简单处理：抛出未知命令/参数错误；有具体解析失败原因时一并带上，便于排查
+                if (parseFailure != null && parseFailure.getMessage() != null) {
+                    throw new CommandParseException("未知参数: " + currentArg + "（" + parseFailure.getMessage() + "）");
+                }
                 throw new CommandParseException("未知参数: " + currentArg);
             }
         }
