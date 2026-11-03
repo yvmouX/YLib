@@ -10,6 +10,10 @@ tasks.shadowJar {
     archiveClassifier.set("")
     // 合并各模块的 META-INF/services 文件，保证 ServiceLoader 在聚合 jar 中正常工作
     mergeServiceFiles()
+    // Paper 服务端本身已经提供 Adventure；再 shade 一份会让插件的 Component
+    // 与服务端的 Component 变成两个不同的类，发送消息/广播时直接 ClassCastException。
+    // 文本能力依赖服务端提供的 Adventure（Spigot 端由使用方自行提供）。
+    exclude("net/kyori/**")
     // 排除签名文件，避免冲突
     //exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
 }
