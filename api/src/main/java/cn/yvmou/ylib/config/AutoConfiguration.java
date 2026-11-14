@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
  * </p>
  * <pre>
  *     {@code 
- *     @AutoConfiguration("database")
+ *     @AutoConfiguration(configFile = "database")
  *     public class DatabaseConfig {
  *         @ConfigValue("database.host")
  *         private String host = "localhost";
@@ -30,7 +30,8 @@ import java.lang.annotation.Target;
  *     }
  * </pre>
  * <p>
- *     In this example, YLib will automatically apply the configurations in DatabaseConfig class.
+ *     In this example, YLib will automatically apply the configurations in DatabaseConfig class,
+ *     and the file {@code database.yml} lives in the plugin data folder.
  * </p>
  * 
  * @author yvmou
@@ -60,9 +61,14 @@ public @interface AutoConfiguration {
     String value() default "";
     
     /**
-     * Configuration file name.
-     * 
-     * @return Configuration file name
+     * 配置文件路径，相对插件数据目录，可含子目录。
+     * <p>
+     * 没写扩展名（或写的不是 {@code .yml} / {@code .yaml}）时自动补 {@code .yml}，因此
+     * {@code configFile = "gui/gui"} 与 {@code configFile = "gui/gui.yml"} 等价，
+     * 都会生成 {@code <数据目录>/gui/gui.yml}（父目录按需创建）。
+     * </p>
+     *
+     * @return 配置文件路径
      */
     @NotNull
     String configFile();

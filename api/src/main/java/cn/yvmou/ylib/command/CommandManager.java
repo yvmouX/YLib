@@ -2,6 +2,7 @@ package cn.yvmou.ylib.command;
 
 import cn.yvmou.ylib.command.annotation.Command;
 import cn.yvmou.ylib.command.annotation.SubCommand;
+import cn.yvmou.ylib.command.tree.CommandNode;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -40,8 +41,29 @@ public interface CommandManager {
      * @param commandInstance 带有注解的命令实例
      */
     void register(@NotNull Object commandInstance);
-    
+
     /**
+     * 注册一棵直接建好的命令树。
+     * <p>
+     * 注解不够用时（自定义解析、复杂树结构）用 {@link CommandNode} 手工建树，
+     * 再用这个重载注册；与 {@link #register(Object)} 的区别只是省掉了「传个 Object 让框架猜」
+     * 这一步，编译期就能确认传进来的确实是一棵命令树。
+     * </p>
+     *
+     * <pre>{@code
+     * CommandNode root = CommandNode.literal("shop")
+     *         .then(CommandNode.literal("buy")
+     *                 .then(CommandNode.argument(Argument.integer("amount"))
+     *                         .executes((sender, ctx) -> { ... })));
+     *
+     * commandManager.register(root);
+     * }</pre>
+     *
+     * @param root 命令树根节点
+     */
+    void register(@NotNull CommandNode root);
+
+        /**
      * 重新加载所有命令配置
      * <p>
      * 重新读取 commands.yml 并将配置应用到所有已注册的命令上。

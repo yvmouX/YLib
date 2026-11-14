@@ -62,6 +62,25 @@ public @interface ConfigValue {
      */
     @NotNull
     String description() default "";
+
+    /**
+     * Whether to refresh the comments in the file on every load.
+     * <p>
+     *     默认 {@code false}：文件里已有的注释不会被改动（只在键缺失、被自动补齐时写入 description）。
+     *     写成 {@code true} 时，每次加载都会把该键上方的注释重写成 {@link #description()}——
+     *     适合「说明是代码权威、需要跟着版本更新」的键。
+     * </p>
+     * <p>
+     *     无论开关如何，注释里写了 {@code @keep} 的那几行都会被保留（整块跳过刷新），
+     *     方便服主写「本服特有约定」这类代码里没有的说明。
+     * </p>
+     * <p>
+     *     依赖 Bukkit 的注释 API（Spigot 1.18.1+）：更低版本上读写注释都会静默失效，本项不生效。
+     * </p>
+     *
+     * @return Whether to refresh comments on load.
+     */
+    boolean refreshComment() default false;
     
     /**
      * Whether the value is required.

@@ -10,6 +10,10 @@ tasks.shadowJar {
     archiveClassifier.set("")
     // 合并各模块的 META-INF/services 文件，保证 ServiceLoader 在聚合 jar 中正常工作
     mergeServiceFiles()
+    // Paper 服务端本身已经提供 Adventure；再 shade 一份会让插件的 Component
+    // 与服务端的 Component 变成两个不同的类，发送消息/广播时直接 ClassCastException。
+    // 文本能力依赖服务端提供的 Adventure（Spigot 端由使用方自行提供）。
+    exclude("net/kyori/**")
     // 排除签名文件，避免冲突
     //exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
 }
@@ -17,6 +21,14 @@ tasks.shadowJar {
 // 根项目没有源码，其 jar 与 shadowJar 同名输出会引发发布任务的隐式依赖校验错误，直接禁用
 tasks.jar {
     enabled = false
+}
+
+// 对外暴露的构件是 shadowJar（聚合 jar），必须把它挂到 api 配置上，
+// 否则消费方从 Gradle 模块元数据解析到的是已禁用的 jar 任务，
+// 在 includeBuild 复合构建 / 项目依赖场景下会报 "Cannot expand ZIP '.../YLib-<version>.jar' as it does not exist"。
+// 发布场景（artifact(tasks.shadowJar)）本来就发送这个产物，此处只是让项目依赖保持一致。
+configurations.named("api") {
+    outgoing.artifact(tasks.shadowJar)
 }
 
 // 注册聚合源码的任务
@@ -71,7 +83,15 @@ allprojects {
 
 dependencies {
     api(project(":api"))
-    api(project(":core"))
+    // core 刻意用 implementation 而不是 api：
+    // 它是内部实现（*Impl / Dispatcher / Loader / Parser），不该出现在消费方的编译类路径上——
+    // 否则 IDE 补全里会混进 LoggerImpl、CommandDispatcher 这类东西。
+    // 它仍然会被打进下面的 shadowJar，运行时一个类都不少。
+    // 公开 API 一律住在 api 模块，依赖方向永远是从 core 指向 api。
+    //
+    // 只声明 bootstrap：它是 core 的装配入口（CoreServices），其余 core 子模块
+    // 通过它自己的 implementation 依赖传递进来，因此这里不必逐个列举。
+    implementation(project(":core:bootstrap"))
     api(project(":platform:canvas"))
     api(project(":platform:folia"))
     api(project(":platform:spigot"))
