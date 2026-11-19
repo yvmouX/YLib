@@ -119,10 +119,10 @@ public class ConfigurationLoader {
      * <p>
      *     The generated file will contain all fields with their default values and comments.
      *     Comments will include field descriptions and whether they are required.
-     *     Map 字段若带有默认实例（如固定的按钮、食物定义），其内容会序列化写入文件。
+     *     Map 字段若带有默认实例（如固定的按钮、食物定义），整块内容会序列化写入文件。
      * </p>
      *
-     * @param instance Configuration instance to load default values from
+     * @param instance Configuration instance（仅在无法新建实例时作为默认值来源）
      * @param metadata Configuration metadata, containing field information
      */
     public void generateDefault(@NotNull Object instance, @NotNull ConfigurationMetadata metadata) {
@@ -145,17 +145,17 @@ public class ConfigurationLoader {
             config.set("config-version", metadata.version);
 
             // Add configuration values and comments
+            Object defaults = defaultInstance(metadata, instance);
             for (ConfigurationMetadata.FieldMetadata fieldMeta : metadata.fields) {
                 try {
-                    fieldMeta.field.setAccessible(true);
-                    Object defaultValue = fieldMeta.field.get(instance);
+                    Object defaultValue = readField(fieldMeta, defaults);
 
                     config.set(fieldMeta.configPath, serializeFieldValue(defaultValue));
 
                     // Add comment (if description exists)
                     setComments(config, fieldMeta.configPath, fieldMeta.description);
 
-                } catch (IllegalAccessException e) {
+                } catch (RuntimeException e) {
                     logger.warn("Failed to get default value for field: " + fieldMeta.field.getName());
                 }
             }
@@ -172,14 +172,14 @@ public class ConfigurationLoader {
      * 为文件中缺失的声明键补齐默认值（不覆盖用户已有值与注释），并刷新标了
      * {@code refreshComment = true} 的键的注释。
      * <ul>
-     *     <li>标量/List 字段：整键缺失时补默认值 + description 注释</li>
-     *     <li>Map 字段：按默认实例的 key 集逐 key 补齐（用户已删除/修改的已有 key 不受影响）</li>
+     *     <li>标量/List/Map 字段：整键缺失时补默认值 + description 注释</li>
+     *     <li>Map 节已存在时不再逐 key 补：Map 是用户可编辑的集合，删掉的条目不会被补回来</li>
      *     <li>required 字段不自动补齐，缺失仍由 {@link #load} 报错</li>
      *     <li>{@code refreshComment} 字段：注释与 description 不一致时重写（写了 {@code @keep} 的整块跳过）</li>
      * </ul>
      * 典型场景：插件升级后新增配置键，老用户的文件自动获得新键。
      *
-     * @param instance Configuration instance（此时字段值应为 Java 默认值）
+     * @param instance Configuration instance（仅在无法新建实例时作为默认值来源）
      * @param metadata Configuration metadata, containing field information
      */
     public void mergeMissingKeys(@NotNull Object instance, @NotNull ConfigurationMetadata metadata) {
@@ -191,15 +191,14 @@ public class ConfigurationLoader {
         try {
             FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
             boolean modified = false;
+            Object defaults = defaultInstance(metadata, instance);
 
             for (ConfigurationMetadata.FieldMetadata fieldMeta : metadata.fields) {
-                fieldMeta.field.setAccessible(true);
-
                 if (!config.contains(fieldMeta.configPath)) {
                     if (fieldMeta.required) {
                         continue; // required 缺失由 load 抛错提示，不静默补齐
                     }
-                    Object defaultValue = fieldMeta.field.get(instance);
+                    Object defaultValue = readField(fieldMeta, defaults);
                     if (defaultValue == null) {
                         continue;
                     }
@@ -210,11 +209,8 @@ public class ConfigurationLoader {
                     continue;
                 }
 
-                // 已存在：注释按 refreshComment 刷新，Map 字段还要按默认实例逐 key 深度补齐
+                // 已存在：只刷新注释。Map 是用户可编辑的集合，删掉的条目不会被补回来
                 modified |= refreshCommentIfNeeded(config, fieldMeta);
-                if (Map.class.isAssignableFrom(fieldMeta.field.getType())) {
-                    modified |= mergeMapEntries(config, fieldMeta, instance);
-                }
             }
 
             // 只有真的改了才写盘：注释刷新也计入 modified，否则改完 description 重启也看不到效果；
@@ -229,34 +225,40 @@ public class ConfigurationLoader {
     }
 
     /**
-     * 将默认 Map 实例中用户文件缺失的 key 补进对应 section。
+     * 取「默认值实例」：新建一个配置实例，字段初始值才是真正的默认值。
+     * <p>
+     *     直接读正在使用的实例会把上一次加载进内存的值当成默认值——{@code /reload} 时用户删掉的键
+     *     会被旧值填回去（Map 更明显：整个 section 都是内存里的旧内容）。没有可用的无参构造器
+     *     （{@code registerConfiguration(instance)} 的文档场景）时退回传入的实例：那条路没有别的
+     *     默认值来源。
+     * </p>
      */
-    private boolean mergeMapEntries(@NotNull FileConfiguration config, @NotNull ConfigurationMetadata.FieldMetadata fieldMeta,
-                                    @NotNull Object instance) throws IllegalAccessException {
-        Object defaultMapObj = fieldMeta.field.get(instance);
-        if (!(defaultMapObj instanceof Map)) {
-            return false;
+    @NotNull
+    private Object defaultInstance(@NotNull ConfigurationMetadata metadata, @NotNull Object instance) {
+        try {
+            Constructor<?> constructor = metadata.configClass.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            logger.debug("Cannot create a fresh " + metadata.configClass.getName()
+                    + " to read defaults (" + e.getClass().getSimpleName() + "); using the registered instance");
+            return instance;
         }
+    }
 
-        ConfigurationSection section = config.getConfigurationSection(fieldMeta.configPath);
-        if (section == null) {
-            return false; // 整节缺失的场景由上层整键补齐处理
+    /**
+     * 从默认值实例上读字段；字段读不到时返回 null，由调用方决定跳过还是写入 null。
+     */
+    @Nullable
+    private Object readField(@NotNull ConfigurationMetadata.FieldMetadata fieldMeta, @NotNull Object defaults) {
+        try {
+            Field field = fieldMeta.field;
+            field.setAccessible(true);
+            return field.get(defaults);
+        } catch (IllegalAccessException e) {
+            logger.warn("Failed to get default value for field: " + fieldMeta.field.getName());
+            return null;
         }
-
-        boolean modified = false;
-        for (Map.Entry<?, ?> entry : ((Map<?, ?>) defaultMapObj).entrySet()) {
-            String key = String.valueOf(entry.getKey());
-            if (section.contains(key)) {
-                continue;
-            }
-            Object serialized = serializeFieldValue(entry.getValue());
-            if (serialized == null) {
-                continue;
-            }
-            config.set(fieldMeta.configPath + "." + key, serialized);
-            modified = true;
-        }
-        return modified;
     }
 
     public void checkVersionAndMigrate(@NotNull Object instance, @NotNull ConfigurationMetadata metadata) {
