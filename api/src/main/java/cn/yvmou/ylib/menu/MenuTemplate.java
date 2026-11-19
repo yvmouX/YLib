@@ -54,7 +54,7 @@ package cn.yvmou.ylib.menu;
 public interface MenuTemplate {
 
     /**
-     * 布局表：一行字符串 = 一行槽位（见重构文档 §3）。
+     * 布局表：一行字符串 = 一行槽位（见 {@code 文档/菜单.md}「布局表」）。
      * <p>
      * 单字符符号裸写、多字符符号用反引号包裹（{@code `quests`}）、空白只用于源码对齐；
      * 行数 1..6，每行格数必须等于 {@link #columns()}。
@@ -78,7 +78,7 @@ public interface MenuTemplate {
      * <p>
      * 标题在容器创建时定稿（原版做不到打开后改标题），而容器是**每次打开**新建的，
      * 因此这里的占位符按「打开时」求值是可行的——需要按玩家变的标题（玩家名、当前页码）
-     * 必须走 {@link MenuBuilder#titleVars} 提供的取值，而不是在里面读自己的字段。
+     * 必须走 {@code Menus.open(template, viewer, titleVars)} 提供的取值，而不是在里面读自己的字段。
      */
     default String title() {
         return "";

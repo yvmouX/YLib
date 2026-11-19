@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
  *     }
  *
  *     @Override
- *     public void command(Player viewer, String command) {
+ *     public void playerCommand(Player viewer, String command) {
  *         Bukkit.dispatchCommand(viewer, command);
  *     }
  *
@@ -24,9 +24,11 @@ import org.bukkit.entity.Player;
  *
  *     @Override
  *     public void openMenu(Player viewer, String menuName) {
- *         MenuDefinition target = Menus.definitionByName(menuName);
- *         if (target != null) {
- *             Menus.open(target, viewer);
+ *         for (MenuDefinition definition : Menus.definitions()) {
+ *             if (definition.template().getClass().getSimpleName().equals(menuName)) {
+ *                 Menus.open(definition, viewer);
+ *                 return;
+ *             }
  *         }
  *     }
  * });

@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 public interface Logger {
 
     /**
-     * 调试日志。默认**不输出**(由宿主通过 {@code PluginInfo.setLoggerDebug(true)} 打开)。
+     * 调试日志。默认**输出**，宿主可用 {@code PluginInfo.setLoggerDebug(false)} 关掉（见 {@code 文档/日志.md}）。
      * <p>
      * 与 {@code info} 的区别不在级别,而在「要不要让最终用户看到」——调试日志是给开发者看的。
      */

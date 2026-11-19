@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 声明与校验：重构文档 §5「启动期校验清单」里那些**只靠模板就能判**的条目。
+ * 声明与校验：{@code 文档/菜单.md}「启动期校验」里那些**只靠模板就能判**的条目。
  * <p>
  * 这一层的价值全在「什么时候抛」：菜单写错必须在注册期炸，而不是等玩家点开时炸。
  * 因此每条校验都断言「抛了，而且报错信息指到了具体的位置 / 符号」。

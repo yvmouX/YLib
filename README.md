@@ -23,7 +23,7 @@ This method includes YLib inside your plugin jar.
 
 ```groovy
 plugins {
-    id("com.gradleup.shadow") version "9.0.0-rc3"
+    id("com.gradleup.shadow") version "9.3.0"
 }
 
 repositories {
@@ -99,6 +99,12 @@ shadowJar {
 > 两个插件各打包一份没重定位的 YLib，第二个插件调 `YLib.init(this)` 时会直接抛
 > `YLibException: YLib has already been initialized by another plugin: ...`。
 > 重定位之后每个插件各有一份互不干扰的副本。
+
+> **Adventure 不在 YLib 的 jar 里。** 文本能力（MiniMessage / `Component`）用 `api` 依赖声明，
+> 但打包时排除了 `net/kyori/**`：Paper 服务端自带 Adventure，再 shade 一份会让 `Component`
+> 出现两个类身份，发消息 / 广播直接 `ClassCastException`。**Spigot 端由使用方提供**——
+> 正常情况下它作为 `implementation` 的传递依赖就在 `runtimeClasspath` 上，shadow 会一并打进去；
+> 用了 `compileOnly` 或最小化（minimize）的话，记得自己声明 `net.kyori:adventure-*`。
 
 ### 公共 API 与内部实现
 
@@ -249,18 +255,18 @@ public final class AdminMenu implements MenuTemplate {
 
     @Override
     public void declare(MenuBuilder b) {
-        b.symbol('#').item("border")                 // 8 个槽位共用一份物品定义
-            .of(Items.of(Material.GRAY_STAINED_GLASS_PANE).name(" "));
+        b.symbol('#', "border").of(Items.of(Material.GRAY_STAINED_GLASS_PANE).name(" "));
+        // ↑ 8 个槽位共用一份物品定义；第二个参数是 yml 里的配置键
 
-        b.symbol('c').item("create_btn")
+        b.symbol('c', "create_btn")
             .of(Items.of(Material.WRITABLE_BOOK).name("&f创建任务").lore("&7点击创建"))
             .onClick((slot, ctx) -> new CreateQuestMenu(questService).open(ctx.viewer()));
 
-        b.symbol("quests").item("quests_btn")        // 多字符符号用反引号
+        b.symbol("quests", "quests_btn")             // 多字符符号（布局里用反引号）
             .of(Items.of(Material.WRITABLE_BOOK)
                      .name("&f任务列表")
                      .lore("&7当前共 &e{count} &7个"))
-            .ph("count", ctx -> questService.count(ctx.viewer()))   // 打开时求值
+            .ph("count", ctx -> String.valueOf(questService.count(ctx.viewer())))   // 打开时求值
             .onClick((slot, ctx) -> new QuestListMenu(questService).open(ctx.viewer()));
 
         b.fillEmpty(Items.filler());                 // 没被符号占用的格子
@@ -282,8 +288,8 @@ public final class AdminMenu implements MenuTemplate {
 
 ```java
 // 分页：l 在布局里占几格，perPage 就是几，不用另写常量
-b.symbol('l').item("quest_entry")
-    .pageItems((viewer, page, perPage) -> questService.page(viewer, page, perPage))
+b.symbol('l', "quest_entry")
+    .pageItems((viewer, page, perPage) -> questRows(viewer, page, perPage))   // 返回 List<ItemStack>
     .onClick((slot, ctx) -> {
         int global = ctx.page() * ctx.perPage() + ctx.indexInSymbol(slot);
         Quest q = questService.at(ctx.viewer(), global);
@@ -292,14 +298,14 @@ b.symbol('l').item("quest_entry")
         }
     });
 
-b.symbol('p').item("prev").of(Items.of(Material.ARROW).name("&f上一页")).previousPage();
-b.symbol('q').item("pageinfo").of(Items.of(Material.PAPER).name("&f第 &e{page}/{pages} &7页")).pageIndicator();
-b.symbol('n').item("next").of(Items.of(Material.ARROW).name("&f下一页")).nextPage();
+b.symbol('p', "prev").of(Items.of(Material.ARROW).name("&f上一页")).previousPage();
+b.symbol('q', "pageinfo").of(Items.of(Material.PAPER).name("&f第 &e{page}/{pages} &7页")).pageIndicator();
+b.symbol('n', "next").of(Items.of(Material.ARROW).name("&f下一页")).nextPage();
 ```
 
-> 物品一律由 `Items` 三级阶梯给出：`Items.of(Material)`（模板写死）、`Items.of(String)`（yml 读来的材质名，
-> 启动期解析 + 改名建议）、`Items.of(ItemStack)`（接管成品物品）。名字与 lore 收 `&` 色码字符串，
-> 里面可以写 `{占位符}`；**不带 MiniMessage**——玩家昵称里的 `<` 会被标签解析吃掉。
+> 物品一律由 `Items` 四级阶梯给出：`Items.of(Material)`（模板写死）、`Items.of(String)`（yml 读来的材质名，
+> 启动期解析 + 改名建议）、`Items.of(ItemStack)`（接管成品物品）、`Items.of(ctx -> Material)`（材质随数据变）。
+> 名字与 lore 收 `&` 色码字符串，里面可以写 `{占位符}`；**不带 MiniMessage**——玩家昵称里的 `<` 会被标签解析吃掉。
 
 完整的规则、校验清单与配置格式见 [文档/菜单.md](文档/菜单.md)。
 
@@ -313,6 +319,7 @@ b.symbol('n').item("next").of(Items.of(Material.ARROW).name("&f下一页")).next
 | [配置](文档/配置.md) | 注解配置、类型映射、注释（`refreshComment` / `@keep`）、验证规则、版本迁移 |
 | [多语言](文档/多语言.md) | 语言文件、占位符、`TextRenderer` |
 | [菜单](文档/菜单.md) | 箱子界面框架（布局即文本图、声明式物品与行为） |
+| [输入](文档/输入.md) | 聊天栏取值（一问一答、取消 / 超时 / 退服） |
 | [调度器](文档/调度器.md) | Spigot / Paper / Folia / Canvas 统一调度器 |
 | [日志](文档/日志.md) | 日志级别、`{}` 占位符、异常、以及给命令发送者的提示（`Notices`） |
 
@@ -325,6 +332,7 @@ YLib/
 ├── api/                  # 对外暴露的一切：契约 + 框架 + 公共工具（Java 8）
 │                         #   scheduler/config/command/logger/message 的接口与注解，
 │                         #   menu 菜单框架（MenuTemplate/Items/Menus）、TextRenderer、
+│                         #   input 聊天输入（ChatInput）、help 帮助渲染（CommandHelp）、
 │                         #   Argument/CommandNode
 │                         #   注意：本模块编译期看不见 core，边界由构建强制
 ├── core/                 # 只放内部实现（Java 8），按特性分模块

@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 布局解析：重构文档 §3「布局语法与槽位映射」。
+ * 布局解析：{@code 文档/菜单.md}「布局表」。
  *
  * <h2>「格数」= 符号数（token）</h2>
  * 这是本节唯一的度量口径，也是「每行 9 格」这句话的实现含义：

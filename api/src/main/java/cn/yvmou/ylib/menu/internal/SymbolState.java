@@ -207,7 +207,7 @@ public final class SymbolState {
     /**
      * 按优先级挑出这次点击该跑的回调，挑不到返回 {@code null}。
      * <p>
-     * 优先级（见重构文档 §7.2 / §11）：
+     * 优先级（见 {@code 文档/菜单.md}「符号与行为」）：
      * <ol>
      *   <li>按槽位号精确指定的回调；</li>
      *   <li>精确 {@code ClickKind} 匹配（带 Shift 的走另一张表，因此 {@code Shift+左键} 与

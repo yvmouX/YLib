@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 配置文件层（重构文档 §9）：**代码给默认值、文件负责覆盖**。
+ * 配置文件层（{@code 文档/菜单.md}「配置文件」）：**代码给默认值、文件负责覆盖**。
  * <p>
  * 用反射代理造一个最小 {@code Plugin}（只要 {@code getDataFolder} 与 {@code getResource}），
  * 因此这一层的规则——生成、合并、版本迁移、脏数据回退——都能在没有服务端的环境里钉死。
